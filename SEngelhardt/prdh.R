@@ -31,80 +31,6 @@ colnames(d)<-x@data[,1]
 #  addTiles() %>% 
 #  addCircleMarkers(data=x)
 
-################################################################
-### SIMPLE BIRTH ORDERS AND NUMBERS OF CHILD OVERLAPPING
-################################################################
-
-library(plyr)
-load("~/UdeS/Consultation/SEngelhardt/Doc/y.RData")
-load("~/UdeS/Consultation/SEngelhardt/Doc/y2.RData")
-load("~/UdeS/Consultation/SEngelhardt/Doc/PRDH.RData")
-
-y<-y[,c("F0","OrderF0","F1","yearbF1")]
-y<-y[order(y$F0,y$OrderF0),]
-y2<-y2[,c("F1","OrderF1","F2","yearbF2","F0")]
-y2<-y2[order(y2$F1,y2$OrderF1),]
-head(y,20)
-head(y2,20)
-
-y2$fatherF2<-PRDH[match(y2$F2, PRDH$id),"sire"]
-y2$paternalGM<-PRDH[match(y2$fatherF2,PRDH$id),"dam"]
-y2$maternalGM<-PRDH[match(y2$F1,PRDH$id),"dam"]
-y2$mGM_or_pGM<-as.factor(ifelse(y2$F0==y2$maternalGM,"mGM","pGM"))
-
-y2<-y2[y2$mGM_or_pGM%in%c("mGM"),]
-y2<-y2[!duplicated(y2[,c("F1","F2")]),]
-y2<-y2[,c("F1","OrderF1","F2","yearbF2","F0")]
-
-table(y$F0%in%y2$F0)
-table(y2$F0%in%y$F0)
-
-test<-sample(y2$F1,1)
-yy2<-y2[y2$F1==test,]
-yy<-y[y$F1==test,]
-yy
-yy2
-
-
-crap1<-ddply(y[y$F0==1430,],.(F0,OrderF0),function(i){
-  index<-y2$F0%in%i$F0[1]
-  if(!any(index)){
-    nb_event<-NA
-    nb_offspring<-NA
-  }else{
-    res<-y2[which(index & y2$yearbF2%in%seq(i$yearbF1-2,i$yearbF1+2,by=1)),]
-    nb_event<-nrow(res)
-    nb_offspring<-length(unique(res$F1))
-  }
-  data.frame(i,nb_event,nb_offspring,stringsAsFactors=FALSE)
-})
-
-crap2<-ddply(y2[y2$F0==1430,],.(F1,OrderF1),function(i){
-  index<-y$F0==i$F0[1]
-  if(!any(index)){
-    nb_event<-NA
-    nb_offspring<-NA
-  }else{
-    res<-y[which(index & y$yearbF1>=(i$yearbF1-2) & y$yearbF1<=(i$yearbF1+2)),]
-    nb_event<-nrow(res)
-    nb_offspring<-length(unique(res$F0))
-  }
-  data.frame(i,nb_event,nb_offspring,stringsAsFactors=FALSE)
-})
-
-
-yy<-y[y$F0==y$F0[300],]
-yy2<-y2[y2$F1%in%yy$F1,]
-
-
-x<-join(y,y2[,c("F1","F2","OrderF1","yearbF2")],type="full")
-
-
-y<-y[,c("F0","OrderF0","F1","yearbF1","nb_event","nb_offspring")]
-y<-y[order(y$F0,y$F1,y$OrderF0),]
-
-y2<-y2[,c("F0","F1","F2","OrderF1","yearbF2","nb_event","nb_offspring")]
-y2<-y2[order(y2$F0,y2$F1,y2$F2,y2$OrderF1,y2$yearbF2),]
 
 ###################################################################################
 ### MORE COMPLEX BIRTH ORDERS #####################################################
@@ -120,7 +46,6 @@ rm(PRDH)
 
 # convert factors to characters for easier manipulations
 g[]<-lapply(g, function(i){if(is.factor(i)){as.character(i)}else{i}})
-
 
 # get the complete list of females
 keep<-c("id","sex")
@@ -218,6 +143,7 @@ x<-x[order(x$F0,x$bdateF1,x$F1),]
 # bdate with missing day will be given bday=15 and flagged "day" for bday
 # any NAs in yearb will be placed sequentially in sequential >=5 years intervals between two reproductive event, one by one, and flagged "interval"
 # the ordering of NA bdate is made using the id of individuals
+# should use data.table or dplyr to make this faster
 
 getorder<-function(x,gen="F1"){
   date<-paste0("bdate",gen)
@@ -270,8 +196,79 @@ x2<-getorder(x2,gen="F2")
 
 x2<-x2[!is.na(match(x2$F1,p$mother)),]
 x2<-x2[,c("F0",names(x2)[grep("F1|F2",names(x2))])]
-x2<-x2[order(x2$yearF1,x2$F1,x2$bdateF2,x2$F2),]
+x2<-x2[order(x2$byearF1,x2$F1,x2$bdateF2,x2$F2),]
 
+
+####################################################################################
+### SIMPLE BIRTH ORDERS AND NUMBERS OF CHILD OVERLAPPING FROM x and x2, not y and y2
+####################################################################################
+
+library(data.table)
+
+int<-2*365
+
+x$bdateF0<-as.Date(x$bdateF0)
+x$bdateF1<-as.Date(x$bdateF1)
+x2$bdateF1<-as.Date(x2$bdateF1)
+x2$bdateF2<-as.Date(x2$bdateF2)
+
+x2dt<-as.data.table(x2[,c("F0","F1","F2","bdateF1","bdateF2")])
+setkey(x2dt,"F0")
+
+f<-function(i){
+  xx2<-x2dt[i$F0[1]]
+  if(nrow(xx2)==0){
+    nb_event<-NA
+    nb_offspring<-NA
+  }else{
+    res<-xx2$F1[which(xx2$bdateF2>=(i$bdateF1-int) & xx2$bdateF2<=(i$bdateF1+int))]
+    nb_event<-length(res)
+    nb_offspring<-length(unique(res))
+  }
+  data.frame(i,nb_event,nb_offspring,stringsAsFactors=FALSE)
+}
+
+### this takes about 4 minutes on my computer
+xdf<-x
+system.time(y1<-setDT(xdf)[, f(.SD), by=c("F0","F1"), .SDcols=c("F0","F1","bdateF1")])
+
+
+xdt<-as.data.table(x2[,c("F0","F1","bdateF1")])
+setkey(xdt,"F0")
+
+f2<-function(i){
+  xx<-xdt[i$F0[1]]
+  if(nrow(xx)==0){
+    nb_event<-NA
+  }else{
+    nb_event<-sum(which(xx$bdateF1>=(i$bdateF1-int) & xx$bdateF1<=(i$bdatebF1+int)))
+  }
+  data.frame(i,nb_event,nb_offspring=NA,stringsAsFactors=FALSE)
+}
+
+### this takes about 4 minutes on my computer
+x2df<-x2
+system.time(y2<-setDT(x2df)[, f2(.SD), by=c("F1","F2"), .SDcols=c("F0","F1","bdateF1")])
+
+
+### general checking
+#check F0 141967 she has a F1 with NA but it is likely her first child and not her last based on her F2 child dates
+id<-y1$F0[y1$nb_event==10]
+yy1<-y1[y1$F0==id[1],]
+xx<-x[x$F0==id[1],c("F0","F1","bdateF1")]
+xx2<-x2[x2$F0==id[1],c("F0","F1","sexF1","F2","bdateF2")]
+
+
+
+
+
+#xx<-y[y$F0==y$F0[300],]
+#xx2<-y2[y2$F1%in%yy$F1,]
+#x<-join(y,y2[,c("F1","F2","OrderF1","yearbF2")],type="full")
+#<-y[,c("F0","OrderF0","F1","yearbF1","nb_event","nb_offspring")]
+#y<-y[order(y$F0,y$F1,y$OrderF0),]
+#y2<-y2[,c("F0","F1","F2","OrderF1","yearbF2","nb_event","nb_offspring")]
+#y2<-y2[order(y2$F0,y2$F1,y2$F2,y2$OrderF1,y2$yearbF2),]
 
 
 
