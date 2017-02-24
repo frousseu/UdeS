@@ -255,22 +255,16 @@ system.time(y2<-setDT(x2df)[, f2(.SD), by=c("F1","F2"), .SDcols=c("F0","F1","bda
 
 ### general checking
 #check F0 141967 she has a F1 with NA but it is likely her first child and not her last based on her F2 child dates
-id<-y1$F0[y1$nb_event==2]
-yy1<-y1[y1$F0==id[1],]
-xx<-x[x$F0==id[1],c("F0","F1","bdateF1")]
-xx2<-x2[x2$F0==id[1],c("F0","F1","sexF1","F2","bdateF2")]
+id<-y1$F0[y1$nb_event==3]
+id<-sample(id,1)
+id<-49176
+yy1<-y1[y1$F0==id,]
+xx<-x[x$F0==id,c("F0","F1","bdateF1")]
+xx<-x2[x2$F0==id,c("F0","F1","sexF1","F2","bdateF2")]
 
 
-save.image("C:/Users/rouf1703/Documents/UdeS/Consultation/SEngelhardt/Doc/prdhF012.RData")
+#save.image("C:/Users/rouf1703/Documents/UdeS/Consultation/SEngelhardt/Doc/prdhF012.RData")
 
-
-#xx<-y[y$F0==y$F0[300],]
-#xx2<-y2[y2$F1%in%yy$F1,]
-#x<-join(y,y2[,c("F1","F2","OrderF1","yearbF2")],type="full")
-#<-y[,c("F0","OrderF0","F1","yearbF1","nb_event","nb_offspring")]
-#y<-y[order(y$F0,y$F1,y$OrderF0),]
-#y2<-y2[,c("F0","F1","F2","OrderF1","yearbF2","nb_event","nb_offspring")]
-#y2<-y2[order(y2$F0,y2$F1,y2$F2,y2$OrderF1,y2$yearbF2),]
 
 
 
