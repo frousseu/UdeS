@@ -225,7 +225,7 @@ f<-function(i){
     nb_event<-length(res)
     nb_offspring<-length(unique(res))
   }
-  data.frame(i,nb_event,nb_offspring,stringsAsFactors=FALSE)
+  data.frame(nb_event,nb_offspring,stringsAsFactors=FALSE)
 }
 
 ### this takes about 4 minutes on my computer
@@ -233,33 +233,35 @@ xdf<-x
 system.time(y1<-setDT(xdf)[, f(.SD), by=c("F0","F1"), .SDcols=c("F0","F1","bdateF1")])
 
 
-xdt<-as.data.table(x2[,c("F0","F1","bdateF1")])
+xdt<-as.data.table(x[,c("F0","F1","bdateF1")])
 setkey(xdt,"F0")
 
 f2<-function(i){
   xx<-xdt[i$F0[1]]
+  #browser()
   if(nrow(xx)==0){
     nb_event<-NA
   }else{
-    nb_event<-sum(which(xx$bdateF1>=(i$bdateF1-int) & xx$bdateF1<=(i$bdatebF1+int)))
+    nb_event<-sum(xx$bdateF1>=(i$bdateF2-int) & xx$bdateF1<=(i$bdateF2+int),na.rm=TRUE)
   }
-  data.frame(i,nb_event,nb_offspring=NA,stringsAsFactors=FALSE)
+  data.frame(nb_event,nb_offspring=NA,stringsAsFactors=FALSE)
 }
 
 ### this takes about 4 minutes on my computer
+#x2df<-x2[x2$F2==230491,]
 x2df<-x2
-system.time(y2<-setDT(x2df)[, f2(.SD), by=c("F1","F2"), .SDcols=c("F0","F1","bdateF1")])
+system.time(y2<-setDT(x2df)[, f2(.SD), by=c("F1","F2"), .SDcols=c("F0","F1","bdateF2")])
 
 
 ### general checking
 #check F0 141967 she has a F1 with NA but it is likely her first child and not her last based on her F2 child dates
-id<-y1$F0[y1$nb_event==10]
+id<-y1$F0[y1$nb_event==2]
 yy1<-y1[y1$F0==id[1],]
 xx<-x[x$F0==id[1],c("F0","F1","bdateF1")]
 xx2<-x2[x2$F0==id[1],c("F0","F1","sexF1","F2","bdateF2")]
 
 
-
+save("C:/Users/rouf1703/Documents/UdeS/Consultation/SEngelhardt/Doc/prdhF012.RData")
 
 
 #xx<-y[y$F0==y$F0[300],]
