@@ -261,7 +261,7 @@ xx<-x[x$F0==id[1],c("F0","F1","bdateF1")]
 xx2<-x2[x2$F0==id[1],c("F0","F1","sexF1","F2","bdateF2")]
 
 
-save("C:/Users/rouf1703/Documents/UdeS/Consultation/SEngelhardt/Doc/prdhF012.RData")
+save.image("C:/Users/rouf1703/Documents/UdeS/Consultation/SEngelhardt/Doc/prdhF012.RData")
 
 
 #xx<-y[y$F0==y$F0[300],]
