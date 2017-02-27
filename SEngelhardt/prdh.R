@@ -36,6 +36,7 @@ colnames(d)<-x@data[,1]
 ### MORE COMPLEX BIRTH ORDERS #####################################################
 ###################################################################################
 library(plyr)
+library(data.table)
 # should make things faster with data.table
 
 load("~/UdeS/Consultation/SEngelhardt/Doc/PRDH.RData")
@@ -202,8 +203,6 @@ x2<-x2[order(x2$byearF1,x2$F1,x2$bdateF2,x2$F2),]
 ####################################################################################
 ### SIMPLE BIRTH ORDERS AND NUMBERS OF CHILD OVERLAPPING FROM x and x2, not y and y2
 ####################################################################################
-
-library(data.table)
 
 int<-2*365
 
