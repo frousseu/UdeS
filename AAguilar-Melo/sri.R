@@ -6,12 +6,14 @@ library(plyr)
 ## c,est quoi season_per1, les id des individus et les dyads, variable même groupe ou pas?
 ## il semble qu'il faut vraiment scaler les données, sinon on se retrouve avec plein de warnings de non-convergence
 ## check asnipe package, it computes sri values, but does not keep numerator and denominator
+## need to determine which periods are used, because the number of observations in the dyad calculation does not match with the number of observations analysed
 
 ###########################
 ### get data
 ###########################
 
 #a<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLMOTHERcortada.csv")
+PL<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLADRY-b.csv", colClasses= "character")
 PL<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLADRY-b.csv", colClasses= "character")
 d<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/SRIModels_PA_Ago16_2.csv")
 d<-d[!is.na(d$sri),]
@@ -64,9 +66,15 @@ d$ficus.s<-scale(d$ficus)[,1]
 d$brosimum.s<-scale(d$brosimum)[,1]
 d$var.s<-scale(d$var)[,1]
 
+#m<-glmer(cbind(ab,abnot)~season*ficus+season*brosimum+season*var+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d,family=binomial)
 
 m<-glmer(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d,family=binomial)
 
-m2<-glm(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s,data=d,family=binomial)
+ml<-lmer(sri~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d)
 
-visreg(m,"brosimum.s",by="ficus.s",scale="response",type="conditional",overlay=FALSE)
+#m2<-glm(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s,data=d,family=binomial)
+
+visreg(m,"brosimum.s",by="var.s",scale="response",type="conditional",overlay=TRUE,gg=TRUE)
+
+#visreg(ml,"brosimum.s",by="ficus.s",scale="response",type="conditional",overlay=TRUE)
+visreg2d(m,"brosimum.s","ficus.s",type="conditional",scale="response")
