@@ -3,6 +3,8 @@ library(readxl)
 library(plyr)
 library(scales)
 library(vegan)
+library(devtools)
+library(ggbiplot)
 
 
 
@@ -41,10 +43,11 @@ d<-d[,c(keep,ag)]
 x<-ddply(d,.(pair,season,year,time),function(i){
   w1<-which(i$plot%in%c("BI","SR"))
   w2<-which(i$plot%in%c("SI","CO")) 
-  x<-as.matrix(i[w1,-seq_along(keep)])[,1:n]
-  y<-as.matrix(i[w2,-seq_along(keep)])[,1:n]
+  nn<-n #select all 15 ag (nn<-n) or not
+  x<-as.matrix(i[w1,-seq_along(keep)])[,1:n][,1:nn]
+  y<-as.matrix(i[w2,-seq_along(keep)])[,1:n][,1:nn]
   center<-colMeans(y)
-  SigmaInv<-solve(var(d[,-seq_along(keep)][,1:n]))
+  SigmaInv<-solve(var(d[,-seq_along(keep)][,1:n][,1:nn]))
   sqrt(apply(x,1,function(i){(i-center) %*% SigmaInv %*% (i-center)}))
   #sqrt(mahalanobis(x,center=unname(center),cov=SigmaInv,tol=1e-80,inverted=TRUE))
 })
@@ -71,11 +74,12 @@ legend("topright",pch=1,lwd=3,pt.cex=1.5,col=alpha(c("red","blue",0.5)),legend=c
 #visreg(m2)
 
 ### pca
-temp<-d[d$plot%in%c("BI","SI"),]
+temp<-d[d$plot%in%c("SR","CO"),]
 pca<-prcomp(temp[,7:ncol(d)],scale=TRUE)
 #mod<-rda(temp[,7:ncol(d)],scale=TRUE)
 par(mar=c(2,2,2,2))
-biplot(pca,col=c("grey80","grey80"),expand=1.5,xlim=range(pca$rot[,1]),ylim=range(pca$rot[,2]))
+biplot(pca,col=c("white","grey80"),expand=1.5,xlim=range(pca$rot[,1]),ylim=range(pca$rot[,2]))
+box("plot",col="black")
 #biplot(pca$rotation,pca$x,col=c("grey80","grey80"),expand=0.5)
 text(pca$x[,1],pca$x[,2],temp$plot,col=alpha(temp$time+1,0.5),font=2,cex=1.25)
 #text(mod$CA$v[,1],mod$CA$v[,2],temp$plot,col=temp$time+1,font=2)
@@ -84,10 +88,9 @@ legend("topleft",legend=unique(paste(temp$time,temp$season,temp$year,sep=" ")),f
 
 
 ### betadisper
-temp<-d[d$plot%in%c("BI","SI"),][11:20,]
+temp<-d[d$plot%in%c("BI","SI"),]
 dis <- dist(temp[,7:ncol(d)])
-groups <- factor(c(rep("SI",5), rep("BI",5)))
-mod <- betadisper(dis, groups,type="centroid")
+mod <- betadisper(dis, group=paste(temp$plot,temp$time),type="centroid")
 mod
 anova(mod)
 
@@ -110,5 +113,14 @@ plot(mod, axes = c(2,1), seg.col = "forestgreen", seg.lty = "dashed")
 
 ## Draw a boxplot of the distances to centroid for each group
 boxplot(mod)
+
+
+### ggplot biplot pca
+g<-ggbiplot(pca,choices=1:2,obs.scale=1,var.scale=1,groups=paste(temp$time),ellipse=TRUE,circle=FALSE,labels=temp$plot,labels.size=5)
+g<-g+scale_color_discrete(name='YY')
+g<-g+theme(legend.direction='horizontal',legend.position='top')
+print(g)
+#ggscreeplot(pca)
+
 
 
