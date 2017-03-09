@@ -15,9 +15,19 @@ library(readxl)
 
 #a<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLMOTHERcortada.csv")
 PL<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLADRY-b.csv", colClasses= "character")
-PL<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLADRY-b.csv", colClasses= "character")
 d<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/SRIModels_PA_Ago16_2.csv",stringsAsFactors=FALSE)
 #d<-d[!is.na(d$sri),]
+
+### take out individual with fewer than 10% scans with obs in each block
+ind<-names(PL)[which(nchar(names(PL))==2)]
+PL[ind]<-lapply(PL[ind],function(i){ifelse(is.na(i),NA,1)})
+nbobs<-ddply(PL,.(period2),function(i){
+ colSums(i[,ind],na.rm=TRUE)/nrow(i) 
+})
+nbobs<-melt(nbobs)
+names(nbobs)[2]<-"id"
+
+
 
 r<-read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/association_period 2009-2010-PourFrancois.xlsx",sheet=2,skip=4)
 r[]<-lapply(r,function(i){if(all(is.na(i))){NULL}else{i}})
@@ -38,6 +48,29 @@ r$sri<-r$ab/(r$ab+r$abnot)
 r$sri<-ifelse(is.nan(r$sri),NA,r$sri)
 r$dyad1<-paste(r$id1,r$id2,sep="_")
 r$sri2<-r$sri
+### eliminate cases by hand
+# r is ordered according to the different periods and the elimination here depnds on this ordering
+
+### commentaires par adriana ###
+# "AI" était après May09_1. Alors, avant il serait NA.
+# "BO" la même chose.
+# "HI" a émigré en avril 19 du 2010. Donc NA avant "April10_1"
+# "SR" serait éliminée  car elle était juvenile en 2009 et elle a émigré en janvier 2010.
+### les deux premiers on n'a pas de May09_1 les données commencent après
+
+idpos<-(r$id1=="AI" | r$id2=="AI")
+periodpos<-r$period2=="May09_1"
+which(idpos & periodpos)
+
+idpos<-which(r$id1=="HI" | r$id2=="HI")
+periodpos<-which(r$period2=="April10_1")
+w<-idpos[idpos<min(periodpos)]
+r<-r[-w,]
+
+idpos<-which(r$id1=="SR" | r$id2=="SR")
+r<-r[-w,]
+
+
 
 
 
@@ -70,6 +103,13 @@ x<-ddply(PL,.(period2),function(i){
 x$sri2<-x$sri #second sri index to make sure the new is correctly computed
 x<-x[,-match("sri",names(x))] #take out the sri one to make sure both are different columns
 
+nbobs1<-setNames(nbobs,paste0(names(nbobs),c("",1,1)))
+nbobs2<-setNames(nbobs,paste0(names(nbobs),c("",2,2)))
+x<-join(x,nbobs1,type="left")
+x<-join(x,nbobs2,type="left")
+
+x<-x[x$value1>=0.1 & x$value2>=0.1,]
+x<-x[,-grep("value",names(x))]
 
 ######################################
 ### verifications and binding all data
@@ -81,7 +121,7 @@ x<-rbind(x,r[,names(x)])
 d<-join(d,x,type="left")
 # compare old sri to new sri2
 # some values not matching in three periods (Nov09-1,Nov13_2,Jan14_1)
-View(d[which(abs(d$sri-d$sri2)>0.0001),])
+#View(d[which(abs(d$sri-d$sri2)>0.0001),])
 # verify
 temp<-d[,c("period2","dyad1")]
 nrow(temp)
@@ -93,9 +133,9 @@ nrow(temp)
 nrow(unique(temp))
 table(is.na(d$sri))
 table(is.na(d$sri2))
-View(d)
+#View(d)
 
-ddply(d,.(dyad1),function(i){all(i$ab==0)})
+#ddply(d,.(dyad1),function(i){all(i$ab==0)})
 
 #####################################
 ### run model
@@ -103,6 +143,9 @@ ddply(d,.(dyad1),function(i){all(i$ab==0)})
 
 # for now, only eliminate based on sri2
 d<-d[!is.na(d$sri2),]
+
+# eliminate dyads with individual seen less than 10% of each period scans
+
 
 # give simpler names toi variable and scale them
 d$ficus<-d$ifa.ficus
@@ -122,7 +165,7 @@ m<-glmer(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*b
 
 #m2<-glm(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s,data=d,family=binomial)
 
-visreg(m,"brosimum.s",by="ficus.s",scale="response",type="conditional",overlay=TRUE,gg=TRUE)
+visreg(m,"brosimum.s",by="season",type="conditional",overlay=TRUE,scale="response")
 
 #visreg(ml,"brosimum.s",by="ficus.s",scale="response",type="conditional",overlay=TRUE)
 visreg2d(m,"brosimum.s","ficus.s",type="conditional",scale="response")
