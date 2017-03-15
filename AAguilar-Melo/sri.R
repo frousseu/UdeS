@@ -3,6 +3,7 @@ library(lme4)
 library(visreg)
 library(plyr)
 library(readxl)
+library(reshape)
 
 ## c,est quoi season_per1, les id des individus et les dyads, variable même groupe ou pas?
 ## il semble qu'il faut vraiment scaler les données, sinon on se retrouve avec plein de warnings de non-convergence
