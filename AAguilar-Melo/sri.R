@@ -5,10 +5,9 @@ library(plyr)
 library(readxl)
 library(reshape)
 
-## c,est quoi season_per1, les id des individus et les dyads, variable même groupe ou pas?
+## c'est quoi season_per1, les id des individus et les dyads, variable même groupe ou pas?
 ## il semble qu'il faut vraiment scaler les données, sinon on se retrouve avec plein de warnings de non-convergence
-## check asnipe package, it computes sri values, but does not keep numerator and denominator
-## need to determine which periods are used, because the number of observations in the dyad calculation does not match with the number of observations analysed
+## voir package asnipe qui calcule des valeurs de sri, mais qui ne conserve pas les valeurs des numérateurs et dénominateurs
 
 ###########################
 ### get data
@@ -19,9 +18,11 @@ PL<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/PLADRY-
 d<-read.csv("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/SRIModels_PA_Ago16_2.csv",stringsAsFactors=FALSE)
 #d<-d[!is.na(d$sri),]
 
-### take out individual with fewer than 10% scans with obs in each block
+# convert values to 1 or NAs
 ind<-names(PL)[which(nchar(names(PL))==2)]
-PL[ind]<-lapply(PL[ind],function(i){ifelse(is.na(i),NA,1)})
+PL[ind]<-lapply(PL[ind],function(i){ifelse(!i%in%c(1),NA,1)}) #transforms everything not 1 in NAs (including x)
+
+# compute % of times observed in each scan
 nbobs<-ddply(PL,.(period2),function(i){
  colSums(i[,ind],na.rm=TRUE)/nrow(i) 
 })
@@ -29,6 +30,9 @@ nbobs<-melt(nbobs)
 names(nbobs)[2]<-"id"
 
 
+########################################
+### read Braulio data
+########################################
 
 r<-read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/AAguilar/Doc/association_period 2009-2010-PourFrancois.xlsx",sheet=2,skip=4)
 r[]<-lapply(r,function(i){if(all(is.na(i))){NULL}else{i}})
@@ -59,9 +63,11 @@ r$sri2<-r$sri
 # "SR" serait éliminée  car elle était juvenile en 2009 et elle a émigré en janvier 2010.
 ### les deux premiers on n'a pas de May09_1 les données commencent après
 
+# CLARIFIER QUOI FAIRE AVEC AI. AI ne sembla pas être présent dans May09_1
 idpos<-(r$id1=="AI" | r$id2=="AI")
 periodpos<-r$period2=="May09_1"
 which(idpos & periodpos)
+#r<-r[-w,]
 
 idpos<-which(r$id1=="HI" | r$id2=="HI")
 periodpos<-which(r$period2=="April10_1")
@@ -70,9 +76,8 @@ r<-r[-w,]
 
 idpos<-which(r$id1=="SR" | r$id2=="SR")
 r<-r[-w,]
-
-
-
+r$value1<-NA # used later for verifications
+r$value2<-NA # used later for verifications
 
 
 ########################
@@ -104,13 +109,12 @@ x<-ddply(PL,.(period2),function(i){
 x$sri2<-x$sri #second sri index to make sure the new is correctly computed
 x<-x[,-match("sri",names(x))] #take out the sri one to make sure both are different columns
 
+# build % of times observed for each individuals
 nbobs1<-setNames(nbobs,paste0(names(nbobs),c("",1,1)))
 nbobs2<-setNames(nbobs,paste0(names(nbobs),c("",2,2)))
 x<-join(x,nbobs1,type="left")
 x<-join(x,nbobs2,type="left")
 
-x<-x[x$value1>=0.1 & x$value2>=0.1,]
-x<-x[,-grep("value",names(x))]
 
 ######################################
 ### verifications and binding all data
@@ -118,8 +122,15 @@ x<-x[,-grep("value",names(x))]
 
 # bind all data
 x<-rbind(x,r[,names(x)])
+
 # join dyad sri data with d data
-d<-join(d,x,type="left")
+d<-join(d,x,type="full")
+
+### VERIF
+#PL[PL$period2=="Dec14_1",c("TL","VE")]
+#x[x$period2=="Dec14_1" & x$dyad1%in%c("TL_VE","VE_TL"),]
+
+
 # compare old sri to new sri2
 # some values not matching in three periods (Nov09-1,Nov13_2,Jan14_1)
 #View(d[which(abs(d$sri-d$sri2)>0.0001),])
@@ -134,6 +145,13 @@ nrow(temp)
 nrow(unique(temp))
 table(is.na(d$sri))
 table(is.na(d$sri2))
+temp<-d
+temp$sri<-temp$sri==0
+temp$sri2<-temp$sri2==0
+temp$sum<-sum(temp$ab,temp$abnot)
+ddply(temp,.(sri,sri2),nrow)
+d$sri[which((d$ab+d$abnot)==0)]
+
 #View(d)
 
 #ddply(d,.(dyad1),function(i){all(i$ab==0)})
@@ -142,13 +160,16 @@ table(is.na(d$sri2))
 ### run model
 #####################################
 
+# sri is the old sri
+# sri2 is the new sri
+
 # for now, only eliminate based on sri2
 d<-d[!is.na(d$sri2),]
-
 # eliminate dyads with individual seen less than 10% of each period scans
+d<-d[-which(d$value1<0.1 | d$value2<0.1),] #take out is temp
 
 
-# give simpler names toi variable and scale them
+# give simpler names to variable and scale them
 d$ficus<-d$ifa.ficus
 d$brosimum<-d$ifa.brosimum
 d$var<-d$variance.ft
@@ -161,12 +182,7 @@ d$var.s<-scale(d$var)[,1]
 #m<-glmer(cbind(ab,abnot)~season*ficus+season*brosimum+season*var+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d,family=binomial)
 
 m<-glmer(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d,family=binomial)
-
-#ml<-lmer(sri~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s+(1|dyad1)+(1|season_per1),data=d)
-
 #m2<-glm(cbind(ab,abnot)~season*ficus.s+season*brosimum.s+season*var.s+ficus.s*brosimum.s+ficus.s*var.s+brosimum.s*var.s,data=d,family=binomial)
 
 visreg(m,"brosimum.s",by="season",type="conditional",overlay=TRUE,scale="response")
-
-#visreg(ml,"brosimum.s",by="ficus.s",scale="response",type="conditional",overlay=TRUE)
 visreg2d(m,"brosimum.s","ficus.s",type="conditional",scale="response")
