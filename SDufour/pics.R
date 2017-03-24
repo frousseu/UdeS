@@ -23,7 +23,7 @@ hist(resid(mm2))
 d2<-d[d$SEQ>400,]
 mm<-glmer(UTIL~SAISON+TRAIT+DHP+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=glmerControl(optCtrl=list(maxfun=100000) ))
 #m<-glm(UTIL~SAISON*TRAIT+DHP,family=binomial,data=d2)
-visreg(mm,"DHP",by="TRAIT",scale="response",type="conditional")
+visreg(mm,"SAISON",by="TRAIT",scale="response",type="conditional",rug=FALSE)
 
 boxplot(log(SUPER)~SAISON+TRAIT,data=d[d$SUPER>0,],las=2)
 
@@ -34,11 +34,13 @@ dpos<-d[d$SEQ%in%idseq,]
 mm<-lmer(log(SUPER+1)~SAISON+TRAIT+DHP+(1|BLOC)+(1|SITE)+(1|SEQ),data=dpos)
 plot(fitted(mm),resid(mm))
 
+
 m1<-glm(UTIL~SAISON+TRAIT+DHP,data=d,family=binomial(link=logit))
 m2<-glm(SUPER~SAISON+TRAIT+DHP,data=d[d$SUPER>0,],family=Gamma(link=log))
-mm2<-glmer(SUPER~SAISON+TRAIT+DHP+(1|BLOC)+(1|SITE),data=d[d$SUPER>0,],family=Gamma(link=log))
-plot(fitted(m),resid(m))
+mm2<-glmer(SUPER~SAISON+TRAIT+DHP+(1|BLOC)+(1|SITE)+(1|SEQ),data=d[d$SUPER>0,],family=Gamma(link=log))
+plot(fitted(m2),resid(m2))
 
+visreg(m2,"DHP",by="SAISON",scale="response",type="conditional",overlay=TRUE)
 visreg(mm2,"DHP",by="SAISON",scale="response",type="conditional",overlay=TRUE)
 points(d$DHP,d$SUPER,col=as.numeric(d$SAISON)+1)
 
@@ -50,6 +52,7 @@ v[[2]]<-vv[[2]][vv[[2]]$SEQ %in% subSEQ,]
 v[[3]]<-vv[[3]]
 names(v)<-names(vv)
 plot(v,layout=c(10,1))
+
 
 
 
