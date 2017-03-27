@@ -6,6 +6,7 @@ library(plyr)
 library(scales)
 library(car)
 library(AICcmodavg)
+library(multcomp)
 
 
 # prendre en considération le temps s'écoulant entre les trois saisons ou les périodes de mesure
@@ -68,10 +69,12 @@ d$SEQ<-paste0("id",d$SEQ)
 m1<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,family=binomial,data=d)
 m2<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+NOMESURE,family=binomial,data=d)
 m3<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON+NOMESURE,family=binomial,data=d)
-m4<-glm(UTIL~TRAIT+DHP+SAISON+NOMESURE,family=binomial,data=d)
+m4<-glm(UTIL~TRAIT+DHP+SAISON+NOMESURE:NBSAISON,family=binomial,data=d)
 
 ml<-list(m1,m2,m3,m4)
 aictab(ml)
+
+summary(glht(m3, mcp(NOMESURE="Tukey")))
 
 visreg(m3,"PREV_SUPER_REL",scale="response",rug=FALSE,cond=list(SAISON="A2016"))
 visreg(m3,"SAISON",scale="response",rug=FALSE,cond=list(NOMESURE=2))
