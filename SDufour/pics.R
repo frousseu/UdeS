@@ -8,6 +8,8 @@ library(car)
 library(AICcmodavg)
 library(multcomp)
 library(betareg)
+library(mgcv)
+library(gamm4)
 
 ### questionnement
 # prendre en considération le temps s'écoulant entre les trois saisons ou les périodes de mesure?
@@ -64,8 +66,16 @@ invisible(lapply(dlply(d,.(SEQ),function(j){j}),function(i){
 ### MODÈLE DE PROBABILITÉ D'UTILISATION
 ########################################
 
+m<-gamm(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,random=list(SEQ=~1,BLOC=~1,SITE=~1),family=binomial,data=d[d$BATCH=="batch1",],correlation=corCAR1(form=~SAISONNUM|SEQ))
+m<-gamm4(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,random=~(1|BLOC/SITE/SEQ),family=binomial,data=d)
+x<-seq(10,30,by=1)
+newdat<-data.frame(DHP=x,TRAIT="PATCH",PREV_SUPER_REL=0.00,SAISON="A2015")
+p<-predict(m$gam,newdata=newdat,type="response")
+plot(x,p,type="l",ylim=0:1)
+points(x,p)
+
 ### glm
-m1<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,family=binomial,data=d)
+m1<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+,family=binomial,data=d)
 m2<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+AGE,family=binomial,data=d)
 m3<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+TRANS,family=binomial,data=d)
 #m4<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+PREV+TRANS,family=binomial,data=d)
@@ -74,15 +84,18 @@ aictab(ml)
 
 ### glmer
 control<-glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000))
-mm1<-glmer(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
-mm2<-glmer(UTIL~TRAIT+DHP+PREV_SUPER_REL+AGE+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
+mm1<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
+mm2<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
 mm3<-glmer(UTIL~TRAIT+DHP+PREV_SUPER_REL+TRANS+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
+mm<-gamm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=list(SEQ=~1,BLOC=~1,SITE=~1),family=binomial,data=d,correlation=corCompSymm(form=~SAISON|SEQ))
 mml<-list(mm1,mm2,mm3)
 aictab(mml)
 
 ### plot glm effects
 par(mfrow=c(2,2))
-visreg(m3,scale="response",rug=FALSE)
+visreg(mm1,scale="response",rug=FALSE)
+p<-predict(mm1,newdata=newdat,type="response")
+lines(x,p)
 
 ### comparaison entre les SAISON_BATCH
 summary(glht(m3, mcp(TRANS="Tukey")))
@@ -94,11 +107,28 @@ summary(glht(m3, mcp(TRANS="Tukey")))
 
 
 ### MODÈLE DE REGRESSION BETA
-b<-betareg(RELATIVE~TRAIT+DHP+PREV_SUPER_REL+TRANS,data=d[which(d$RELATIVE>0),])
-par(mfrow=c(2,2))
+b<-betareg(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,data=d[which(d$RELATIVE>0),])
+par(mfrow=c(2,3))
 v<-visreg(b,rug=FALSE,ylim=0:1,las=2)
 #points(model.frame(b)$DHP,model.frame(mb2)$RELATIVE)
 
+b<-gamm(RELATIVE~TRAIT+DHP+PREV_SUPER_REL+TRANS,random=list(SEQ=~1,BLOC=~1,SITE=~1),data=d[which(d$RELATIVE>0),],family=betar(link="logit"))
+
+hglm(y=RELATIVE,fixed=SUPER~SAISON+TRAIT+DHP+NOMESURE,random = ~ 1|SEQ,family = Gamma(link = log),rand.family = Gamma(link = log),disp = ~ SAISON + TRAIT + DHP, data = model.frame(m3))
+
+d$BLOC<-as.factor(d$BLOC)
+d$SITE<-as.factor(d$SITE)
+d$SEQ<-as.factor(d$SEQ)
+
+b1<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=~(1|BLOC/SITE/SEQ),family="beta",data=na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")]))
+b2<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF,random=~(1|BLOC/SITE/SEQ),family="beta",data=na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")]))
+
+glmmadmb.AICc(list(b1,b2))
+model.sel(list(b1,b2))
+model.avg(list(b1,b2))
+
+par(mfrow=c(2,3))
+v<-visreg(b,rug=FALSE,ylim=0:1,las=2,trans=plogis)
 
 ### MODÈLE AVEC SUPERFICIE 
 # peu concluant en raison de l'incertitude sur comment bien faire les analyses 
