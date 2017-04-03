@@ -11,6 +11,7 @@ library(betareg)
 library(mgcv)
 library(gamm4)
 library(glmmADMB)
+library(MASS)
 
 ### questionnement
 # prendre en considération le temps s'écoulant entre les trois saisons ou les périodes de mesure?
