@@ -10,6 +10,7 @@ library(multcomp)
 library(betareg)
 library(mgcv)
 library(gamm4)
+library(glmmADMB)
 
 ### questionnement
 # prendre en considération le temps s'écoulant entre les trois saisons ou les périodes de mesure?
@@ -66,8 +67,6 @@ invisible(lapply(dlply(d,.(SEQ),function(j){j}),function(i){
 ### MODÈLE DE PROBABILITÉ D'UTILISATION
 ########################################
 
-m<-gamm(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,random=list(SEQ=~1,BLOC=~1,SITE=~1),family=binomial,data=d[d$BATCH=="batch1",],correlation=corCAR1(form=~SAISONNUM|SEQ))
-m<-gamm4(UTIL~TRAIT+DHP+PREV_SUPER_REL+SAISON,random=~(1|BLOC/SITE/SEQ),family=binomial,data=d)
 x<-seq(10,30,by=1)
 newdat<-data.frame(DHP=x,TRAIT="PATCH",PREV_SUPER_REL=0.00,SAISON="A2015")
 p<-predict(m$gam,newdata=newdat,type="response")
@@ -75,23 +74,25 @@ plot(x,p,type="l",ylim=0:1)
 points(x,p)
 
 ### glm
-m1<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+,family=binomial,data=d)
-m2<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+AGE,family=binomial,data=d)
-m3<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+TRANS,family=binomial,data=d)
+m1<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,family=binomial,data=d)
+m2<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,family=binomial,data=d)
 #m4<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+PREV+TRANS,family=binomial,data=d)
-ml<-list(m1,m2,m3)
+ml<-list(m1,m2)
 aictab(ml)
 
 ### glmer
 control<-glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000))
 mm1<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
 mm2<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
-mm3<-glmer(UTIL~TRAIT+DHP+PREV_SUPER_REL+TRANS+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
-mm<-gamm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=list(SEQ=~1,BLOC=~1,SITE=~1),family=binomial,data=d,correlation=corCompSymm(form=~SAISON|SEQ))
-mml<-list(mm1,mm2,mm3)
+mml<-list(mm1,mm2)
 aictab(mml)
 
-### plot glm effects
+### gamm et glmmPQL (ne fonctionne pas et ne fait probablement de sens)
+mm<-gamm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=list(SEQ=~1,BLOC=~1,SITE=~1),family=binomial,data=d,correlation=corCompSymm(form=~SAISONNUM|SEQ))
+mm<-glmmPQL(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=~1|BLOC/SITE/SEQ,family=binomial,data=d,correlation=corCompSymm(form=~SAISON|BLOC/SITE/SEQ))
+
+### plot glm (or glmm) effects
+# ne pas oublier de considérer les interactions avec le by argument
 par(mfrow=c(2,2))
 visreg(mm1,scale="response",rug=FALSE)
 p<-predict(mm1,newdata=newdat,type="response")
@@ -102,59 +103,47 @@ summary(glht(m3, mcp(TRANS="Tukey")))
 
 
 ##############################################
-### MODÈLES DE SUPERFICIE/PROPORTION UTILISÉE
+### MODÈLES DE PROPORTION UTILISÉE
 ##############################################
 
 
-### MODÈLE DE REGRESSION BETA
+### MODÈLE DE REGRESSION BETA SANS EFFETS ALÉATOIRES
 b<-betareg(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,data=d[which(d$RELATIVE>0),])
 par(mfrow=c(2,3))
 v<-visreg(b,rug=FALSE,ylim=0:1,las=2)
 #points(model.frame(b)$DHP,model.frame(mb2)$RELATIVE)
 
-b<-gamm(RELATIVE~TRAIT+DHP+PREV_SUPER_REL+TRANS,random=list(SEQ=~1,BLOC=~1,SITE=~1),data=d[which(d$RELATIVE>0),],family=betar(link="logit"))
 
-hglm(y=RELATIVE,fixed=SUPER~SAISON+TRAIT+DHP+NOMESURE,random = ~ 1|SEQ,family = Gamma(link = log),rand.family = Gamma(link = log),disp = ~ SAISON + TRAIT + DHP, data = model.frame(m3))
+### MODÈLE DE REGRESSION BETA AVEC ADModelBuilder et EFFETS ALÉATOIRES
+# ADModelBuilder est un programme externe pour faire des GLMM qui permet de spécifier plus de distributions et de la zero-inflation
+# L'installation du package installe également le .exe du programme
 
+# glmmadmb semble préférer les facteurs et l'absence de NA
 d$BLOC<-as.factor(d$BLOC)
 d$SITE<-as.factor(d$SITE)
 d$SEQ<-as.factor(d$SEQ)
+d2<-na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")])
 
-b1<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=~(1|BLOC/SITE/SEQ),family="beta",data=na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")]))
-b2<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF,random=~(1|BLOC/SITE/SEQ),family="beta",data=na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")]))
+### MODÈLES
+b1<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
+b2<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
 
-glmmadmb.AICc(list(b1,b2))
+### Sélection de modèle avec MuMIn, AICcmodavg n'est pas (encore) défini pour la classe glmmadmb
 model.sel(list(b1,b2))
 model.avg(list(b1,b2))
 
 par(mfrow=c(2,3))
-v<-visreg(b,rug=FALSE,ylim=0:1,las=2,trans=plogis)
+v<-visreg(b1,rug=FALSE,ylim=0:1,las=2,trans=plogis)
 
-### MODÈLE AVEC SUPERFICIE 
-# peu concluant en raison de l'incertitude sur comment bien faire les analyses 
-m<-glm(SUPER~TRAIT+DHP+PREV_SUPER_REL+TRANS,data=d[d$SUPER>0,],family=gaussian(link=log))
-mm<-glmer(SUPER~TRAIT+DHP+PREV_SUPER_REL+TRANS+(1|BLOC)+(1|SITE)+(1|SEQ),data=d[d$SUPER>0,],family=gaussian(link=log),control=control)
-m2<-glm(SUPER~TRAIT+DHP+PREV_SUPER_REL+TRANS,data=d[d$SUPER>0,],family=Gamma(link=log))
-mm2<-glmer(SUPER~TRAIT+DHP+PREV_SUPER_REL+TRANS+(1|BLOC)+(1|SITE)+(1|SEQ),data=d[d$SUPER>0,],family=Gamma(link=log),control=control)
-visreg(m,rug=FALSE,scale="response")
-plot(fitted(mm),resid(mm))
-hist(resid(mm))
-boxplot(SUPER~TRANS,data=d[d$SUPER>0,])
+# Les prédictions sont similaires à celles d'un glm
 
 
 
 
 
 
-#idseq<-sample(unique(d$SEQ),30)
-#boxplot(SUPER~SEQ,data=d[d$SEQ%in%idseq,])
-#vv <- visreg(mm, "DHP", by="SEQ", re.form=~(1|SEQ), plot=FALSE)
-#subSEQ <- sample(unique(d$SEQ[d$SUPER>0]), 10)
-#v[[1]]<-vv[[1]][vv[[1]]$SEQ %in% subSEQ,]
-#v[[2]]<-vv[[2]][vv[[2]]$SEQ %in% subSEQ,]
-#v[[3]]<-vv[[3]]
-#names(v)<-names(vv)
-#plot(v,layout=c(10,1))
+
+
 
 
 
