@@ -76,15 +76,23 @@ points(x,p)
 
 ### glm
 m1<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,family=binomial,data=d)
-m2<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,family=binomial,data=d)
+m2<-glm(UTIL~SAISON*TRAIT+DHP+DHPREP+SAISON+PM5kF*TRAIT,family=binomial,data=d)
 #m4<-glm(UTIL~TRAIT+DHP+PREV_SUPER_REL+PREV+TRANS,family=binomial,data=d)
 ml<-list(m1,m2)
 aictab(ml)
 
 ### glmer
+
+d$BLOC<-as.factor(d$BLOC)
+d$SITE<-as.factor(d$SITE)
+d$SEQ<-as.factor(d$SEQ)
+d2<-na.omit(d[,c("UTIL","RELATIVE","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")])
+dd<-na.omit(d[,c("UTIL","TRAIT","DHP","DHPREP","PM5kF","PREV_SUPER_REL","SAISON","BLOC","SITE","SEQ")])
+
 control<-glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000))
-mm1<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
-mm2<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=d,control=control)
+mm1<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=dd,control=control)
+mm2<-glmer(UTIL~SAISON*TRAIT+DHP+DHPREP+SAISON+PM5kF*TRAIT+(1|BLOC)+(1|SITE)+(1|SEQ),family=binomial,data=dd,control=control)
+mm3<-glmmadmb(UTIL~SAISON+TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF+TRAIT,random=~(1|BLOC/SITE/SEQ),family="binomial",data=d2,admb.opts=admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=1000,imaxfn=500,maxph=5))
 mml<-list(mm1,mm2)
 aictab(mml)
 
@@ -127,11 +135,12 @@ d2<-na.omit(d[which(d$RELATIVE>0),c("RELATIVE","TRAIT","DHP","DHPREP","PM5kF","P
 
 ### MODÈLES
 b1<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF*TRAIT,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
-b2<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
+b2<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+SAISON+PM5kF*TRAIT,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
+b3<-glmmadmb(RELATIVE~SAISON*TRAIT+DHP+DHPREP+PREV_SUPER_REL+SAISON+PM5kF,random=~(1|BLOC/SITE/SEQ),family="beta",data=d2)
 
 ### Sélection de modèle avec MuMIn, AICcmodavg n'est pas (encore) défini pour la classe glmmadmb
-model.sel(list(b1,b2))
-model.avg(list(b1,b2))
+model.sel(list(b1,b2,b3))
+model.avg(list(b1,b2,b3))
 
 par(mfrow=c(2,3))
 v<-visreg(b1,rug=FALSE,ylim=0:1,las=2,trans=plogis)
