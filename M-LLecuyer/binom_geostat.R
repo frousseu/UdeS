@@ -23,12 +23,14 @@ library(bbmle)
 ################################################
 
 
-d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
+d<-as.data.frame(read_excel("C:/Users/User/Documents/Lou/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
+d<-head(d,-1)
+
 
 ll<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-prj<-"+proj=utm +zone=16 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+prj<-"+proj=utm +zone=16 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
 ds<-d
-coordinates(ds)<-~X+Y
+coordinates(ds)<- ~X+Y
 proj4string(ds) <- ll
 ds<-spTransform(ds,CRS(prj))
 
@@ -201,3 +203,70 @@ acf(pred.MCML$samples[ind.S[1],], main = "")
 plot(pred.MCML$samples[ind.S[1], ],ylab = paste("Component n.", ind.S[1]), type = "l")
 plot(ecdf(pred.MCML$samples[ind.S[1], 1:5000]), main = "")
 lines(ecdf(pred.MCML$samples[ind.S[1], 5001:10000]),col = 2, lty = "dashed")
+
+
+
+#########################################
+### import rasters
+#########################################
+
+library(raster)
+library(sp)
+library(rgdal)
+library(rgeos)
+library(velox)
+
+
+r1<-"C:/Users/User/Documents/Lou/Mature_forest_2015_include_bajos_secondary.tif"
+r2<-"C:/Users/User/Documents/Lou/Mature_forest_2015_not_include_bajos_secondary.tif"
+r3<-"C:/Users/User/Documents/Lou/Landcover_2015_extended.tif"
+
+r <- stack(r3)
+#rb<-brick(r)
+#plot(r)
+
+ras <- raster(xmn=bbox(r)[1,1],xmx=bbox(r)[1,2],ymn=bbox(r)[2,1],ymx=bbox(r)[2,2],ncols=50,nrows=50)
+ras[] <- runif(ncell(ras))
+plot(ras)
+grid<-as(ras,"SpatialPixelsDataFrame")
+gridb<-gBuffer(SpatialPoints(coordinates(grid)),width=1000,byid=TRUE)
+plot(gridb,add=TRUE)
+
+x<-runif(100,bbox(r)[1,1],bbox(r)[1,2])
+y<-runif(100,bbox(r)[2,1],bbox(r)[2,2])
+p<-SpatialPoints(cbind(x,y))
+p<-gBuffer(p,width=1000,byid=TRUE)
+
+p<-gridb
+proj4string(p)<-proj4string(r)
+plot(p,add=TRUE)
+text(coordinates(p)[,1],coordinates(p)[,2],1:length(p))
+#e<-extract(ras,p)
+
+v<-velox(r)
+res<-v$extract(p,fun=function(x){paste(x,collapse="_")})
+
+ans<-lapply(res,function(i){
+  table(unlist(strsplit(i,"_")))
+})
+
+ans<-sapply(ans,function(i){
+	k<-names(i)==13
+	if(any(k)){
+	  i[k]/sum(i)
+	}else{
+	  0
+	}
+})
+
+g<-grid
+g$P_indFor_tg<-100*ans
+
+
+
+
+
+
+
+
+
