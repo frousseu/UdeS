@@ -28,7 +28,7 @@ library(velox)
 ################################################
 
 
-d<-as.data.frame(read_excel("C:/Users/User/Documents/Lou/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
+d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
 d<-head(d,-1)
 
 
@@ -50,10 +50,10 @@ d$y<-d$Y
 ### import raster and build pred grid
 #########################################
 
-r1<-"C:/Users/User/Documents/Lou/Mature_forest_2015_include_bajos_secondary.tif"
-r2<-"C:/Users/User/Documents/Lou/Mature_forest_2015_not_include_bajos_secondary.tif"
-r3<-"C:/Users/User/Documents/Lou/Landcover_2015_extended.tif"
-code<-read.table("C:/Users/User/Documents/Lou/Legend.txt",header=TRUE,sep=",",stringsAsFactors=FALSE)
+r1<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Mature_forest_2015_include_bajos_secondary.tif"
+r2<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Mature_forest_2015_not_include_bajos_secondary.tif"
+r3<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Landcover_2015_extended.tif"
+code<-read.table("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Legend.txt",header=TRUE,sep=",",stringsAsFactors=FALSE)
 r <- stack(r3)
 
 ### build pred grid
@@ -62,7 +62,7 @@ ras[] <- runif(ncell(ras))
 plot(ras)
 g<-as(ras,"SpatialPixelsDataFrame")
 proj4string(g)<-proj4string(r)
-w<-2000
+w<-5000
 p<-gBuffer(SpatialPoints(coordinates(g)),width=w,byid=TRUE)
 proj4string(p)<-proj4string(r)
 text(coordinates(p)[,1],coordinates(p)[,2],1:length(p))
@@ -144,10 +144,10 @@ dat<-as.data.frame(d)[,-1]
 names(dat)[1:2]<-c("x","y")
 
 ### model
-gsif<-fit.regModel(model,rmatrix=dat,predictionDomain=g,method="GLM",fit.family=binomial(link="logit"),stepwise=FALSE,vgmFun="Exp")
+gsif1<-fit.regModel(model,rmatrix=dat,predictionDomain=g,method="GLM",fit.family=binomial(link="logit"),stepwise=FALSE,vgmFun="Mat")
 
 ### predictions
-pred_gsif<-predict(gsif,g)
+pred_gsif<-predict(gsif1,g)
 
 
 
@@ -163,7 +163,7 @@ pred_gsif<-predict(gsif,g)
 d$nbevent<-1
 
 ### controls and starting values
-control.mcmc<-control.mcmc.MCML(n.sim=10000,burnin=1000,thin=8,h=NULL,c1.h = 0.01,c2.h = 1e-04)
+control.mcmc<-control.mcmc.MCML(n.sim=50000,burnin=10000,thin=8,h=NULL,c1.h = 0.01,c2.h = 1e-04)
 par0<-c(coef(glm1),c(0.99,5700,0.15)) # inputs from the variogram
 
 ### first evaluation
@@ -189,7 +189,7 @@ pred_mcml <- spatial.pred.binomial.MCML(mcml1,coordinates(g),predictors=newdata,
 # MLE based on the Laplace approximation
 
 ### source code is their supplementary material
-source("C:/Users/User/Documents/GitHub/UdeS/M-LLecuyer/functionssglmm.r")
+source("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/functionssglmm.r")
 
 ### start values
 init <- start.values.glgm(model, family="binomial", data=d[,c("x","y",colnames(model.frame(model,d)))], coords=d[,c("x","y")],nugget=TRUE, ntrial=1)
@@ -202,6 +202,31 @@ pred_glgm<-prediction(glgm1,as.data.frame(coordinates(g)))
 
 # I think the prediction function does not allow covariates
 
+#####################################
+### geoRglm with MCMC
+#####################################
+
+
+### can't run it because of trend error
+
+geodat<-as.geodata(d,coords.col = 2:3,data.col="Attack",covar.col="Secondary",units.m=rep(1,nrow(d)))
+mccontrol<-mcmc.control(S.scale=1, S.start="random", burn.in=2000, thin=3, n.iter=10000, phi.start=1,phi.scale=1)
+kcontrol<-krige.glm.control(type.krige = "sk",trend.d=~Secondary,trend.l=~Secondary,obj.model=NULL,cov.model="exponential",cov.pars=c(3,5000),beta=c(1,1),kappa=0.5,nugget=0.15)
+trend <- trend.spatial(~Secondary,geodat)
+ocontrol<-output.glm.control(sim.posterior=FALSE, sim.predict=FALSE, keep.mcmc.sim=FALSE, quantile=FALSE,inference=TRUE,messages=TRUE)
+
+geoRglm1<-binom.krige(geodat,units.m = "default", locations = coordinates(g)[1:500,],mcmc.input=mccontrol, krige=kcontrol, output=ocontrol)
+
+geomodel<-list(family="binomial",cov.pars=c(1,1),beta=c(1,0),trend=~Secondary,cov.model="spherical",nugget=0.3)
+m<-glsm.mcmc(geodat,coords=geodat$coords,data=geodat$data,units.m="default",model=geomodel,mcmc.input=mccontrol,messages=TRUE)
+
+glsm.krige(m,locations=coordinates(g)[1:500,],micro.scale=NULL)
+
+#test<- create.mcmc.coda(m, mcmc.input = list(thin = 1))
+#autocorr.plot(test)
+
+ss<-corrHLfit(Attack~Secondary+Matern(1|x+y),data=d,family=binomial)
+p<-predict(ss,newdata=cbind(newdata,g@data,as.data.frame(coordinates(g))))
 
 
 #####################################
@@ -212,14 +237,16 @@ g$glm<-pred_glm
 g$mcml<-pred_mcml$prevalence$predictions
 g$glgm<-inv.logit(pred_glgm)
 g$gsif<-pred_gsif@predicted$Attack
-
+g$p<-p
+  
 gg<-as(g,"SpatialPolygonsDataFrame")
 
-par(mfrow=c(2,2),mar=c(0,0,0,0),oma=c(0,0,0,3))
+par(mfrow=c(2,3),mar=c(0,0,0,0),oma=c(0,0,0,3))
 plot(gg,col=gray(1-g$glm),border=gray(1-g$glm));text(par("usr")[1],par("usr")[4]-5000,"glm",xpd=TRUE,adj=c(-1,1),cex=3)
 plot(gg,col=gray(1-g$mcml),border=gray(1-g$mcml));text(par("usr")[1],par("usr")[4]-5000,"mcml",xpd=TRUE,adj=c(-1,1),cex=3)
 plot(gg,col=gray(1-g$glgm),border=gray(1-g$glgm));text(par("usr")[1],par("usr")[4]-5000,"glgm",xpd=TRUE,adj=c(-1,1),cex=3)
 plot(gg,col=gray(1-g$gsif),border=gray(1-g$gsif));text(par("usr")[1],par("usr")[4]-5000,"gsif",xpd=TRUE,adj=c(-1,1),cex=3)
+plot(gg,col=gray(1-g$p),border=gray(1-g$p));text(par("usr")[1],par("usr")[4]-5000,"spaMM",xpd=TRUE,adj=c(-1,1),cex=3)
 legend("right",col=gray(1-(0:10/10)),legend=round((0:10/10),1),border=NA,pt.cex=2.8,pch=15,bty="n")
 
 
