@@ -62,7 +62,7 @@ ras[] <- runif(ncell(ras))
 plot(ras)
 g<-as(ras,"SpatialPixelsDataFrame")
 proj4string(g)<-proj4string(r)
-w<-2000
+w<-10000
 p<-gBuffer(SpatialPoints(coordinates(g)),width=w,byid=TRUE)
 proj4string(p)<-proj4string(r)
 text(coordinates(p)[,1],coordinates(p)[,2],1:length(p))
