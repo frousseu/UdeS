@@ -19,12 +19,14 @@ library(raster)
 library(sp)
 library(rgdal)
 library(rgeos)
-library(velox)
 library(spaMM)
 library(geoRglm)
 library(INLA)
+library(velox)
 
+#fragmentation: agg
 
+#perforation, branch et breach
 
 ################################################
 ### load data
@@ -32,8 +34,16 @@ library(INLA)
 
 
 d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
-d<-head(d,-1)
-d
+#d<-head(d,-1)
+
+d<-as.data.frame(fread('C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.txt',dec=",",sep="\t"))
+d[]<-lapply(d,function(i){
+  if(any(grep(",",i))){
+    as.numeric(gsub(",",".",i))
+  }else{
+    i
+  }
+})
 
 
 ll<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -69,7 +79,7 @@ ras[] <- runif(ncell(ras))
 plot(ras)
 g<-as(ras,"SpatialPixelsDataFrame")
 proj4string(g)<-proj4string(r)
-w<-5000
+w<-10000
 p<-gBuffer(SpatialPoints(coordinates(g)),width=w,byid=TRUE)
 proj4string(p)<-proj4string(r)
 text(coordinates(p)[,1],coordinates(p)[,2],1:length(p))
@@ -128,7 +138,8 @@ g$Cat_Typ<-"C"
 
 g$Forest<-g$Selva_baja+g$Selva_mediana+g$Selva_alta_mediana+g$Subcaducifolia
 d$Forest<-d$Selva_baja+d$Selva_mediana+d$Selva_alta_mediana+d$Subcaducifolia
-model<-Attack~Cat_Typ+Secondary+Forest+Pasture+Milpa+Bajos
+d$Open<-d$Agriculture+d$Pasture+d$Urban_and_Settlements+d$Water+d$Milpa
+model<-Attack~Cat_Typ+Secondary+Pasture+Milpa+Bajos
 #model<-Attack~Cat_Typ
 newdata<-g@data[,attributes(terms(model))$term.labels,drop=FALSE]
 #newdata$Cat_TypC<-1
@@ -140,7 +151,52 @@ newdata$Cat_Typ<-factor("C",levels=c("B","C","S"))
 ### simple glm without RSA
 #####################################
 
-glm1<-glm(model,data=d,family=binomial)
+#glm1<-glm(Attack~Cat_Typ+Forest+Pasture+Milpa+Bajos,data=d,family=binomial)
+#glm2<-glm(Attack~Cat_Typ+Forest+Secondary+Pasture+Milpa+Bajos,data=d,family=binomial,method = "detect_separation")
+
+d2<-d[d$Cat_Typ!="S",]
+d2<-d[,setdiff(unique(names(d)),c("Num. intrevista","X","Y","x","y"))]
+d2$Attack<-as.factor(d$Attack)
+d2<-d2[,1:25]
+
+
+r<-randomForest(Attack~.,data=d2[,-(2:4)])
+importance(r)
+
+#t<-train(Attack ~ ., data=d2, method="rf", prox=TRUE)
+#plot(varImp(t))
+
+mm<-model.matrix( ~ .-1, d2[,-(1:3)])
+
+m<-glmnet(mm,d2[,"Attack"],family="binomial")
+mcv<-cv.glmnet(mm,d2[,"Attack"],family="binomial")
+par(mar=c(4,4,4,6))
+plot(m,label=TRUE)
+vn<-names(d2)[-(1:4)]
+vnat=coef(m)
+vnat=vnat[-1,ncol(vnat)] # remove the intercept, and get the coefficients at the end of the path
+axis(4, at=vnat,line=-.5,label=vn,las=1,tick=FALSE, cex.axis=0.5) 
+
+coef(mcv, s = "lambda.min")
+
+predict(mcv, newx = mm, s = "lambda.min", type = "response")
+
+glm1<-glm(Attack~Dist_HabP,data=d2,family=binomial)
+glm2<-glm(Attack~Cat_Typ,data=d2,family=binomial)
+glm3<-glm(Attack~Cat_Typ*Forest,data=d2,family=binomial)
+glm4<-glm(Attack~Cat_Typ*Forest+Cat_Typ*Bajos+Pasture+Secondary,data=d2,family=binomial)
+glm5<-glm(Attack~Cat_Typ*Forest+Cat_Typ*Bajos,data=d2,family=binomial)
+glm6<-glm(Attack~Cat_Typ*P_matFor_tg+Cat_Typ*P_matFor_p,data=d2,family=binomial)
+
+
+
+glm1<-glm(Attack~Cat_Typ,data=d2,family=binomial)
+glm2<-glm(Attack~Cat_Typ*P_SecFor_p+Cat_Typ*P_Past_p,data=d2,family=binomial)
+
+aictab(list(glm1,glm2))
+
+
+aictab(list(glm1,glm2,glm3,glm4,glm5,glm6))
 pred_glm<-predict(glm1,newdata,type="response")
 visreg(glm1,scale="response")
 
@@ -274,6 +330,7 @@ plot(gg,col=gray(1-g$mcml),border=gray(1-g$mcml));text(par("usr")[1],par("usr")[
 plot(gg,col=gray(1-g$glgm),border=gray(1-g$glgm));text(par("usr")[1],par("usr")[4]-5000,"glgm",xpd=TRUE,adj=c(-1,1),cex=3)
 plot(gg,col=gray(1-g$gsif),border=gray(1-g$gsif));text(par("usr")[1],par("usr")[4]-5000,"gsif",xpd=TRUE,adj=c(-1,1),cex=3)
 plot(gg,col=gray(1-g$spa),border=gray(1-g$spa));text(par("usr")[1],par("usr")[4]-5000,"spaMM",xpd=TRUE,adj=c(-1,1),cex=3)
+#plot(gg,col=gray(1-g$inla),border=gray(1-g$inla));text(par("usr")[1],par("usr")[4]-5000,"INLA",xpd=TRUE,adj=c(-1,1),cex=3)
 legend("right",col=gray(1-(0:10/10)),legend=round((0:10/10),1),border=NA,pt.cex=2.8,pch=15,bty="n")
 
 
