@@ -79,7 +79,7 @@ ras[] <- runif(ncell(ras))
 plot(ras)
 g<-as(ras,"SpatialPixelsDataFrame")
 proj4string(g)<-proj4string(r)
-w<-10000
+w<-500
 p<-gBuffer(SpatialPoints(coordinates(g)),width=w,byid=TRUE)
 proj4string(p)<-proj4string(r)
 text(coordinates(p)[,1],coordinates(p)[,2],1:length(p))
@@ -139,6 +139,7 @@ g$Cat_Typ<-"C"
 g$Forest<-g$Selva_baja+g$Selva_mediana+g$Selva_alta_mediana+g$Subcaducifolia
 d$Forest<-d$Selva_baja+d$Selva_mediana+d$Selva_alta_mediana+d$Subcaducifolia
 d$Open<-d$Agriculture+d$Pasture+d$Urban_and_Settlements+d$Water+d$Milpa
+ds@data<-cbind(ds@data,d)
 model<-Attack~Cat_Typ+Secondary+Pasture+Milpa+Bajos
 #model<-Attack~Cat_Typ
 newdata<-g@data[,attributes(terms(model))$term.labels,drop=FALSE]
