@@ -23,6 +23,9 @@ library(spaMM)
 library(geoRglm)
 library(INLA)
 library(velox)
+library(glmnet)
+library(randomForest)
+
 
 #fragmentation: agg
 
@@ -32,10 +35,6 @@ library(velox)
 ### load data
 ################################################
 
-
-d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEcoCorrected_changed.xlsx"),stringsAsFactors=FALSE)
-#d<-head(d,-1)
-
 d<-as.data.frame(fread('C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.txt',dec=",",sep="\t"))
 d[]<-lapply(d,function(i){
   if(any(grep(",",i))){
@@ -44,7 +43,6 @@ d[]<-lapply(d,function(i){
     i
   }
 })
-
 
 ll<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 prj<-"+proj=utm +zone=16 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -140,7 +138,7 @@ g$Forest<-g$Selva_baja+g$Selva_mediana+g$Selva_alta_mediana+g$Subcaducifolia
 d$Forest<-d$Selva_baja+d$Selva_mediana+d$Selva_alta_mediana+d$Subcaducifolia
 d$Open<-d$Agriculture+d$Pasture+d$Urban_and_Settlements+d$Water+d$Milpa
 ds@data<-cbind(ds@data,d)
-model<-Attack~Cat_Typ+Secondary+Pasture+Milpa+Bajos
+model<-Attack~Cat_Typ+Secondary+Pasture
 #model<-Attack~Cat_Typ
 newdata<-g@data[,attributes(terms(model))$term.labels,drop=FALSE]
 #newdata$Cat_TypC<-1
@@ -160,15 +158,15 @@ d2<-d[,setdiff(unique(names(d)),c("Num. intrevista","X","Y","x","y"))]
 d2$Attack<-as.factor(d$Attack)
 d2<-d2[,1:25]
 
-
-r<-randomForest(Attack~.,data=d2[,-(2:4)])
+### random forest
+r<-randomForest(Attack~.,data=d[,-(1:3)])
 importance(r)
 
 #t<-train(Attack ~ ., data=d2, method="rf", prox=TRUE)
 #plot(varImp(t))
 
+### glmnet lasso or ridge
 mm<-model.matrix( ~ .-1, d2[,-(1:3)])
-
 m<-glmnet(mm,d2[,"Attack"],family="binomial")
 mcv<-cv.glmnet(mm,d2[,"Attack"],family="binomial")
 par(mar=c(4,4,4,6))
@@ -177,25 +175,11 @@ vn<-names(d2)[-(1:4)]
 vnat=coef(m)
 vnat=vnat[-1,ncol(vnat)] # remove the intercept, and get the coefficients at the end of the path
 axis(4, at=vnat,line=-.5,label=vn,las=1,tick=FALSE, cex.axis=0.5) 
-
 coef(mcv, s = "lambda.min")
-
 predict(mcv, newx = mm, s = "lambda.min", type = "response")
 
-glm1<-glm(Attack~Dist_HabP,data=d2,family=binomial)
-glm2<-glm(Attack~Cat_Typ,data=d2,family=binomial)
-glm3<-glm(Attack~Cat_Typ*Forest,data=d2,family=binomial)
-glm4<-glm(Attack~Cat_Typ*Forest+Cat_Typ*Bajos+Pasture+Secondary,data=d2,family=binomial)
-glm5<-glm(Attack~Cat_Typ*Forest+Cat_Typ*Bajos,data=d2,family=binomial)
-glm6<-glm(Attack~Cat_Typ*P_matFor_tg+Cat_Typ*P_matFor_p,data=d2,family=binomial)
-
-
-
-glm1<-glm(Attack~Cat_Typ,data=d2,family=binomial)
-glm2<-glm(Attack~Cat_Typ*P_SecFor_p+Cat_Typ*P_Past_p,data=d2,family=binomial)
-
-aictab(list(glm1,glm2))
-
+### glm
+glm1<-glm(model,data=d,family=binomial)
 
 aictab(list(glm1,glm2,glm3,glm4,glm5,glm6))
 pred_glm<-predict(glm1,newdata,type="response")
@@ -207,7 +191,7 @@ visreg(glm1,scale="response")
 
 coords<-as.matrix(d[,c("X","Y")])
 v<-variog(coords=coords,data=resid(glm1),breaks=seq(0,50000,by=500))
-fitv<-variofit(v,ini.cov.pars=c(2,5000),cov.model="matern",fix.nugget=FALSE,nugget=0,fix.kappa=TRUE,kappa=0.5)
+fitv<-variofit(v,ini.cov.pars=c(2,5000),cov.model="matern",fix.nugget=FALSE,nugget=0,fix.kappa=TRUE,kappa=1)
 plot(v)
 lines(fitv)
 
