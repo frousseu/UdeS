@@ -18,11 +18,13 @@ library(INLA)
 library(velox)
 library(geostatsp)
 library(FRutils)
+library(RColorBrewer)
+library(tmap)
 
 # FRutils doit être installé une fois comme cela pour obtenir la fonction colo.scale:
 
-library(devtools)
-install_github("frousseu/FRutils")
+#library(devtools)
+#install_github("frousseu/FRutils")
 
 ####################################################################
 ### function to build waic table from a list of geostatsp models
@@ -79,6 +81,8 @@ d$Cat_Typ<-as.factor(d$Cat_Typ)
 
 # ds is a spatial object that can be plotted
 
+plot(ds)
+
 
 #########################################
 ### import raster and build pred grid
@@ -91,6 +95,9 @@ code<-read.table("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/L
 code<-code[code$Code!=0,]# ignore background values in raster
 r <- stack(path)
 
+plot(r)
+plot(ds,add=TRUE)
+
 ### build grid to extract pixel values around a buffer where predictions are going to be made
 ras <- raster(xmn=bbox(r)[1,1],xmx=bbox(r)[1,2],ymn=bbox(r)[2,1],ymx=bbox(r)[2,2],ncols=100,nrows=100)
 ras[] <- runif(ncell(ras))
@@ -99,7 +106,7 @@ proj4string(g)<-proj4string(r)
 w<-500 # this is the buffer width, values over 2000 start to take a long time to cumpute
 p<-gBuffer(SpatialPoints(coordinates(g)),width=w,byid=TRUE)
 proj4string(p)<-proj4string(r)
-plot(g)
+
 plot(p,add=TRUE)
 
 ### extract values from grid using velox cause it's faster
@@ -152,7 +159,9 @@ names(d)[which(names(d)=="Agriculture\t")]<-"Agriculture"
 names(g)[which(names(g)=="Agriculture\t")]<-"Agriculture"
 g$Cat_Typ<-"C"
 
-#g is a SpatialPixelsDataFrame
+ds@data<-cbind(ds@data,obs)
+
+# g is a SpatialPixelsDataFrame
 
 ######################################################################
 ### build model formulas
@@ -201,7 +210,7 @@ plot(covr)
 
 # Only variable available in raster format (Secondary, Pasture) are used in predictions
 
-predr<-aggregate(covr,fac=3) ## this produce a coarser grid to make computations faster
+predr<-aggregate(covr,fac=2) ## this produce a coarser grid to make computations faster
 
 plot(predr)
 
@@ -220,6 +229,9 @@ plot(predr)
 #names(mm)<-names(ml)
 
 ### version sans predictions précises dans le raster, roule plus vite
+
+print(ml)
+
 mm<-lapply(ml,function(i){
   glgm(i, 
        data=ds,
@@ -271,7 +283,7 @@ plot(ds,add=TRUE,pch=1)
 
 ### visualisation prediction (dynamic)
 tmap_mode("view")
-tm_shape(mpred$raster[["predict.invlogit"]])+tm_raster(alpha=0.6,palette=colo.scale(1:10,bp),n=7)+tm_shape(ds)+tm_dots(col=c("Attack"))
+tm_shape(mpred$raster[["predict.invlogit"]])+tm_raster(alpha=0.6,palette=colo.scale(1:10,bp),n=7)+tm_shape(ds)+tm_dots("Attack")
 
 
 
