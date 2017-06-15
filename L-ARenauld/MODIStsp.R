@@ -11,7 +11,7 @@ library(data.table)
 library(scales)
 library(quantreg)
 library(FlexParamCurve)
-library(phenex)
+#library(phenex)
 
 #MODIStsp()
 
@@ -87,9 +87,9 @@ d<-as.data.frame(d)
 
 
 
-png("C:/Users/rouf1703/Documents/ndvi2.png",width=22,height=10,units="in",res=300)
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ndvi3.png",width=22,height=10,units="in",res=300)
 par(mar=c(7,4,4,4))
-plot(d$x,d$y,col=gray(0,0.1),xaxt="n",type="n")
+plot(d$x,d$y,col=gray(0,0.1),xaxt="n",type="n",xlab="Date",ylab="NDVI")
 
 years<-seq_along(unique(d$year))
 periods<-seq_along((unique(substr(d$xd,6,10))))
@@ -120,31 +120,43 @@ invisible(lapply(years,function(i){
   dd<-d[d$xd>=paste0(year-1,"-12-01") & d$xd<=paste0(year,"-09-30"),]
   m1<-nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=dd,start=list(Asym=0.5,xmid=quantile(dd$x,0.5),scal=1.2,c=0.2),control=list(minFactor=1e-12,maxiter=50),lower=c(0.3,0,0.8,0.1),upper=c(0.9,10000,3,0.3),algorithm="port")
   se<-unique(dd$x)
-  lines(se,predict(m1,data.frame(x=se)),col="green4",lwd=4)
+  se<-se[-c(1,2,(length(se)-1):length(se))]
+  lines(se,predict(m1,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
   ### down
-  #dd<-d[d$xd>=paste0(year,"-07-01") & d$xd<=paste0(year+1,"-02-01"),]
-  #m1<-nlrq(y~Asym/(1+exp((xmid-x)/scal))+c,data=dd,start=list(Asym=-0.4,xmid=quantile(dd$x,0.5),scal=1.3,c=0.58),control=list(minFactor=1e-12,maxiter=50))
-  #se<-unique(dd$x)
-  #lines(se,predict(m1,data.frame(x=se)),col="green4",lwd=4)
+  
+  co<-as.list(coef(m1))
+
+  ### optimums
+  l<-logistic_optimum(alpha=co$Asym,beta=-co$xmid/co$scal,gamma=1/co$scal)
+  l<-unique(unlist(l))
+  invisible(lapply(l,function(j){
+    lines(rep(j,2),c(-0.3,-0.2),col="green4",lwd=1)
+  }))
+  
+  dd<-d[d$xd>=paste0(year,"-07-01") & d$xd<=paste0(year+1,"-03-01"),]
+  m2<-nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=dd,start=list(Asym=-co$Asym,xmid=quantile(dd$x,0.75),scal=co$scal,c=co$Asym+co$c),control=list(minFactor=1e-12,maxiter=50),lower=c(-0.9,0,0.8,co$Asym+co$c),upper=c(-0.1,1000,3,co$Asym+co$c),algorithm="port")
+  #m2<-nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=dd,start=list(Asym=-coef(m1)["Asym"],xmid=quantile(dd$x,0.75),scal=1.3,c=0.16),control=list(minFactor=1e-12,maxiter=50),lower=c(-coef(m1)["Asym"],0,0.8,0.16),upper=c(-coef(m1)["Asym"],10000,3,0.16),algorithm="port")
+  se<-unique(dd$x)
+  se<-se[-c(1,2,3,4,(length(se)-3):length(se))]
+  lines(se,predict(m2,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
   #lines(se,0.35/(1+exp((292-se)/0.8))+0.16,col="black",lwd=8)
 
 }))
 
-legend("topright",title="NDVI",pch=c(16,17,NA,NA,NA),lwd=c(NA,NA,4,4,4),col=c(alpha("green4",0.85),alpha("green4",0.85),alpha("blue",0.35),alpha("red",0.35),"green4"),legend=c("Moy Aqua","Moy Terra","GAM","LOESS","Logisitc"),bty="n",inset=c(0.05,0))
+legend("topright",title="NDVI",pch=c(1,16,17,NA,NA,NA),lwd=c(NA,NA,NA,4,4,4),col=c(gray(0,0.3),alpha("green4",0.85),alpha("green4",0.85),alpha("blue",0.35),alpha("red",0.35),"green4"),legend=c("Value in a 250m pixel","Moy. Aqua sat.","Moy. Terra sat.","GAM","LOESS","Double logistic"),bty="n",inset=c(0.05,0))
 
 dev.off()
 
 
-#dev.off()
 
 
+
+###
 fun<-function(){
   plot(ram,add=TRUE)  
 }
 plot(r[[1:10]],addfun=fun)
 
-
-r2<-projectRa
 
 ### visualisation prediction (dynamic)
 tmap_mode("view")
@@ -153,19 +165,69 @@ tm_shape(r[[24]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_s
 
 
 
+################################################
+### Derivatives logistic
+# Asym
 
 
-data(avhrr)
-data(modis)
+### alpha beta gamma
+logistic<-function(x,alpha=1,beta=1,gamma=1,c=0){
+  
+  d0<-function(alpha,beta,gamma,c){
+    alpha/(1+exp(-beta-gamma*x))+c
+  }
+  
+  d1<-function(alpha,beta,gamma,c){
+    alpha*gamma*exp(-beta-gamma*x)*(1+exp(-beta-gamma*x))^(-2)
+  }
+  
+  d2<-function(alpha,beta,gamma,c){
+    alpha*gamma^2*exp(-beta-gamma*x)*(exp(-beta-gamma*x)-1)*(1+exp(-beta-gamma*x))^(-3)
+  }
+  
+  d3<-function(alpha,beta,gamma,c){
+    alpha*gamma^3*exp(-beta-gamma*x)*(1-4*exp(-beta-gamma*x)+exp(-beta-gamma*x)^2)*(1+exp(-beta-gamma*x))^(-4)
+  }
+  
+  d4<-function(alpha,beta,gamma,c){
+    alpha*gamma^4*exp(-beta-gamma*x)*(-1+(11*exp(-beta-gamma*x))-(11*(exp(-beta-gamma*x)^2))+exp(-beta-gamma*x)^3)*(1+exp(-beta-gamma*x))^(-5)
+  }
+  
+  y0<-d0(alpha,beta,gamma,c)
+  y1<-d1(alpha,beta,gamma,c)
+  y2<-d2(alpha,beta,gamma,c)
+  y3<-d3(alpha,beta,gamma,c)
+  y4<-d4(alpha,beta,gamma,c)
+  
+  col<-gray((0:4)/5)
+  plot(x,y0,ylim=range(c(y0,y1,y2,y3,y4)),type="n")
+  lines(x,y0,lwd=4,col=col[1])
+  lines(x,y1,lwd=2,col=col[2])
+  lines(x,y2,lwd=2,col=col[3])
+  lines(x,y3,lwd=2,col=col[4])
+  lines(x,y4,lwd=2,col=col[5])
+  
+  legend("right",lwd=c(4,2,2,2,2),col=col,legend=c("logistic",paste("derivative",1:4)))
+  
+}
 
+logistic(seq(-10,20,by=0.01),alpha=2,beta=1/5,gamma=0.8)
 
-ex<-d$year==2008
+logistic_optimum<-function(alpha=1,beta=1,gamma=1,c=0){
+  #logisitic function derivative's optimums
+  l<-list()
+  l[[1]]<--beta/gamma
+  l[[2]]<-c(-(log(2+sqrt(3))+beta)/gamma,-(log(2-sqrt(3))+beta)/gamma)  
+  l[[3]]<-c(-(log(5+2*sqrt(6))+beta)/gamma,-beta/gamma,-(log(5-2*sqrt(6))+beta)/gamma) 
+  l
+  
+}
 
-ndvi.list1 <- modelNDVI(ndvi.values=d$y[ex]/10000, 
-                        year.int=2008, multipleSeasons=FALSE, correction="bise", 
-                        method="Growth", MARGIN=2, doParallel=TRUE, slidingperiod=40)
-
-for (ndvi.ob in ndvi.list1){ plot(ndvi.ob) } 
+l<-logistic_optimum(seq(-10,20,by=0.01),alpha=2,beta=1/5,gamma=0.8)
+l<-unique(unlist(l))
+lapply(l,function(i){
+  lines(rep(i,2),c(-1000,1000),lty=2)
+})
 
 
 
