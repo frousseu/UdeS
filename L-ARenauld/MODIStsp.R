@@ -33,19 +33,22 @@ plot(ram)
 ram<-gBuffer(ram,width=-0.01)
 plot(ram,add=TRUE)
 
-erv<-extract(rv,ram)
-erd<-extract(rd,ram)
+erv_raw<-extract(rv,ram)
+erd_raw<-extract(rd,ram)
 #ee<-do.call("cbind",lapply(strsplit(v$extract(ram,fun=function(i){paste(i,collapse="_")}),"_"),as.integer))
-erv<-erv[[1]]
-erd<-erd[[1]]
+erv<-erv_raw[[1]]
+erd<-erd_raw[[1]]
 
-day<-substr(seq.Date(as.Date("2008-01-01"),as.Date("2008-12-31"),by=1),6,10)
+day<-lapply(1980:2017,function(i){
+  seq.Date(as.Date(paste0(i,"-01-01")),as.Date(paste0(i,"-12-31")),by=1)
+})
+names(day)<-1980:2017
 julp<-sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
   as.integer(i[4]) 
 })
 datep<-as.Date(sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
-  paste(i[3],day[as.integer(i[4])],sep="-")  
-}))
+  day[[as.character(i[3])]][as.integer(i[4])] 
+}),origin="1970-01-01")
 ind<-sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
   i[2]
 })
@@ -58,33 +61,36 @@ sat<-substr(sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
 ########################################
 ### raw images and models
 
-d<-as.data.table(data.frame(x=jitter(rep(1:ncol(erv),nrow(erv)),factor=0),datep=datep,julp=julp,ind=ind,sat=sat,year=as.integer(substr(datep,1,4)),y=as.vector(t(erv)),jul=as.vector(t(erd))),date)
+d<-as.data.table(data.frame(x=rep(1:ncol(erv),nrow(erv)),datep=datep,julp=julp,ind=ind,sat=sat,year=as.integer(substr(datep,1,4)),y=as.vector(t(erv)),jul=as.vector(t(erd))),date)
 d$y<-d$y/10000
-d<-d[,.(datep,y,ind,sat,year,julp,jul,median=quantile(y,0.5,na.rm=TRUE),mean=mean(y,na.rm=TRUE)),by=.(x,jul)]
-d$date<-as.Date(paste(d$year,day[d$jul],sep="-"))
-d<-d[d$year>=2003,]
-d$x<-as.numeric(factor(d$datep))
-d$datex<-as.numeric(d$date)
+d<-d[!is.na(d$jul) & !is.na(d$y),]
+d<-d[,.(y,ind,sat,year,julp,jul,np=.N),by=.(datep)]
+d<-d[,.(y,ind,sat,year,julp,np,median=quantile(y,0.5,na.rm=TRUE),mean=mean(y,na.rm=TRUE),n=.N),by=.(datep,jul)]
 d<-as.data.frame(d)
+d$date<-as.Date(sapply(1:nrow(d),function(i){
+  k<-ifelse(d$jul[i]<d$julp[i],1,0)
+  day[[as.character(d$year[i]+k)]][d$jul[i]]
+}),origin="1970-01-01")
+d<-d[d$year>=2003,]
+d$datex<-as.numeric(d$date)
+d<-d[order(d$datep,d$jul),]
+
 
 
 png("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ndvi4.png",width=22,height=10,units="in",res=300)
 par(mar=c(7,4,4,4))
-plot(d$date,d$y,col=gray(0,0.1),xaxt="n",xlab="Date",ylab="NDVI",type="p")
+plot(d$date,d$y,col=gray(0,0.1),xaxt="n",xlab="Date",ylab="NDVI",type="n",xlim=c(min(d$date)-300,max(d$date)))
 
 years<-seq_along(unique(d$year))
-periods<-seq_along((unique(substr(d$datep,6,10))))
 invisible(lapply(years,function(i){
-   rect(xleft=periods-0.5+(i-1)*max(periods),ybottom=-2000,xright=periods+0.5+(i-1)*max(periods),ytop=12000,col=alpha("grey20",periods/max(periods)/4),border=NA,xpd=FALSE)
+  val<-as.numeric(day[[as.character(unique(d$year)[i])]])
+  rect(xleft=val-0.5,ybottom=-2000,xright=val+0.5,ytop=12000,col=alpha("grey20",seq_along(val)/length(val)/4),border=NA,xpd=FALSE)
 }))
-
-#axis(1,at=d$x[!duplicated(d$x)][seq(1,length(d$x),by=4)],labels=d$datep[!duplicated(d$x)][seq(1,length(d$x),by=4)],las=2,cex.axis=0.5)
 axis.Date(1, at=seq(min(d$date,na.rm=TRUE),max(d$date,na.rm=TRUE),by="1 month"), format="%Y-%m-%d",las=2,cex.axis=0.5)
 
-points(d$date,d$y,col=gray(0,0.03))
-d2<-unique(d[,c("date","mean","sat")])
-points(d2$date,d2$mean,col=alpha("green4",0.85),pch=ifelse(d2$sat=="MOD",16,17),cex=1)
-#lines(d$x,d$median,col="darkgreen",lwd=2)
+points(d$date,d$y,col=gray(0,0.025))
+d2<-unique(d[,c("date","mean","sat","n","np")])
+points(d2$date,d2$mean,col=alpha("green4",d2$n/d2$np),pch=ifelse(d2$sat=="MOD",16,17),cex=1)
 
 sa<-d$sat%in%c("MYD","MOD")
 m1<-gam(y~s(datex,k=100),data=d[sa,])
@@ -95,17 +101,29 @@ p2<-predict(m2,data.frame(datex=sx),type="response")
 lines(sx,p1,col=alpha("blue",0.35),lwd=4)
 lines(sx,p2,col=alpha("red",0.35),lwd=4)
 
-invisible(lapply(years,function(i){
+peak<-NULL
+
+invisible(peak<-lapply(years[-length(years)],function(i){
   year<-unique(d$year)[i]
   ### up
   dd<-d[d$datep>=paste0(year-1,"-12-01") & d$datep<=paste0(year,"-09-30"),]
-  m1<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=dd,start=list(Asym=0.5,xmid=quantile(dd$datex,0.5,na.rm=TRUE),scal=1.2,c=0.2),control=list(minFactor=1e-12,maxiter=50),lower=c(0.3,12000,0.8,0.1),upper=c(0.9,18000,3,0.3),algorithm="port")
-  se<-unique(dd$datex)
-  se<-se[-c(1,2,(length(se)-1):length(se))]
-  lines(se,predict(m1,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
-  ### down
+  lo1<-list(Asym=0,xmid=12000,scal=0.5,c=0.1)
+  up1<-list(Asym=1,xmid=18000,scal=50,c=0.4)
+  m1<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=dd,start=list(Asym=0.5,xmid=quantile(dd$datex,0.5,na.rm=TRUE),scal=10,c=0.2),control=list(minFactor=1e-12,maxiter=50),lower=lo1,upper=up1,algorithm="port")
+  se<-seq(min(dd$datex),max(dd$datex),by=1) 
+  se<-se[-c(1:20,(length(se)-19):length(se))]
+  lines(se,predict(m1,data.frame(datex=se)),col=alpha("green4",0.85),lwd=4)
+  # bounds
+  if(i==1){
+    se2<-seq(min(dd$datex)-70,max(dd$datex)+70,by=1)-400
+    c2<-mean(d$y[d$jul%in%c(330:365,1:60)])
+    Asym2<-mean(d$y[d$jul%in%170:270])-c2
+    with(lo1,lines(se2,Asym2/(1+exp((coef(m1)["xmid"]-400-se2)/scal))+c2,col=alpha("green4",0.85),lwd=4))
+    with(up1,lines(se2,Asym2/(1+exp((coef(m1)["xmid"]-400-se2)/scal))+c2,col=alpha("green4",0.85),lwd=4))
+  }
   
   co<-as.list(coef(m1))
+  peak<-c(peak,co$xmid)
 
   ### optimums
   l<-logistic_optimum(alpha=co$Asym,beta=-co$xmid/co$scal,gamma=1/co$scal)
@@ -114,23 +132,29 @@ invisible(lapply(years,function(i){
     lines(rep(j,2),c(-0.3,-0.2),col="green4",lwd=1)
   }))
   
+  ### steepness makes it difficult for convergence...
   dd<-d[d$datep>=paste0(year,"-07-01") & d$datep<=paste0(year+1,"-03-01"),]
-  m2<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=dd,start=list(Asym=-co$Asym,xmid=quantile(dd$datex,0.75,na.rm=TRUE),scal=co$scal,c=co$Asym+co$c),control=list(minFactor=1e-12,maxiter=50),lower=c(-0.9,12000,0.8,co$Asym+co$c),upper=c(-0.1,18000,3,co$Asym+co$c),algorithm="port")
-  #m2<-nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=dd,start=list(Asym=-coef(m1)["Asym"],xmid=quantile(dd$x,0.75),scal=1.3,c=0.16),control=list(minFactor=1e-12,maxiter=50),lower=c(-coef(m1)["Asym"],0,0.8,0.16),upper=c(-coef(m1)["Asym"],10000,3,0.16),algorithm="port")
-  se<-unique(dd$datex)
-  se<-se[-c(1,2,3,4,(length(se)-3):length(se))]
-  lines(se,predict(m2,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
-  #lines(se,0.35/(1+exp((292-se)/0.8))+0.16,col="black",lwd=8)
+  lo2<-c(Asym=-1,xmid=12000,scal=0.1,c=co$Asym+co$c)
+  up2<-c(Asym=0,xmid=18000,scal=50,c=co$Asym+co$c)
+  m2<-tryCatch(nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=dd,start=list(Asym=-co$Asym,xmid=quantile(dd$datex,0.5,na.rm=TRUE),scal=0.1,c=co$Asym+co$c),control=list(minFactor=1e-12,maxiter=50),lower=lo2,upper=up2,algorithm="port"),error=function(j){TRUE})
+  if(!isTRUE(m2)){
+    se<-seq(min(dd$datex),max(dd$datex),by=1) 
+    se<-se[-c(1:20,(length(se)-19):length(se))]
+    lines(se,predict(m2,data.frame(datex=se)),col=alpha("green4",0.85),lwd=4)
+  }
+  
+  
 
-}))
+return(peak)}))
 
-legend("topright",title="NDVI",pch=c(1,16,17,NA,NA,NA),lwd=c(NA,NA,NA,4,4,4),col=c(gray(0,0.3),alpha("green4",0.85),alpha("green4",0.85),alpha("blue",0.35),alpha("red",0.35),"green4"),legend=c("Value in a 250m pixel","Moy. Aqua sat.","Moy. Terra sat.","GAM","LOESS","Double logistic"),bty="n",inset=c(0.05,0))
+legend("topright",title="NDVI",pch=c(1,16,17,NA,NA,NA),lwd=c(NA,NA,NA,4,4,4),col=c(gray(0,0.3),alpha("green4",0.5),alpha("green4",0.5),alpha("blue",0.35),alpha("red",0.35),"green4"),legend=c("Value in a 250m pixel","Moy. Aqua sat.","Moy. Terra sat.","GAM","LOESS","Double logistic"),bty="n",inset=c(0.05,0))
 
 dev.off()
 
 
-
-
+gu<-as.integer(format(as.Date(unlist(peak),origin="1970-01-01"),"%j"))
+gu<-gu-mean(gu)
+hist(gu)
 
 ###
 fun<-function(){
@@ -141,7 +165,7 @@ plot(r[[1:10]],addfun=fun)
 
 ### visualisation prediction (dynamic)
 tmap_mode("view")
-tm_shape(r[[24]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
+tm_shape(rv[["MYD13Q1_NDVI_2009_233"]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
 
 
 
