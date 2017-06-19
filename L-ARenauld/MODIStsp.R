@@ -11,11 +11,13 @@ library(data.table)
 library(scales)
 library(quantreg)
 library(FlexParamCurve)
+library(signal)
+library(zoo)
 #library(phenex)
 
 #MODIStsp()
 
-## load RData
+##### load RData #####
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
 l<-list.files(path)
 for(i in seq_along(l)){
@@ -26,7 +28,12 @@ rm(raster_ts)
 
 rv<-r5 #r5 is the initial raster used in plot ndvi3
 rd<-r3
+rc<-SpatialPointsDataFrame(coordinates(rv),proj4string=CRS(proj4string(rv)),data.frame(id=seq_len(dim(rv)[1]*dim(rv)[2])))
 #v<-velox(r[[1:100]])
+
+o<-over(rc,ram)
+
+
 
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
 plot(ram)
@@ -55,17 +62,17 @@ ind<-sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
 sat<-substr(sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
   i[1]
 }),1,3)
-#erv<-t(apply(erv,1,function(i){identity(i)}))
+id<-rep(as.integer(names(o)[!is.na(o)][1:nrow(erv)]),each=ncol(erv))
 
 
-########################################
-### raw images and models
 
-d<-as.data.table(data.frame(x=rep(1:ncol(erv),nrow(erv)),datep=datep,julp=julp,ind=ind,sat=sat,year=as.integer(substr(datep,1,4)),y=as.vector(t(erv)),jul=as.vector(t(erd))),date)
+##### raw images and models ####
+
+d<-as.data.table(data.frame(id=id,x=rep(1:ncol(erv),nrow(erv)),datep=datep,julp=julp,ind=ind,sat=sat,year=as.integer(substr(datep,1,4)),y=as.vector(t(erv)),jul=as.vector(t(erd))),date)
 d$y<-d$y/10000
 d<-d[!is.na(d$jul) & !is.na(d$y),]
-d<-d[,.(y,ind,sat,year,julp,jul,np=.N),by=.(datep)]
-d<-d[,.(y,ind,sat,year,julp,np,median=quantile(y,0.5,na.rm=TRUE),mean=mean(y,na.rm=TRUE),n=.N),by=.(datep,jul)]
+d<-d[,.(id,y,ind,sat,year,julp,jul,np=.N),by=.(datep)]
+d<-d[,.(id,y,ind,sat,year,julp,np,median=quantile(y,0.5,na.rm=TRUE),mean=mean(y,na.rm=TRUE),n=.N),by=.(datep,jul)]
 d<-as.data.frame(d)
 d$date<-as.Date(sapply(1:nrow(d),function(i){
   k<-ifelse(d$jul[i]<d$julp[i],1,0)
@@ -73,11 +80,53 @@ d$date<-as.Date(sapply(1:nrow(d),function(i){
 }),origin="1970-01-01")
 d<-d[d$year>=2003,]
 d$datex<-as.numeric(d$date)
-d<-d[order(d$datep,d$jul),]
+d<-d[order(d$id,d$datep,d$jul),]
+
+
+###### PIXEL #####
+
+ans<-NULL
+
+for(i in unique(d$id)){
+
+dd<-d[d$id==i,]
+comp<-seq(min(dd$datex),max(dd$datex),by=1)
+ndvi<-rep(NA,length(comp))
+ndvi[match(dd$datex,comp)]<-dd$y
+ndvi<-na.spline(ndvi)
+s0<-sgolayfilt(dd$y,p=3,n=51,m=0)
+s1<-sgolayfilt(dd$y,p=3,n=51,m=1)
+#plot(dd$datex,dd$y,ylim=c(-0.2,1))
+#abline(0,0)
+#lines(dd$datex,s0)
+#lines(dd$datex,s1)
+
+
+invisible(peak<-sapply(years[-length(years)],function(i){
+  year<-unique(dd$year)[i]
+### up
+  k<-which(dd$datep>=paste0(year-1,"-11-20") & dd$datep<=paste0(year,"-10-16"))
+  ddd<-dd[k,]
+  lo1<-list(Asym=0,xmid=12000,scal=2,c=-0.0)
+  up1<-list(Asym=1,xmid=18000,scal=30,c=0.2)
+  #m1<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=ddd,start=list(Asym=0.5,xmid=quantile(ddd$datex,0.5,na.rm=TRUE),scal=3,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo1,upper=up1,algorithm="port")
+  se<-seq(min(ddd$datex),max(ddd$datex),by=1) 
+  lines(se,predict(m1,data.frame(datex=se)),col=alpha("green4",0.85),lwd=4)
+  dd$datex[findMM(s1,beg=min(k),end=max(k))]
+}))
+
+ans<-c(ans,mean(as.integer(format(as.Date(peak,origin="1970-01-01"),"%j"))))
+
+}
 
 
 
-png("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ndvi4.png",width=22,height=10,units="in",res=300)
+
+
+
+#### png #####
+
+#png("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ndvi4.png",width=22,height=10,units="in",res=300)
 par(mar=c(7,4,4,4))
 plot(d$date,d$y,col=gray(0,0.1),xaxt="n",xlab="Date",ylab="NDVI",type="n",xlim=c(min(d$date)-300,max(d$date)))
 
@@ -149,8 +198,11 @@ return(peak)}))
 
 legend("topright",title="NDVI",pch=c(1,16,17,NA,NA,NA),lwd=c(NA,NA,NA,4,4,4),col=c(gray(0,0.3),alpha("green4",0.5),alpha("green4",0.5),alpha("blue",0.35),alpha("red",0.35),"green4"),legend=c("Value in a 250m pixel","Moy. Aqua sat.","Moy. Terra sat.","GAM","LOESS","Double logistic"),bty="n",inset=c(0.05,0))
 
-dev.off()
+#dev.off()
 
+
+
+### tmap ##########################
 
 gu<-as.integer(format(as.Date(unlist(peak),origin="1970-01-01"),"%j"))
 gu<-gu-mean(gu)
@@ -163,17 +215,20 @@ fun<-function(){
 plot(r[[1:10]],addfun=fun)
 
 
-### visualisation prediction (dynamic)
+#### visualisation prediction (dynamic) ######
 tmap_mode("view")
-tm_shape(rv[["MYD13Q1_NDVI_2009_233"]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
+
+tm_shape(rv[["MYD13Q1_NDVI_2009_233"]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))+tm_shape(rc[!is.na(o),])+tm_text("id")
+
+tm_shape(v[[1]])+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
+
+tm_shape(rans)+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
 
 
 
 
-################################################
-### Derivatives logistic
+##### Logistic ######
 # Asym
-
 
 ### alpha beta gamma
 logistic<-function(x,alpha=1,beta=1,gamma=1,c=0){
@@ -235,7 +290,59 @@ lapply(l,function(i){
 })
 
 
+#### Savitsky-Golay filtering ####
 
+m<-ts(t(erv)/10000,frequency=723)
+
+
+findMM<-function(x,n=1,beg=1,end=length(x),max=TRUE){
+  stopifnot(n<=length(beg:end))
+  r<-rank(-x)
+  val<-sort(r[beg:end])[1:n]
+  index<-match(val,r)
+  index
+}
+
+x<-runif(10)
+x
+findMM(x,beg=7,end=10)
+
+
+
+par(mar=c(4,3,3,0.5))
+plot(0,0,xlim=c(1,nrow(m)),ylim=c(-0.2,1),type="n")
+abline(0,0)
+for(i in 1:ncol(m)){  
+  s<-sample(ncol(m),1)
+  m2<-m[,s]
+  m2<-m[,i]
+  m2<-na.spline(m2)
+  points(sgolayfilt(m2),col=gray(0,0.02))
+  n<-23
+  s0<-sgolayfilt(m2,p=3,n=n,m=0)
+  s1<-sgolayfilt(m2,p=3,n=n,m=1)
+  s2<-sgolayfilt(m2,p=3,n=n,m=2)
+  s3<-sgolayfilt(m2,p=3,n=n,m=3)
+  trans<-0.03
+  lines(s0,col=alpha("black",trans))
+  lines(s1*2,lty=2,col=alpha("red",trans))
+  lines(s2*4,lty=3,col=alpha("blue",trans))
+  lines(s3*4,lty=3,col=alpha("green4",trans))
+  rc$id[!is.na(o)][s]
+
+  se<-seq(1,length(s1),by=48)
+  invisible(lapply(se,function(x){
+    k<-findMM(s1,beg=x,end=x+48)
+    lines(rep(k,2),c(0,1),lty=2,col=alpha("red",0.03))
+  }))
+  
+}
+
+#### NDVI quantiles ##################
+  
+x<-subset(rv,1:dim(rv)[[3]])
+v<-calc(x,function(i){quantile(i,probs=c(0.05,0.95),na.rm=TRUE)})  
+levelplot(v,col.regions=rev(terrain.colors(100)))
 
 
 
