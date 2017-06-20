@@ -13,6 +13,7 @@ library(quantreg)
 library(FlexParamCurve)
 library(signal)
 library(zoo)
+library(rasterVis)
 #library(phenex)
 
 #MODIStsp()
@@ -28,20 +29,24 @@ rm(raster_ts)
 
 rv<-r5 #r5 is the initial raster used in plot ndvi3
 rd<-r3
+re<-r4
 rc<-SpatialPointsDataFrame(coordinates(rv),proj4string=CRS(proj4string(rv)),data.frame(id=seq_len(dim(rv)[1]*dim(rv)[2])))
 #v<-velox(r[[1:100]])
 
-o<-over(rc,ram)
-
+#writeRaster(rv[[1]],"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ram_ndvi.tif")
+#writeRaster(re,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ram_evi.tif")
+#writeRaster(rd,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/ram_doy.tif")
 
 
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
 plot(ram)
 ram<-gBuffer(ram,width=-0.01)
+allr<-gBuffer(ram,width=0.25)
 plot(ram,add=TRUE)
+o<-over(rc,allr)
 
-erv_raw<-extract(rv,ram)
-erd_raw<-extract(rd,ram)
+erv_raw<-extract(rv,allr)
+erd_raw<-extract(rd,allr)
 #ee<-do.call("cbind",lapply(strsplit(v$extract(ram,fun=function(i){paste(i,collapse="_")}),"_"),as.integer))
 erv<-erv_raw[[1]]
 erd<-erd_raw[[1]]
@@ -65,7 +70,6 @@ sat<-substr(sapply(strsplit(dimnames(erv)[[2]],"_"),function(i){
 id<-rep(as.integer(names(o)[!is.na(o)][1:nrow(erv)]),each=ncol(erv))
 
 
-
 ##### raw images and models ####
 
 d<-as.data.table(data.frame(id=id,x=rep(1:ncol(erv),nrow(erv)),datep=datep,julp=julp,ind=ind,sat=sat,year=as.integer(substr(datep,1,4)),y=as.vector(t(erv)),jul=as.vector(t(erd))),date)
@@ -78,49 +82,92 @@ d$date<-as.Date(sapply(1:nrow(d),function(i){
   k<-ifelse(d$jul[i]<d$julp[i],1,0)
   day[[as.character(d$year[i]+k)]][d$jul[i]]
 }),origin="1970-01-01")
-d<-d[d$year>=2003,]
+d<-d[d$date>="2002-11-20",]
 d$datex<-as.numeric(d$date)
 d<-d[order(d$id,d$datep,d$jul),]
 
 
 ###### PIXEL #####
 
+
+
+years<-sort(unique(d$year))
+years<-years[years>2002 & years<2017]
+ids<-unique(d$id)
 ans<-NULL
+l<-vector(mode="list",length(ids))
 
-for(i in unique(d$id)){
+for(i in seq_along(ids)){
 
-dd<-d[d$id==i,]
-comp<-seq(min(dd$datex),max(dd$datex),by=1)
-ndvi<-rep(NA,length(comp))
-ndvi[match(dd$datex,comp)]<-dd$y
-ndvi<-na.spline(ndvi)
-s0<-sgolayfilt(dd$y,p=3,n=51,m=0)
-s1<-sgolayfilt(dd$y,p=3,n=51,m=1)
-#plot(dd$datex,dd$y,ylim=c(-0.2,1))
-#abline(0,0)
-#lines(dd$datex,s0)
-#lines(dd$datex,s1)
+  #dd<-d[d$id==ids[i] & d$year%in%years,]
+  dd<-d[d$id==ids[i],]
+  comp<-seq(min(dd$datex),max(dd$datex),by=1)
+  #ndvi<-rep(NA,length(comp))
+  #ndvi[match(dd$datex,comp)]<-dd$y
+  #ndvi<-na.spline(ndvi)
+  s0<-sgolayfilt(dd$y,p=3,n=11,m=0)
+  s1<-sgolayfilt(dd$y,p=3,n=41,m=1)
+  s2<-sgolayfilt(dd$y,p=3,n=41,m=2)
+  s3<-sgolayfilt(dd$y,p=3,n=41,m=3)
 
-
-invisible(peak<-sapply(years[-length(years)],function(i){
-  year<-unique(dd$year)[i]
-### up
-  k<-which(dd$datep>=paste0(year-1,"-11-20") & dd$datep<=paste0(year,"-10-16"))
-  ddd<-dd[k,]
-  lo1<-list(Asym=0,xmid=12000,scal=2,c=-0.0)
-  up1<-list(Asym=1,xmid=18000,scal=30,c=0.2)
-  #m1<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=ddd,start=list(Asym=0.5,xmid=quantile(ddd$datex,0.5,na.rm=TRUE),scal=3,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo1,upper=up1,algorithm="port")
-  se<-seq(min(ddd$datex),max(ddd$datex),by=1) 
-  lines(se,predict(m1,data.frame(datex=se)),col=alpha("green4",0.85),lwd=4)
-  dd$datex[findMM(s1,beg=min(k),end=max(k))]
-}))
-
-ans<-c(ans,mean(as.integer(format(as.Date(peak,origin="1970-01-01"),"%j"))))
-
+  invisible(peak<-sapply(seq_along(years),function(i){
+    year<-years[i]
+   ### up
+    #k<-which(dd$datep>=paste0(year-1,"-11-20") & dd$datep<=paste0(year,"-10-16"))
+    #ddd<-dd[k,]
+    #lo1<-list(Asym=0,xmid=10000,scal=2,c=-0.0)
+    #up1<-list(Asym=1,xmid=18000,scal=30,c=0.3)
+    #m1<-nls(y~Asym/(1+exp((xmid-datex)/scal))+c,data=ddd,start=list(Asym=0.5,xmid=quantile(ddd$datex,0.5,na.rm=TRUE),scal=3,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo1,upper=up1,algorithm="port")
+    #se<-seq(min(ddd$datex),max(ddd$datex),by=1) 
+    #lines(se,predict(m1,data.frame(datex=se)),col=alpha("green4",0.75),lwd=3)
+    k2<-which(dd$date>=paste0(year,"-02-01") & dd$date<=paste0(year,"-10-01"))
+    dd$datex[findMM(s1,beg=min(k2),end=max(k2))]
+    
+  }))
+  
+  
+  if(T){
+    plot(dd$datex,dd$y,ylim=c(-0.2,1))
+    abline(0,0)
+    lines(dd$datex,s0)
+    lines(dd$datex,s1)
+    lines(dd$datex,s2*5,col="red")
+    lines(dd$datex,s3*50,col="blue")
+    invisible(sapply(peak,function(j){
+      lines(rep(j,2),c(0,1),col="red",pch=16)    
+    }))
+  }
+  
+  ans<-c(ans,mean(as.integer(format(as.Date(peak,origin="1970-01-01"),"%j"))))
+  l[[i]]<-peak
 }
 
 
+rans<-rv[[1]]
+rans[ids]<-ans
 
+rl<-lapply(seq_along(years),function(i){
+  r<-rv[[1]]
+  ans<-sapply(l,"[",i)
+  ans<-as.integer(format(as.Date(ans,origin="1970-01-01"),"%j"))
+  r[ids]<-ans
+  r
+})
+R<-do.call("stack",rl)
+names(R)<-years
+levelplot(R,col.regions=rev(terrain.colors(101)),cuts=100)+layer(sp.polygons(ram))
+
+
+dat<-substr(seq(as.Date("2007-01-01"),as.Date("2077-12-31"),by=1)[round(cellStats(R,mean))],6,10)
+jul<-cellStats(R,mean)
+centered_jul<-cellStats(R,mean)-mean(cellStats(R,mean))
+sd_jul<-cellStats(R,sd)
+x<-data.frame(year=gsub("X","",names(jul)),date=dat,jul=jul,centered_jul=centered_jul,sd_jul=sd_jul,stringsAsFactors=FALSE)
+fwrite(x,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup.csv",row.names=FALSE,sep=";")
+
+
+tmap_mode("view")
+tm_shape(rans)+tm_raster(alpha=0.9,n=10,palette=rev(terrain.colors(10)))+tm_shape(ram)+tm_borders(lwd=5)+tm_layout(basemaps = c("Esri.WorldImagery","HERE.hybridDay"))
 
 
 
@@ -342,7 +389,7 @@ for(i in 1:ncol(m)){
   
 x<-subset(rv,1:dim(rv)[[3]])
 v<-calc(x,function(i){quantile(i,probs=c(0.05,0.95),na.rm=TRUE)})  
-levelplot(v,col.regions=rev(terrain.colors(100)))
+levelplot(v,col.regions=rev(terrain.colors(101)),cuts=100)
 
 
 
