@@ -19,13 +19,40 @@ library(FRutils)
 
 #MODIStsp()
 
-findMM<-function(x,n=1,beg=1,end=length(x),max=TRUE){
+findminmax<-function(x,n=1,beg=1,end=length(x),max=TRUE){
   stopifnot(n<=length(beg:end))
   r<-rank(ifelse(max,-1,1)*x)
   val<-sort(r[beg:end])[1:n]
   index<-match(val,r)
   index
 }
+
+
+findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
+  stopifnot(!is.null(names(x)))
+  d<-substr(names(x),6,10)
+  #stopifnot(n<=length(beg:end))
+  
+  bloc<-d>=beg & d<=end
+  m1<-which(diff(bloc)==(-1))
+  m2<-which(diff(bloc)==(1))
+  
+  l<-Map(":",m1,m2)
+  
+  r<-rank(ifelse(max,-1,1)*x)
+  res<-lapply(l,function(i){
+    val<-sort(r[i])[1:n]
+    index<-match(val,r)
+    index   
+  })
+  res
+}
+
+findminmax(x,n=1)
+
+
+
+
 
 ##### load RData #####
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
@@ -132,9 +159,9 @@ for(i in seq_along(ids)){
     #se<-seq(min(ddd$datex),max(ddd$datex),by=1) 
     #lines(se,predict(m1,data.frame(datex=se)),col=alpha("green4",0.75),lwd=3)
     k2<-which(dd$date>=paste0(year,"-02-01") & dd$date<=paste0(year,"-10-01"))
-    gu<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=TRUE)]
+    gu<-dd$datex[findminmax(s1,beg=min(k2),end=max(k2),max=TRUE)]
     k2<-which(dd$date>=paste0(year,"-08-01") & dd$date<=paste0(year,"-12-31"))
-    gd<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=FALSE)]
+    gd<-dd$datex[findminmax(s1,beg=min(k2),end=max(k2),max=FALSE)]
     c(gu,gd)
     
   }))
@@ -365,7 +392,7 @@ m<-ts(t(erv)/10000,frequency=723)
 
 x<-runif(10)
 x
-findMM(x,beg=7,end=10)
+findminmax(x,beg=7,end=10)
 
 
 
@@ -392,7 +419,7 @@ for(i in 1:ncol(m)){
 
   se<-seq(1,length(s1),by=48)
   invisible(lapply(se,function(x){
-    k<-findMM(s1,beg=x,end=x+48)
+    k<-findminmax(s1,beg=x,end=x+48)
     lines(rep(k,2),c(0,1),lty=2,col=alpha("red",0.03))
   }))
   
