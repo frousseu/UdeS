@@ -6,6 +6,7 @@ library(rasterVis)
 library(rgeos)
 library(FRutils)
 library(signal)
+library(scales)
 
 gimms_files_v1 <- updateInventory()
 tail(gimms_files_v1, 4)
@@ -24,11 +25,16 @@ bb<-attributes(extent(raster_ts))
 ramr<-bbox2pol(c(bb$xmin,bb$xmax,bb$ymin,bb$ymax))
 rm(raster_ts)
 
-
+### ram
 shp <- getData("GADM", country = "DEU", level = 0, path = tmpDir())
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
 plot(ram)
 ram<-gBuffer(ram,width=0.25)
+
+### yoanna's region
+pathshp<-"C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc"
+z<-readOGR(pathshp,layer="largezone_BC_Alberta")
+z<-spTransform(z,CRS(proj4string(r)))
 
 
 
@@ -53,28 +59,59 @@ theme.novpadding <-
               right.padding = 0))
 
 x<-list.files(path)
-r <- rasterizeGimms(x = paste0(path,x),ext = ramr) # clipping
+ts<-monthlyIndices(x, version = 1, timestamp = T)
+doy<-as.Date(as.character(ts+round(c(diff(ts),17)/2,0)))
+r <- rasterizeGimms(x = paste0(path,x),ext = z,cores=6L) # clipping
 plot(r[[1]])
 spplot(subset(r,13:dim(r)[[3]]),layout=c(24,30))
 lines(ram)
-p.strip <- list(cex=0.1, lines=-2, col="transparent")
-levelplot(subset(r,13:dim(r)[[3]]),col.regions=rev(terrain.colors(101)),cuts=100,layout=c(24,34),par.settings=list(strip.background = list(col = "transparent"),strip.border = list(col = 'transparent'),axis.line=list(col="transparent")),scales=list(col="black"),par.strip.text=p.strip)
+p.strip <- list(cex=0.1, lines=-1, col="transparent")
+levelplot(subset(aggregate(r,10),(13:dim(r)[[3]])[1:(24*34)]),col.regions=rev(terrain.colors(101)),cuts=100,layout=c(24,34),par.settings=list(strip.background = list(col = "transparent"),strip.border = list(col = 'transparent'),axis.line=list(col="transparent")),scales=list(col="black",tck = c(1,0)),par.strip.text=p.strip)
 
 
-lattice.options(
-  layout.heights=list(bottom.padding=list(x=0), top.padding=list(x=0)),
-  layout.widths=list(left.padding=list(x=0), right.padding=list(x=0))
-)
-levelplot(subset(r,1:12),par.settings=list(axis.line=list(col="transparent")),scales=list(col="black"))
+### show all years and dates
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc/ndvi.png",width=7,height=10.3,units="in",res=600)
+m<-(13:dim(r)[[3]])-12
+layout(matrix(m,ncol=24,byrow=FALSE))
+r2<-aggregate(r,2)
+par(mar=c(0,0,0.025,0),oma=c(0,0.2,0,0))
+for(i in m){
+  r3<-r2[[i+12]]
+  brks <- seq(-0.3,1,by=0.01)
+  nbrks <- length(brks)-1
+  plot(r3,xaxt="n",yaxt="n",main="",axes=FALSE,legend=FALSE,box=FALSE,breaks=brks,col=rev(terrain.colors(nbrks)),lab.breaks=brks,zlim=c(0,1))
+  mtext(doy[i+12],side=3,cex=0.125,line=-0.4,col="white",xpd=TRUE,outer=FALSE)
+  if(i==1){plot(z,add=TRUE,lwd=0.05,border=alpha("black",0.25),col=alpha("grey50",0.25))}
+}
+dev.off()
 
 
-e<-extract(r,ramr)[[1]]
-e<-e[,seq_len(ncol(e))[1:828]]
-plot(0,0,xlim=c(0,ncol(e)),ylim=c(-0.2,1),type="n")
-lapply(1:nrow(e),function(i){
-  points(e[i,],col=i) 
-  lines(sgolayfilt(e[i,],n=11,p=3),col=i)
-})
+
+
+years<-sort(unique(substr(doy,1,4)))
+ee<-extract(r,z)
+#e<-ee[[65]]
+e<-do.call("rbind",ee)
+dimnames(e)[[2]]<-as.character(doy)
+plot(doy,e[1,],ylim=c(-0.2,1),type="n",xaxt="n")
+axis.Date(1,at=seq(min(doy),max(doy),by="4 month"), format="%Y-%m-%d",las=2,cex.axis=0.5)
+abline(0,0)
+
+invisible(lapply(1:nrow(e[1:min(c(nrow(e),1000)),]),function(i){
+  #points(doy,e[i,],col=i) 
+  lines(doy,sgolayfilt(e[i,],n=11,p=3,m=0),col=alpha("black",0.01))
+  lines(doy,sgolayfilt(e[i,],n=11,p=3,m=1),col=alpha("black",0.01))
+  
+  #invisible(peak<-lapply(seq_along(years),function(i){
+  #  year<-years[i]
+  #  k2<-which(dd$date>=paste0(year,"-02-01") & dd$date<=paste0(year,"-10-01"))
+  #  gu<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=TRUE)]
+  #  k2<-which(dd$date>=paste0(year,"-08-01") & dd$date<=paste0(year,"-12-31"))
+  #  gd<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=FALSE)]
+  #  c(gu,gd)
+  #}))
+  
+}))
 
 
 ## Rasterize with quality control
