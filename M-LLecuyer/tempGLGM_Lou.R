@@ -88,8 +88,7 @@ plot(ds)
 ### import raster and build pred grid
 #########################################
 
-#path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Mature_forest_2015_include_bajos_secondary.tif"
-#path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Mature_forest_2015_not_include_bajos_secondary.tif"
+### import land cover raster
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Landcover_2015_extended.tif"
 code<-read.table("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Legend.txt",header=TRUE,sep=",",stringsAsFactors=FALSE)
 code<-code[code$Code!=0,]# ignore background values in raster
@@ -97,6 +96,9 @@ r <- stack(path)
 
 plot(r)
 plot(ds,add=TRUE)
+
+### import 
+
 
 ### build grid to extract pixel values around a buffer where predictions are going to be made
 ras <- raster(xmn=bbox(r)[1,1],xmx=bbox(r)[1,2],ymn=bbox(r)[2,1],ymx=bbox(r)[2,2],ncols=100,nrows=100)
@@ -118,6 +120,7 @@ ans<-lapply(e,function(i){
   x<-table(unlist(strsplit(i,"_")))
   x<-x[names(x)!=0] # ignore background values in raster
   s<-setdiff(code$Code,names(x))
+  #s<-setdiff(names(x),names(x))
   if(length(s)==0){
     x<-x[order(names(x))]
   }else{
