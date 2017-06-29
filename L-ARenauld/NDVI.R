@@ -18,15 +18,15 @@ jul2nd<-function(y,j){
 
 # A list of SpatialPolygonsDataFrame for which a metric is wanted
 
-# Ram mountain
+### Ram mountain
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
 pol<-gBuffer(ram,width=-0.01)
 pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 
-# Refuges Alberta BC
-z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
-pol<-spTransform(z,CRS(proj4string(r)))
+### Refuges Alberta BC
+#z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
+#pol<-spTransform(z,CRS(proj4string(r)))
 
 
 #############################################################
@@ -110,7 +110,7 @@ peak<-lapply(seq_along(v),function(i){
   sapply(1:nrow(v[[i]]),function(j){
     s0<-sgolayfilt(na.spline(v[[i]][j,]),n=11,p=3,m=0)
     s1<-sgolayfilt(na.spline(v[[i]][j,]),n=11,p=3,m=1)
-    names(s1)<-as.character(as.Date(jul2nd(substr(doy,1,4),vd[[i]][j,]),origin="1970-01-01"))
+    names(s1)<-as.integer(as.Date(jul2nd(substr(doy,1,4),vd[[i]][j,]),origin="1970-01-01"))
     #names(s1)<-ifelse(is.na(names(s1)),doy,names(s1))
     pos<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
     names(s1)[pos]
