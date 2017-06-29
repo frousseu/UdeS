@@ -31,14 +31,9 @@ findminmax<-function(x,n=1,beg=1,end=length(x),max=TRUE){
 findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
   stopifnot(!is.null(names(x)))
   d<-substr(names(x),6,10)
-  #stopifnot(n<=length(beg:end))
-  
   bloc<-d>=beg & d<=end
-  m1<-which(diff(bloc)==(-1))
-  m2<-which(diff(bloc)==(1))
-  
-  l<-Map(":",m1,m2)
-  
+  run<-rle(bloc)
+  l<-Map(":",c(1,head(cumsum(run[[1]]),-1))[run[[2]]],cumsum(run[[1]])[run[[2]]])
   r<-rank(ifelse(max,-1,1)*x)
   res<-lapply(l,function(i){
     val<-sort(r[i])[1:n]
@@ -48,7 +43,7 @@ findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
   res
 }
 
-findminmax(x,n=1)
+findminmax(e[1,],n=1)
 
 
 
