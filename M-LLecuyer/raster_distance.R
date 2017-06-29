@@ -6,9 +6,14 @@ library(rgeos)
 x1<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",layer="poblacion")
 x2<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",layer="carreteras")
 
+
 # lire le raster
 r<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Landcover_2015_extended.tif"
 r <- stack(r)
+
+# lire le raster du MSPA
+mspa<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/MSPA_result_2015.tif"
+mspa <- stack(mspa)
 
 # créer un raster de prédictions et le projeter
 ras <- raster(xmn=bbox(r)[1,1],xmx=bbox(r)[1,2],ymn=bbox(r)[2,1],ymx=bbox(r)[2,2],ncols=100,nrows=100)
@@ -35,6 +40,7 @@ ras2[]<-ans2
 
 # stacker les raster
 ras<-stack(ras1,ras2)
+names(ras)<-c("Dist_Pop","Dist_Road")
 
 # faire une petite fonction pour visualiser les résultats
 foo<-function(i){
