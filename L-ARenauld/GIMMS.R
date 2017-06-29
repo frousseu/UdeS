@@ -34,7 +34,7 @@ ram<-gBuffer(ram,width=0.25)
 ### yoanna's region
 pathshp<-"C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc"
 z<-readOGR(pathshp,layer="largezone_BC_Alberta")
-z<-spTransform(z,CRS(proj4string(r)))
+z<-spTransform(ram,CRS(proj4string(r)))
 
 
 
@@ -97,26 +97,32 @@ plot(doy,e[1,],ylim=c(-0.2,1),type="n",xaxt="n")
 axis.Date(1,at=seq(min(doy),max(doy),by="4 month"), format="%Y-%m-%d",las=2,cex.axis=0.5)
 abline(0,0)
 
-invisible(lapply(1:nrow(e[1:min(c(nrow(e),1000)),]),function(i){
-  #points(doy,e[i,],col=i) 
-  lines(doy,sgolayfilt(e[i,],n=11,p=3,m=0),col=alpha("black",0.01))
-  lines(doy,sgolayfilt(e[i,],n=11,p=3,m=1),col=alpha("black",0.01))
+peak<-invisible(lapply(1:nrow(e[1:min(c(nrow(e),1000)),]),function(i){
   
-  #invisible(peak<-lapply(seq_along(years),function(i){
-  #  year<-years[i]
-  #  k2<-which(dd$date>=paste0(year,"-02-01") & dd$date<=paste0(year,"-10-01"))
-  #  gu<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=TRUE)]
-  #  k2<-which(dd$date>=paste0(year,"-08-01") & dd$date<=paste0(year,"-12-31"))
-  #  gd<-dd$datex[findMM(s1,beg=min(k2),end=max(k2),max=FALSE)]
-  #  c(gu,gd)
+  s0<-sgolayfilt(e[i,],n=11,p=3,m=0)
+  s1<-sgolayfilt(e[i,],n=11,p=3,m=1)
+  
+  names(s1)<-dimnames(e)[[2]]
+  
+  #lines(doy,s0,col=alpha("black",0.01))
+  #lines(doy,s1,col=alpha("black",0.01))
+  
+  pos<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
+  #peak<-seq.Date(as.Date("2007-01-01"),as.Date("2007-12-31"),by=1)[round(mean(as.integer(format(doy[pos],"%j"))),0)]
+  
+  doy[pos]
+  
+  #invisible(lapply(pos,function(i){
+  #  lines(rep(doy[i],2),c(-0.2,1),lty=2,col=alpha("red",0.01))
   #}))
   
+
 }))
+
+peak<-as.Date(colMeans(do.call("rbind",peak)),origin="1970-01-01")
 
 
 ## Rasterize with quality control
-rq <- rasterizeGimms(x = gimms_files,
-                                ext = shp, # clipping
-                                keep = 0)  # quality control
+rq<-rasterizeGimms(x=gimms_files,ext=shp,keep=0)  # quality control
 plot(rq[[1]])
 lines(shp)
