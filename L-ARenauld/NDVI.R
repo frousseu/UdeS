@@ -1,6 +1,7 @@
 
 library(foreach)
 library(doParallel)
+library(signal)
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -8,9 +9,95 @@ library(doParallel)
 # RasterStacks may be of the MODIS or GIMMS type
 # A raster of julian dates is assumed to accompany each value raster
 
-jul2nd<-function(y,j){
-  as.integer(as.Date(paste0(y,"-01-01")))+j-1
+# y = a year as an integer
+# j = the julian day to convert
+# j2 = the julian day that marks the beginning of a block
+
+
+jul2nd<-function(y,j,j2=NULL){
+  inc<-0
+  if(!is.null(j2)){
+    inc<-ifelse(j<j2,1,0) 
+  }
+  as.integer(as.Date(paste0(y+inc,"-01-01")))+j-1
 }
+
+findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
+  stopifnot(!is.null(names(x)))
+  d<-substr(names(x),6,10)
+  bloc<-d>=beg & d<=end
+  run<-rle(bloc)
+  l<-Map(":",c(1,head(cumsum(run[[1]]),-1))[run[[2]]],cumsum(run[[1]])[run[[2]]])
+  r<-rank(ifelse(max,-1,1)*x)
+  res<-lapply(l,function(i){
+    val<-sort(r[i])[1:n]
+    index<-match(val,r)
+    index   
+  })
+  res
+}
+
+
+#### test logistic
+
+
+
+fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
+  years<-as.integer(unique(substr(names(x),1,4)))
+  years<-years[years<=2016]
+  l<-lapply(years,function(i){
+    paste(c(i-1,i),mmdate,sep="-")  
+  })
+  peak<-sapply(l,function(i){
+    sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
+    d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
+    min_xmid<-as.integer(as.Date(i[1])+120)
+    max_xmid<-as.integer(as.Date(i[2])-60)
+    lo1<-list(Asym=0,xmid=min_xmid,scal=5,c=0.0)
+    up1<-list(Asym=1,xmid=max_xmid,scal=30,c=0.8)
+    m1<-tryCatch(nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=d,start=list(Asym=0.5,xmid=min_xmid+(max_xmid-min_xmid)/2,scal=10,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo1,upper=up1,algorithm="port"),error=function(j){TRUE})
+    if(!isTRUE(m1)){
+      se<-seq(min(d$x),max(d$x),by=1) 
+      if(plot){  
+        #plot(as.Date(d$x),d$y)
+        lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
+      }
+      coef(m1)["xmid"]
+    }else{
+      NA  
+    }
+  })
+  peak
+}
+
+fitGau<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
+  years<-as.integer(unique(substr(names(x),1,4)))
+  years<-years[years<=2016]
+  l<-lapply(years,function(i){
+    paste(c(i-1,i),mmdate,sep="-")  
+  })
+  peak<-sapply(l,function(i){
+    sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
+    d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
+    min_mu<-as.integer(as.Date(i[1])+150)
+    max_mu<-as.integer(as.Date(i[2])-30)
+    #lo1<-list(mu=0,xmid=min_xmid,scal=5,c=0.0)
+    #up1<-list(mu=1,xmid=max_xmid,scal=30,c=0.8)
+    m1<-tryCatch(nls(y~(1/(sigma*sqrt(2*pi)))*exp(-((x-mu)^2)/(2*sigma^2))+c,data=d,start=list(mu=min_mu,sigma=50,c=0.2),control=list(minFactor=1e-12,maxiter=500)),error=function(j){TRUE})
+    if(!isTRUE(m1)){
+      se<-seq(min(d$x),max(d$x),by=1) 
+      if(plot){  
+        #plot(as.Date(d$x),d$y)
+        lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("green4",0.85),lwd=4)
+      }
+      coef(m1)["xmid"]
+    }else{
+      NA  
+    }
+  })
+  peak
+}
+
 
 
 #############################################################
@@ -20,7 +107,7 @@ jul2nd<-function(y,j){
 
 ### Ram mountain
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
-pol<-gBuffer(ram,width=-0.01)
+pol<-gBuffer(ram,width=0.5)
 pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 
@@ -41,6 +128,16 @@ modis_jul<-raster_ts
 rm(raster_ts)
 l<-strsplit(names(modis),"_")
 modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
+
+m<-match("MYD",substr(names(modis),1,3))
+keep<-m:length(names(modis))
+
+### subset modis to only get data from when Aqua was also used
+modis<-subset(modis,keep)
+modis_jul<-subset(modis_jul,keep)
+modis_doy<-modis_doy[keep]
+
+# Alpha and Terra data are offset by a certain amount in their blocks, but the specific date on which the ndvi is measured for a pixel may be earlier in a later block. Thus, although blocks are ordered, it does not mean that the specific dates are ordered. Ideally, order dates for each pixel one the observations are out of the complete matrix
 
 #for(i in seq_along(dim(modis_jul))){
 #  year<-unlist(strsplit(names(modis)[i],"_"))[[3]]
@@ -95,32 +192,92 @@ getDoParWorkers()
 v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
   extract(r,pol[i,])[[1]]  
 }
+### remove all NA values for some pixels
+#v<-lapply(v,function(i){
+#  k<-!apply(i,1,function(j){
+#    all(is.na(j))  
+#  })
+#  i[k,]
+#})
 
 vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
   extract(rd,pol[i,])[[1]]  
 }
+#vd<-lapply(vd,function(i){
+#  k<-!apply(i,1,function(j){
+#    all(is.na(j))  
+#  })
+#  i[k,]
+#})
 
 
 #############################################################
 ##### Compute metrics #######################################
 
 
-
-peak<-lapply(seq_along(v),function(i){
-  sapply(1:nrow(v[[i]]),function(j){
-    s0<-sgolayfilt(na.spline(v[[i]][j,]),n=11,p=3,m=0)
-    s1<-sgolayfilt(na.spline(v[[i]][j,]),n=11,p=3,m=1)
-    names(s1)<-as.integer(as.Date(jul2nd(substr(doy,1,4),vd[[i]][j,]),origin="1970-01-01"))
-    #names(s1)<-ifelse(is.na(names(s1)),doy,names(s1))
+peak_cell<-lapply(seq_along(v),function(i){
+  lapply(1:nrow(v[[i]]),function(j){
+    pl<-FALSE
+    val<-v[[i]][j,]/10000
+    jul<-vd[[i]][j,]
+    names(jul)<-doy
+    #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
+    jul2<-as.integer(format(doy,"%j"))
+    k<-is.na(jul)
+    if(any(k)){
+      jul[k]<-jul2[k] # missing values in precise julian days are given the beginning of the block  
+    }
+    name<-unname(as.Date(jul2nd(as.integer(substr(doy,1,4)),jul,jul2),origin="1970-01-01")) # blocks are ordered, but not necessarily precise dates
+    names(val)<-name
+    o<-order(name)
+    val<-val[o]
+    s1<-sgolayfilt(na.spline(val),n=81,p=3,m=1)
+    names(s1)<-names(val)
     pos<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
-    names(s1)[pos]
+    sg<-as.Date(names(s1)[pos])
+    s0<-sgolayfilt(na.spline(val),n=21,p=3,m=0)
+    if(pl){  
+      plot(as.Date(names(val)),val,ylim=c(-0.2,1))
+      lines(as.Date(names(val)),s0)
+      lines(as.Date(names(val)),s1*3)
+      abline(0,0)
+    }
+    #data.frame(na.spline(v[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
+    if(!j%%20)
+      print(j)
+    logi<-as.Date(fitLog(val[!is.na(val)],plot=pl))[-1]
+    rbind(sg,logi)
   })
 })
 
-peak<-lapply(peak,function(i){
-  as.Date(colMeans(i),origin="1970-01-01")  
+peak1<-lapply(peak_cell,function(i){
+  ii<-do.call("rbind",lapply(i,function(j){j[1,]}))
+  as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
+})
+peak2<-lapply(peak_cell,function(i){
+  ii<-do.call("rbind",lapply(i,function(j){j[2,]}))
+  as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
 
+#peak1g<-peak1
+#peak2g<-peak2
+
+peak1m<-peak1
+peak2m<-peak2
+
+### gimms and modis compare (peak1 peak2)
+
+
+j1g<-as.Date(as.integer(format(peak1g[[1]],"%j")))
+j2g<-as.Date(as.integer(format(peak2g[[1]],"%j")))
+j1m<-as.Date(as.integer(format(peak1m[[1]],"%j")))
+j2m<-as.Date(as.integer(format(peak2m[[1]],"%j")))
+
+plot(as.integer(substr(peak1g[[1]],1,4)),j1g,pch=16,col=alpha("red",0.3),ylim=range(as.Date(c("1970-04-01","1970-07-01"))),type="l",las=2,lwd=4)
+lines(as.integer(substr(peak2g[[1]],1,4)),j2g,pch=16,col=alpha("red",0.3),lwd=4,lty=2)
+lines(as.integer(substr(peak1m[[1]],1,4)),j1m,pch=16,col=alpha("blue",0.3),ylim=range(c(j1m,j2m)),type="l",las=2,lwd=4)
+lines(as.integer(substr(peak2m[[1]],1,4)),j2m,pch=16,col=alpha("blue",0.3),lwd=4,lty=2)
+abline(0,0)
 
 
 
