@@ -15,7 +15,7 @@ library(signal)
 library(zoo)
 library(rasterVis)
 library(FRutils)
-#library(phenex)
+library(phenex)
 
 #MODIStsp()
 
@@ -42,11 +42,6 @@ findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
   })
   res
 }
-
-findminmax(e[1,],n=1)
-
-
-
 
 
 ##### load RData #####
