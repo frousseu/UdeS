@@ -219,7 +219,7 @@ vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 
 peak_cell<-lapply(seq_along(v),function(i){
   lapply(1:nrow(v[[i]]),function(j){
-    pl<-FALSE
+    pl<-TRUE
     val<-v[[i]][j,]/1
     jul<-vd[[i]][j,]
     names(jul)<-doy
@@ -244,17 +244,19 @@ peak_cell<-lapply(seq_along(v),function(i){
     if(!j%%20)
       print(j)
     if(pl){  
-      plot(as.Date(names(val)),val,ylim=c(-0.2,1))
+      plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
+      axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),"-01-01")),las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    mLog<-fitLog(val[!is.na(val)],plot=pl)[-1] #teke out firt year for gimms
+    mLog<-fitLog(val[!is.na(val)],plot=pl)[-1] #take out firt year for gimms
     logi<-as.Date(sapply(mLog,function(k){k["xmid"]}))
     #xx<<-val[!is.na(val)]
     #gaus<-as.Date(fitGau(val[!is.na(val)],plot=pl))[-1]
     if(pl){  
       h<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym"]})/2
+      axis.Date(1,at=logi,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
       points(sg,h,col="red",pch=16)
       points(logi,h,col="green4",pch=16)
     }
@@ -264,11 +266,11 @@ peak_cell<-lapply(seq_along(v),function(i){
 
 peak1<-lapply(peak_cell,function(i){
   ii<-do.call("rbind",lapply(i,function(j){j[1,]}))
-  as.Date(colMedians(ii,na.rm=TRUE),origin="1970-01-01")  
+  as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
 peak2<-lapply(peak_cell,function(i){
   ii<-do.call("rbind",lapply(i,function(j){j[2,]}))
-  as.Date(colMedians(ii,na.rm=TRUE),origin="1970-01-01")  
+  as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
 
 peak1g<-peak1
@@ -293,18 +295,26 @@ ylim<-range(as.Date(c("1970-04-01","1970-07-01")))
 #j2m<-scale(j2m)[,1]
 #ylim<-range(c(j1g,j2g))
 
-plot(as.integer(substr(peak1g[[1]],1,4)),j1g,pch=16,col=alpha("red",0.3),ylim=ylim,type="l",las=2,lwd=4,xlim=c(1980,2015))
+plot(as.integer(substr(peak1g[[1]],1,4)),j1g,pch=16,col=alpha("red",0.3),ylim=ylim,type="l",las=2,lwd=4,xlim=c(1980,2016))
 lines(as.integer(substr(peak2g[[1]],1,4)),j2g,pch=16,col=alpha("red",0.3),lwd=4,lty=2)
 lines(as.integer(substr(peak1m[[1]],1,4)),j1m,pch=16,col=alpha("blue",0.3),ylim=range(c(j1m,j2m)),type="l",las=2,lwd=4)
 lines(as.integer(substr(peak2m[[1]],1,4)),j2m,pch=16,col=alpha("blue",0.3),lwd=4,lty=2)
 abline(0,0)
 
 
+gimmsSG<-peak1g[[1]][match(1981:2016,substr(peak1g[[1]],1,4))]
+gimmsLO<-peak2g[[1]][match(1981:2016,substr(peak2g[[1]],1,4))]
+modisSG<-peak1m[[1]][match(1981:2016,substr(peak1m[[1]],1,4))]
+modisLO<-peak2m[[1]][match(1981:2016,substr(peak2m[[1]],1,4))]
 
+res<-data.frame(years=1981:2016,gimmsSG,gimmsLO,modisSG,modisLO)
+res$modisSG[res$years==2000]<-NA #
 
+res2<-ddply(res,.(years),function(i){format(i[-1],"%j")})
+names(res2)[2:ncol(res2)]<-paste0(names(res2)[2:ncol(res2)],"jul")
 
-
-
+res<-merge(res,res2)
+fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenupMOD_GIM.csv",row.names=FALSE,sep=";")
 
 
 
