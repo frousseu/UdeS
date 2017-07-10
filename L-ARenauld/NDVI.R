@@ -3,6 +3,7 @@ library(foreach)
 library(doParallel)
 library(signal)
 library(robustbase)
+library(MODIS)
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -108,9 +109,12 @@ fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
 
 ### Ram mountain
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
-pol<-gBuffer(ram,width=0.15)
+pol<-gBuffer(ram,width=0.0)
+#pol<-bbox2pol(c(-72.26,-72.15,45.29,45.40))
 pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
+#tmap_mode("view")
+#tm_shape(pol)+tm_polygons(alpha=0.3)+tm_borders(lwd=5)+tm_layout(basemaps=c("Esri.WorldImagery"))
 
 ### Refuges Alberta BC
 #z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
@@ -133,6 +137,7 @@ modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))
 m<-match("MYD",substr(names(modis),1,3))
 #keep<-m:length(names(modis))
 keep<-1:length(names(modis))
+#keep<-grep("MOD",names(r))
 
 ### subset modis to only get data from when Aqua was also used
 modis<-subset(modis,keep)
@@ -182,9 +187,9 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 #############################################################
 ##### Extract raster values for each region #################
 
-r<-gimms # determine series to use
-rd<-gimms_jul
-doy<-gimms_doy
+r<-modis # determine series to use
+rd<-modis_jul
+doy<-modis_doy
 
 
 registerDoParallel(6) 
@@ -220,7 +225,7 @@ vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 peak_cell<-lapply(seq_along(v),function(i){
   lapply(1:nrow(v[[i]]),function(j){
     pl<-TRUE
-    val<-v[[i]][j,]/1
+    val<-v[[i]][j,]/10000
     jul<-vd[[i]][j,]
     names(jul)<-doy
     #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
@@ -233,6 +238,9 @@ peak_cell<-lapply(seq_along(v),function(i){
     names(val)<-name
     o<-order(name)
     val<-val[o]
+    val2<-val
+    sup<-c(diff(val,lag=2)>0.4,FALSE)
+    val[sup]<-NA
     s1<-sgolayfilt(na.spline(val),n=41,p=3,m=1)
     names(s1)<-names(val)
     #pos<-findminmax(s1,n=5,beg="03-01",end="07-01")
@@ -245,12 +253,14 @@ peak_cell<-lapply(seq_along(v),function(i){
       print(j)
     if(pl){  
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
+      points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16)
+      points(as.Date(names(val2[sup])),val2[sup],pch=8)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),"-01-01")),las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    mLog<-fitLog(val[!is.na(val)],plot=pl)[-1] #take out firt year for gimms
+    mLog<-fitLog(val[!is.na(val)],plot=pl) #take out firt year for gimms
     logi<-as.Date(sapply(mLog,function(k){k["xmid"]}))
     #xx<<-val[!is.na(val)]
     #gaus<-as.Date(fitGau(val[!is.na(val)],plot=pl))[-1]
@@ -314,7 +324,7 @@ res2<-ddply(res,.(years),function(i){format(i[-1],"%j")})
 names(res2)[2:ncol(res2)]<-paste0(names(res2)[2:ncol(res2)],"jul")
 
 res<-merge(res,res2)
-fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenupMOD_GIM.csv",row.names=FALSE,sep=";")
+#fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenupMOD_GIM.csv",row.names=FALSE,sep=";")
 
 
 
