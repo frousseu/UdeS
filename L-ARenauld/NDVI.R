@@ -4,6 +4,7 @@ library(doParallel)
 library(signal)
 library(robustbase)
 library(MODIS)
+library(plyr)
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -117,8 +118,8 @@ pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 #tm_shape(pol)+tm_polygons(alpha=0.3)+tm_borders(lwd=5)+tm_layout(basemaps=c("Esri.WorldImagery"))
 
 ### Refuges Alberta BC
-#z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
-#pol<-spTransform(z,CRS(proj4string(r)))
+z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
+pol<-spTransform(z,CRS(proj4string(r)))
 
 
 #############################################################
@@ -130,6 +131,10 @@ load(paste0(path,"MOD13Q1_MYD13Q1_NDVI_49_2000_1_2017_RData.RData"))
 modis<-raster_ts #r5 is the initial raster used in plot ndvi3
 load(paste0(path,"MOD13Q1_MYD13Q1_DOY_49_2000_1_2017_RData.RData"))
 modis_jul<-raster_ts
+load(paste0(path,"MOD13Q1_MYD13Q1_Rely_49_2000_1_2017_RData.RData"))
+modis_rely<-raster_ts
+load(paste0(path,"MOD13Q1_MYD13Q1_VI_QA_49_2000_1_2017_RData.RData"))
+modis_QA<-raster_ts
 rm(raster_ts)
 l<-strsplit(names(modis),"_")
 modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
@@ -187,9 +192,9 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 #############################################################
 ##### Extract raster values for each region #################
 
-r<-modis # determine series to use
-rd<-modis_jul
-doy<-modis_doy
+r<-gimms # determine series to use
+rd<-gimms_jul
+doy<-gimms_doy
 
 
 registerDoParallel(6) 
@@ -224,8 +229,11 @@ vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 
 peak_cell<-lapply(seq_along(v),function(i){
   lapply(1:nrow(v[[i]]),function(j){
-    pl<-TRUE
-    val<-v[[i]][j,]/10000
+    pl<-FALSE
+    val<-v[[i]][j,]/1
+    if(all(is.na(val))){
+      val[seq_along(val)]<-1  
+    }
     jul<-vd[[i]][j,]
     names(jul)<-doy
     #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
@@ -238,9 +246,9 @@ peak_cell<-lapply(seq_along(v),function(i){
     names(val)<-name
     o<-order(name)
     val<-val[o]
-    val2<-val
-    sup<-c(diff(val,lag=2)>0.4,FALSE)
-    val[sup]<-NA
+    #val2<-val
+    #sup<-c(diff(val,lag=2)>0.4,FALSE)
+    #val[sup]<-NA
     s1<-sgolayfilt(na.spline(val),n=41,p=3,m=1)
     names(s1)<-names(val)
     #pos<-findminmax(s1,n=5,beg="03-01",end="07-01")
@@ -250,17 +258,17 @@ peak_cell<-lapply(seq_along(v),function(i){
     s0<-sgolayfilt(na.spline(val),n=21,p=3,m=0)
     #data.frame(na.spline(v[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
     if(!j%%20)
-      print(j)
+      print(paste(i,j))
     if(pl){  
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
-      points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16)
-      points(as.Date(names(val2[sup])),val2[sup],pch=8)
+      #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16)
+      #points(as.Date(names(val2[sup])),val2[sup],pch=8)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),"-01-01")),las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    mLog<-fitLog(val[!is.na(val)],plot=pl) #take out firt year for gimms
+    mLog<-fitLog(val[!is.na(val)],plot=pl)[-1] #take out firt year for gimms
     logi<-as.Date(sapply(mLog,function(k){k["xmid"]}))
     #xx<<-val[!is.na(val)]
     #gaus<-as.Date(fitGau(val[!is.na(val)],plot=pl))[-1]
@@ -270,7 +278,13 @@ peak_cell<-lapply(seq_along(v),function(i){
       points(sg,h,col="red",pch=16)
       points(logi,h,col="green4",pch=16)
     }
-    rbind(sg,logi)#,gaus)
+    ans<-rbind(sg,logi)#,gaus)
+    if(all(val==1)){
+      ans[]<-NA
+      ans
+    }else{
+      ans
+    }
   })
 })
 
@@ -289,8 +303,14 @@ peak2g<-peak2
 #peak1m<-peak1
 #peak2m<-peak2
 
-### gimms and modis compare (peak1 peak2)
+peak22<-sapply(peak2,function(i){median(as.integer(format(i,"%j")),na.rm=TRUE)})
+plot(pol,col=colo.scale(peak22))
+as.Date(range(peak22),"1970-01-01")
+#tmap_mode("view")
+#tm_shape(pol)+tm_borders(lwd=2,col="red")+tm_layout(basemaps=c("Esri.WorldImagery"))
 
+
+### gimms and modis compare (peak1 peak2)
 
 j1g<-as.Date(as.integer(format(peak1g[[1]],"%j")))
 j2g<-as.Date(as.integer(format(peak2g[[1]],"%j")))
@@ -307,8 +327,8 @@ ylim<-range(as.Date(c("1970-04-01","1970-07-01")))
 
 plot(as.integer(substr(peak1g[[1]],1,4)),j1g,pch=16,col=alpha("red",0.3),ylim=ylim,type="l",las=2,lwd=4,xlim=c(1980,2016))
 lines(as.integer(substr(peak2g[[1]],1,4)),j2g,pch=16,col=alpha("red",0.3),lwd=4,lty=2)
-lines(as.integer(substr(peak1m[[1]],1,4)),j1m,pch=16,col=alpha("blue",0.3),ylim=range(c(j1m,j2m)),type="l",las=2,lwd=4)
-lines(as.integer(substr(peak2m[[1]],1,4)),j2m,pch=16,col=alpha("blue",0.3),lwd=4,lty=2)
+#lines(as.integer(substr(peak1m[[1]],1,4)),j1m,pch=16,col=alpha("blue",0.3),ylim=range(c(j1m,j2m)),type="l",las=2,lwd=4)
+#lines(as.integer(substr(peak2m[[1]],1,4)),j2m,pch=16,col=alpha("blue",0.3),lwd=4,lty=2)
 abline(0,0)
 
 
@@ -324,7 +344,7 @@ res2<-ddply(res,.(years),function(i){format(i[-1],"%j")})
 names(res2)[2:ncol(res2)]<-paste0(names(res2)[2:ncol(res2)],"jul")
 
 res<-merge(res,res2)
-#fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenupMOD_GIM.csv",row.names=FALSE,sep=";")
+fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",row.names=FALSE,sep=";")
 
 
 
