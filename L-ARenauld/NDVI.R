@@ -119,7 +119,7 @@ pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 ### Refuges Alberta BC
 z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
-pol<-spTransform(z,CRS(proj4string(r)))
+pol<-spTransform(z,CRS(proj4string(ram)))
 
 
 #############################################################
@@ -260,6 +260,17 @@ peak_cell<-lapply(seq_along(v),function(i){
     if(!j%%20)
       print(paste(i,j))
     if(pl){  
+      
+      #valts <- xts::xts(val, order.by = as.POSIXct(names(val)))
+      #s0ts <- xts::xts(s0, order.by = as.POSIXct(names(val)))
+      #s1ts <- xts::xts(s1, order.by = as.POSIXct(names(val)))
+      #dat<-cbind(val=valts,s0=s0ts,s1=s1ts)
+      #dygraph(dat, main = "S") %>%
+      #  dySeries("val", drawPoints = TRUE, color = "blue",strokeWidth=0) %>%
+      #  dySeries("s0", drawPoints = FALSE, color = "black",strokeWidth=2) %>%
+      #  dySeries("s1", drawPoints = FALSE, color = "red",strokeWidth=2) %>%
+      #  dyRangeSelector()
+      
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
       #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16)
       #points(as.Date(names(val2[sup])),val2[sup],pch=8)
