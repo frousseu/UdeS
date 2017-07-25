@@ -57,6 +57,7 @@ x<-x[order(x$pair,x$year,ifelse(x$season=="spring",1,2)),]
 #x$time<-rep(1:5,2)
 x<-x[,c("pair","season","year","time","s1","s2","s3","s4","s5")]
 
+
 png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/maha.png",units="in",res=500,width=8,height=8)
 #windows()
 plot(1:5,1:5,ylim=c(2,max(as.numeric(unlist(x[,-(1:4)])),na.rm=TRUE)),type="n",xaxt="n",yaxt="n",xlab="Time",ylab="Mahalanobis Distance")
