@@ -6,6 +6,7 @@ library(RCurl)
 
 
 #aut<-c("Marc B\u00E9lisle")
+# when a - is not present in the first name, it should not be added (e.g. F. Guillaume Blanchet)
 
 recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-01",html=TRUE){
   
