@@ -212,11 +212,11 @@ cell<-lapply(1:nrow(v[1:nrow(v),]),function(i){
     NDVIgu_log<-logistic(xmid,alpha=Asym,beta=-xmid/scal,gamma=1/scal,offset=offset)[[2]] # do not take the scale, but the max slope
     NDVIgutime_log<-as.Date(xmid)
     NDVImax_log<-Asym+offset
-    #NDVImaxtime_log<-as.Date(names(s1)[pos1]) # not really defined unless using double-logistic
     
     l<-logistic_optimum(alpha=Asym,beta=-xmid/scal,gamma=1/scal)
     NDVIgutimebeg_log<-sapply(l[[2]],"[",1)
     NDVIgutimeend_log<-sapply(l[[2]],"[",2)
+    NDVIgutimespan_log<-NDVIgutimeend_log-NDVIgutimebeg_log
     
     if(pl){ 
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
@@ -234,7 +234,7 @@ cell<-lapply(1:nrow(v[1:nrow(v),]),function(i){
       points(NDVIgutimebeg_log,h,col="green4",pch=16)
       points(NDVIgutimeend_log,h,col="green4",pch=16)
     }
-    ans<-rbind(NDVIgutime_sg,NDVIgu_sg,NDVImaxtime_sg=NDVImaxtime_sg[-1],NDVImax_sg=NDVImax_sg[-1],NDVIgu_log,NDVIgutime_log,NDVImax_log,NDVIgutimebeg_log,NDVIgutimeend_log)
+    ans<-rbind(NDVIgutime_sg,NDVIgu_sg,NDVImaxtime_sg=NDVImaxtime_sg[-1],NDVImax_sg=NDVImax_sg[-1],NDVIgu_log,NDVIgutime_log,NDVImax_log,NDVIgutimebeg_log,NDVIgutimeend_log,NDVIgutimespan_log)
     #names(ans)<-substr(doy,1,4)
     if(!i%%50){
       print(paste(i))
@@ -265,19 +265,14 @@ for(i in 1:nrow(cell[[1]])){
 }
   
 ### show all years for a given value
-levelplot(lr$NDVIgutime_sg,col.regions=rasterTheme()$regions$col,cuts=99)
+levelplot(lr$NDVImax_sg,col.regions=rasterTheme()$regions$col,cuts=99)
 dif<-lr$NDVIgutime_log-mean(lr$NDVIgutime_log,na.rm=TRUE)
+#dif<-lr$NDVIgutimeend_log-lr$NDVIgutimebeg_log
 mm<-range(extract(dif),na.rm=TRUE)
-levelplot(dif,at=seq(mm[1],mm[2],length.out=100),col.regions=colo.scale(1:99,c("blue3","white","tomato")))
+levelplot(dif,at=seq(mm[1],mm[2],length.out=100),col.regions=colo.scale(1:99,c("blue3","white","tomato")))#+layer(sp.polygons(buff[4099,]))
 
 #tmap_mode("view")
-#tm_shape(pol)+tm_borders(lwd=1,alpha=0.5,col="black")+tm_shape(rr[[19]])+tm_raster(palette=rasterTheme()$regions$col,alpha=0.9,n=20)+tm_layout(basemaps=c("Esri.WorldImagery","Esri.WorldShadedRelief","Esri.NatGeoWorldMap"))
-
-#writeRaster(lr[[6]],"C:/Users/rouf1703/Documents/rast.tif",format="GTiff",overwrite=TRUE)
-#rast<-stack("C:/Users/rouf1703/Documents/r2014.tif")
-
-#e<-extract(lr[[1]],pol)
-#test<-unstack(lr[[2]])
+#tm_shape(pol)+tm_borders(lwd=1,alpha=0.5,col="black")+tm_shape(lr$NDVIgu_sg[[19]])+tm_raster(palette=rasterTheme()$regions$col,alpha=0.9,n=20)+tm_layout(basemaps=c("Esri.WorldImagery","Esri.WorldShadedRelief","Esri.NatGeoWorldMap"))
 
 ### arrange data as a stack of different values for each year
 lr2<-lapply(lr,unstack)
@@ -295,21 +290,77 @@ names(lr2)<-1982:2015
 for(i in seq_along(lr2)){
   writeRaster(lr2[[i]],paste0("C:/Users/rouf1703/Documents/","r",paste0(names(lr2)[i],".tif")),format="GTiff",overwrite=TRUE)
 }
-#rast<-stack("C:/Users/rouf1703/Documents/r1982.tif")
+rast<-stack("C:/Users/rouf1703/Documents/r1982.tif")
+names(rast)<-names(lr)
+plot(rast)
 
 ### suppose now yout want summarized values for each polygon
-#plot(lr2[[21]][[1]])
-#plot(pol,add=TRUE)
-#e<-extract(lr2[[1]],pol[1,],fun=mean)
-
-
-e<-extract(rast,pol[1,])
-
 v<-velox(stack(lr[[6]]))
-#v<-velox(rast)
 test<-v$extract(pol,fun=function(i){mean(i,na.rm=TRUE)})
-plot(pol,col=colo.scale(test[,6],terrain.colors(100)),border="white")
+plot(pol,col=colo.scale(test[,11],terrain.colors(100)),border="white")
 
+
+########################################
+#### buffer data
+########################################
+
+d<-as.data.frame(fread("S:/NDVI/Data_YP/datasetNDVI.csv"))
+d$birth_yr<-d$harvest_yr-d$age
+#d<-d[!duplicated(d$x),]
+coordinates(d)<-~x+y
+proj4string(d)<-proj4string(r)
+dproj<-spTransform(d,CRS("+proj=utm +zone=12 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+buff<-gBuffer(dproj,byid=TRUE,width=25000,id=d$uniqueID)
+buff<-spTransform(buff,CRS(proj4string(d)))
+
+plot(r[[1]])
+plot(d,add=TRUE)
+plot(buff,add=TRUE)
+
+registerDoParallel(6) 
+getDoParWorkers()
+
+va<-foreach(i=1:length(lr),.packages=c("raster","velox")) %dopar% {
+  rv<-velox(stack(lr[[i]]-mean(lr[[i]])))
+  res<-rv$extract(buff,fun=function(i){mean(i,na.rm=TRUE)})
+  dimnames(res)[[2]]<-names(lr2)
+  l<-do.call("rbind",lapply(1:nrow(d),function(j){
+    y<-d$birth_yr[j]
+    n<-4
+    m<-match(y:(y+n-1),dimnames(res)[[2]])
+    #return(dimnames(res)[[2]][m])
+    if(all(is.na(m))){
+      rep(NA,n)
+    }else{
+      res[j,m]
+    }
+  }))
+  l<-data.frame(l)
+  names(l)<-paste0(names(lr)[i],"_y",1:n)
+  l
+}
+va<-do.call("cbind",va)
+d<-cbind(d@data,va)
+
+
+##########################################
+### models
+##########################################
+
+d$cum<-d$NDVIgutime_log_y1+d$NDVIgutime_log_y2+d$NDVIgutime_log_y3
+plot(d$cum,d$longest_lg)
+m1<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y1,data=na.omit(d))
+m2<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y2,data=na.omit(d))
+m3<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y3,data=na.omit(d))
+m4<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y4,data=na.omit(d))
+aictab(list(m1,m2,m3,m4))
+summary(m)
+visreg(m4,"NDVIgutime_log_y4")
+
+library(randomForest)
+
+m<-randomForest(longest_lg~.,data=d[,-match(c("ratio_lgth","avg_base","uniqueID"),names(d))],na.action=na.omit)
+varImpPlot(m)
 
 #pol2<-pol
 #pol2@data<-as.data.frame(test)
