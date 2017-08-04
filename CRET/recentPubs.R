@@ -43,48 +43,58 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
     tx<-cr_works(query=keyword,filter=c(from_pub_date=date),flq=c(query.author=a[2]),limit=200,sort='published',order="desc")
     x<-as.data.frame(tx$data)
     if(nrow(x)==0L){
-      stop("No matches found")
-    }
-    k<-sapply(x[,"author"],function(j){ ### searching for a specific pattern here cause app does fuzzy matching
-      if(any(!c("given","family")%in%names(j))){ # sometimes some names are missing and not consistant
-        return(TRUE)
+      warning(paste("No matches found for",i))
+      #browser()
+      x
+    }else{
+      k<-sapply(x[,"author"],function(j){ ### searching for a specific pattern here cause app does fuzzy matching
+        if(any(!c("given","family")%in%names(j))){ # sometimes some names are missing and not consistant
+          return(TRUE)
+        }
+        g1<-grep(a[1],pull(j,"given")) # dplyr ugly column extraction... 
+        g2<-grep(a[2],pull(j,"family"))
+        g<-base:::intersect(g1,g2)
+        if(any(g)){
+          TRUE
+        }else{
+          FALSE  
+        }
+      })
+      x<-x[k,]
+      if(nrow(x)){
+        x<-x[1:min(first,nrow(x)),]
       }
-      g1<-grep(a[1],pull(j,"given")) # dplyr ugly column extraction... 
-      g2<-grep(a[2],pull(j,"family"))
-      g<-base:::intersect(g1,g2)
-      if(any(g)){
-        TRUE
-      }else{
-        FALSE  
-      }
-    })
-    x<-x[k,]
-    if(nrow(x)){
-      x<-x[1:min(first,nrow(x)),]
+      x
     }
-    x
   })
+  
+  print(paste(authors,sapply(l,nrow)))
+  
+  l<-l[sapply(l,nrow)!=0L] # Sometimes, a df with 0 rows, 0 cols is returned! take it out here to get common column names
   
   lnames<-Reduce(intersect,lapply(l,names)) # do.call not working !?
   l<-lapply(l,function(i){i[,lnames]}) # for some reason, columns retained are not always consistant
   df<-do.call("rbind",l)
+  df<-df[!duplicated(df$DOI),] # remove because of authors together
   df<-df[rev(order(df$created)),]
-  if(html){
-    refs_orig<-unlist(cr_cn(dois = df$DOI, format = "text", style = "apa"))
+  if(html && nrow(df)){
+    
+    refs_orig<-lapply(df$DOI,function(i){cr_cn(dois = i, format = "text", style = "apa")}) # cr_cn gets nothing out if it can't find a DOI, so use sapply to know which one is missing
+    refs_orig<-unlist(lapply(refs_orig,function(i){if(is.null(i)){NA}else{i}}),use.names=FALSE)
     prof<-string2name(authors)
     stud<-string2name(bold)
     name<-unique(c(prof,stud))
     bname<-paste0("<b>",name,"</b>")
     names(bname)<-name
     refs<-str_replace_all(refs_orig,bname)
-    stopifnot(nrow(df)==length(refs)) # safety check, not sure if cr_cn gets everything each time
-    elim<-!duplicated(refs)
-    refs<-refs[elim]
-    url<-df$URL[elim]
-    refs<-strsplit(refs,". doi")
-    refs<-unique(Map(c,refs,url))
+    stopifnot(nrow(df)==length(refs)) # safety check, not sure if cr_cn gets everything each time (returns nothing if nothing found)
+    #elim<-!duplicated(refs)
+    #refs<-refs[elim]
+    #url<-df$URL[elim]
+    refs<-strsplit(refs,". doi:")
+    refs<-unique(Map(c,refs,df$URL))
     refs<-sapply(refs,function(i){
-      paste0("<p>",i[1]," <a href=",i[3],">","doi",i[2],"</a>","</p>")
+      paste0("<p>",i[1]," <a href=",i[3],">",i[2],"</a>","</p>")
     })
     invisible(sapply(refs,function(i){
       cat(i,"\n\n")
@@ -97,14 +107,7 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
   ans
 }
 
-x<-recentPubs(date="2016-01-01")
-
-
-
-
-
-
-
+x<-recentPubs(date="2017-01-01")
 
 
 
