@@ -31,6 +31,8 @@ library(zoo)
 library(rasterVis)
 library(FRutils)
 library(phenex)
+library(visreg)
+library(AICcmodavg)
 
 # y = a year as an integer
 # j = the julian day to convert
@@ -71,14 +73,6 @@ logistic<-function(x,alpha=1,beta=1,gamma=1,offset=0){
 }
 
 
-jul2nd<-function(y,j,j2=NULL){
-  inc<-0
-  if(!is.null(j2)){
-    inc<-ifelse(j<j2,1,0) 
-  }
-  as.integer(as.Date(paste0(y+inc,"-01-01")))+j-1
-}
-
 findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
   stopifnot(!is.null(names(x)))
   d<-substr(names(x),6,10)
@@ -118,6 +112,35 @@ fitLog<-function(x,mmdate=c("12-01","09-15")){
   peak
 }
 
+### cleaner and more explicit function
+logNDVI<-function(x,use=c("12-01","11-01"),mm=c("04-01","07-20"),Asym=c(0,1),scal=c(15,40),offset=c(0,0.8)){
+  years<-as.integer(unique(substr(names(x),1,4)))
+  l<-lapply(years,function(i){
+    paste(c(i-1,i),use,sep="-")  
+  })
+  res<-lapply(l,function(i){
+    sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
+    d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
+    xmid<-as.integer(as.Date(paste(substr(i[2],1,4),mm,sep="-")))
+    lo<-list(Asym=Asym[1],xmid=xmid[1],scal=scal[1],offset=offset[1])
+    up<-list(Asym=Asym[2],xmid=xmid[2],scal=scal[2],offset=offset[2])
+    start<-mapply(function(x,y){((y-x)/2)+x},lo,up,SIMPLIFY=FALSE)
+    m<-tryCatch(
+      nls(y~Asym/(1+exp((xmid-x)/scal))+offset,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port")
+      ,error=function(j){TRUE}
+    )
+    if(!isTRUE(m)){
+      p<-d
+      co<-coef(m)
+    }else{
+      p<-NA
+      co<-NA
+    }
+    list(data=p,param=co,model=m)
+  })
+  res
+}
+
 #############################################################
 ##### Get regions of interest ###############################
 
@@ -139,7 +162,7 @@ ts<-monthlyIndices(x, version = 1, timestamp = T)
 doy<-as.Date(as.character(ts+round(c(diff(ts),17)/2,0)))
 r<-rasterizeGimms(x=paste0(path,x),ext=buff,cores=6L)
 #names(r)<-as.character(doy)
-rd<-stack(setValues(r,as.integer(format(rep(doy,each=ncell(r)),"%j"))))
+#rd<-stack(setValues(r,as.integer(format(rep(doy,each=ncell(r)),"%j"))))
 
 #tmap_mode("view")
 #tm_shape(pol)+tm_borders(lwd=5,alpha=0.3,col="red")+tm_shape(r[[1]])+tm_raster(palette=rev(terrain.colors(100)))+tm_layout(basemaps=c("Esri.WorldImagery","Esri.WorldShadedRelief","Esri.NatGeoWorldMap"))
@@ -153,11 +176,11 @@ rd<-stack(setValues(r,as.integer(format(rep(doy,each=ncell(r)),"%j"))))
 # build a list of matrices of each pixel ndvi value for each polygon
 #v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #r<-aggregate(r,fac=2) # only to speed things up
-v<-extract(r)
+v<-r[]
 
 #vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #rd<-aggregate(rd,fac=2) # only to speed things up
-vd<-extract(rd)
+#vd<-extract(rd)
 
 #############################################################
 ##### Compute metrics #######################################
@@ -177,7 +200,7 @@ vd<-extract(rd)
 #NDVIgutime_sg
 
 cell<-lapply(1:nrow(v[1:nrow(v),]),function(i){
-    pl<-FALSE
+    pl<-TRUE
     val<-v[i,]
     if(all(is.na(val))){
       val[seq_along(val)]<-1  
@@ -324,9 +347,9 @@ va<-foreach(i=1:length(lr),.packages=c("raster","velox")) %dopar% {
   rv<-velox(stack(lr[[i]]-mean(lr[[i]])))
   res<-rv$extract(buff,fun=function(i){mean(i,na.rm=TRUE)})
   dimnames(res)[[2]]<-names(lr2)
+  n<-5
   l<-do.call("rbind",lapply(1:nrow(d),function(j){
     y<-d$birth_yr[j]
-    n<-4
     m<-match(y:(y+n-1),dimnames(res)[[2]])
     #return(dimnames(res)[[2]][m])
     if(all(is.na(m))){
@@ -342,23 +365,28 @@ va<-foreach(i=1:length(lr),.packages=c("raster","velox")) %dopar% {
 va<-do.call("cbind",va)
 d<-cbind(d@data,va)
 
+#fwrite(d,"S:/NDVI/Data_YP/datasetNDVI_FR.csv",row.names=FALSE)
 
 ##########################################
 ### models
 ##########################################
 
-d$cum<-d$NDVIgutime_log_y1+d$NDVIgutime_log_y2+d$NDVIgutime_log_y3
+d$cum<-d$NDVIgutime_log_y1+d$NDVIgutime_log_y2+d$NDVIgutime_log_y3+d$NDVIgutime_log_y4+d$NDVIgutime_log_y5
 plot(d$cum,d$longest_lg)
-m1<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y1,data=na.omit(d))
-m2<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y2,data=na.omit(d))
-m3<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y3,data=na.omit(d))
-m4<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y4,data=na.omit(d))
-aictab(list(m1,m2,m3,m4))
-summary(m)
-visreg(m4,"NDVIgutime_log_y4")
+d2<-na.omit(d)
+m1<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y1,data=d2)
+m2<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y2,data=d2)
+m3<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y3,data=d2)
+m4<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y4,data=d2)
+m5<-lm(longest_lg~age+I(age^2)+NDVIgutime_log_y5,data=d2)
+m6<-lm(longest_lg~age+I(age^2)+cum,data=d2)
+ml<-list(m1,m2,m3,m4,m5,m6)
+aictab(ml)
+summary(m6)
+visreg(m6,"cum")
+
 
 library(randomForest)
-
 m<-randomForest(longest_lg~.,data=d[,-match(c("ratio_lgth","avg_base","uniqueID"),names(d))],na.action=na.omit)
 varImpPlot(m)
 
