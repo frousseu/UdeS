@@ -62,6 +62,11 @@ d[]<-lapply(d,function(i){
   }
 })
 
+### test bt adding data
+#d<-rbind(d,d,d,d,d)
+#d$X<-d$X+rnorm(nrow(d),0,0.05)
+#d$Y<-d$Y+rnorm(nrow(d),0,0.05)
+
 ### build shapefile of locations
 ll<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 prj<-"+proj=utm +zone=16 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -199,10 +204,10 @@ lines(fitv)
 
 covr<-stack(g[,c("Secondary","Pasture")])
 glm1<-glm(m3,data=d,family="binomial")
-p<-predict(glm1,data.frame(as.matrix(covr),Cat_Typ="C"),type="response")
+p<-predict(glm1,data.frame(as.matrix(aggregate(covr,fac=2)),Cat_Typ="C"),type="response")
 
 # this is the predicted attack grid from the simple glm with model4
-tempr<-covr[[1]]
+tempr<-aggregate(covr,fac=2)[[1]]
 tempr[]<-p
 
 plot(covr)
@@ -235,20 +240,73 @@ plot(predr)
 
 print(ml)
 
-mm<-lapply(ml,function(i){
+mm<-lapply(ml[4],function(i){
   glgm(i, 
        data=ds,
-       grid=20,
-       covariates=NULL, 
+       grid=predr,
+       covariates=covr, 
        family="binomial", 
        buffer=10000,
        shape=1,
-       priorCI=list(sd=c(u=0.2, alpha=0.05),range=c(2000,50000)),
+       #priorCI=list(sd=c(0.05,5),range=c(2000,50000)),
+       priorCI=list(sd=c(0.2,5),range=c(0,50000)),
        control.compute=list(waic=TRUE,mlik=TRUE))
 })
 names(mm)<-names(ml)
 
-summary(mm[["m4"]]$inla)
+# summary(mm[["m4"]]$inla)
+
+##############################################################
+### check priors and posteriors for matern parameters
+##############################################################
+
+m<-mm[["m3"]]
+m<-mm[[1]]
+
+par(mfrow=c(1,2))
+
+ma<-max(c(m$parameters$sd$prior[,2],m$parameters$sd$posterior[,2]))
+plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density',lty=2,xlim=c(0,5),ylim=c(0,ma))
+lines(m$parameters$sd$posterior,lty=1)
+#lines(seq(0,10,by=0.1),dlgamma(seq(0,10,by=0.1),m$parameters$sd$params.intern$param[1],m$parameters$sd$params.intern$param[2]),col="blue")
+legend("topright", lty=2:1, legend=c("prior","posterior"))
+
+ma<-max(c(m$parameters$range$prior[,2],m$parameters$range$posterior[,2]))
+plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)', ylab='density',lty=1,ylim=c(0,ma))
+lines(m$parameters$range$prior,lty=2)
+#lines(dgamma(seq(0,50000,by=10),m$parameters$range$params.intern[1],m$parameters$range$params.intern[2]),col="red")
+legend("topright", lty=2:1, legend=c("prior","posterior"))
+
+
+##############################################################
+### plot prediction rasters
+##############################################################
+
+brks<-seq(0,1,by=0.01)
+lab.brks<-ifelse(((brks*100)%%10)==0,brks,"")
+cols<-rev(gray((0:100)/100))
+par(mfrow=c(1,2))
+plot(m$raster$predict.invlogit,col=cols,breaks=brks,lab.breaks=lab.brks)
+plot(tempr,col=cols,breaks=brks,lab.breaks=lab.brks)
+
+#plot(stack(m$raster$predict.invlogit,tempr))
+
+
+### exploratory
+mymatern<-function(u,phi,kappa){
+  uscale<-sqrt(8*kappa)*(u/phi)
+  res<-(1/(gamma(kappa)*2^(kappa-1)))*(uscale^kappa)*besselK(uscale,kappa)
+  res[u==0]=1
+  res
+}
+dist<-seq(0,50000,10)
+maternfit<-m$param$summary["sd",c("0.5quant")]*(1-mymatern(dist,phi=m$param$summary["range",c("0.5quant")],kappa=1))
+maternfit<-mymatern(dist,phi=m$param$summary["range",c("0.5quant")],kappa=1)
+plot(maternfit~dist,type="l")
+lines(maternfit~dist,col="red")
+
+
+
 
 ##############################################################
 ### WAIC table and possible model-averaging with INLABMA
@@ -257,7 +315,6 @@ summary(mm[["m4"]]$inla)
 ### liste des modèles soumise à waictab
 l<-lapply(mm,function(i){i$inla})
 waictab(mm)
-
 
 #########################################################################
 ### Plot predictions
@@ -271,7 +328,7 @@ mpred<-glgm(m3,
      family="binomial", 
      buffer=10000,
      shape=1,
-     priorCI=list(sd=c(u=0.2, alpha=0.05),range=c(2000,50000))
+     priorCI=list(sd=c(0.2,10),range=c(2000,50000))
 )
 
 ### visualize predictions (static)
@@ -293,32 +350,12 @@ tm_shape(mpred$raster[["predict.invlogit"]])+tm_raster(alpha=0.6,palette=colo.sc
 
 
 
-
-
-############################################################
-############################################################
-
-### Below is exploratory
-
-##############################################################
-### check priors and posteriors for matern parameters
-##############################################################
-
-plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density', lwd=2,lty=2)
-lines(m$parameters$sd$posterior, lty=1, lwd=2)
-legend("topright", lty=2:1, legend=c("prior","posterior"))
-
-plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)', ylab='density', lwd=2,lty=1)
-lines(m$parameters$range$prior, lty=2, lwd=2)
-legend("topright", lty=2:1, legend=c("prior","posterior"))
-
-
 ###############################################################
 ### extract matern parameters (work in progress...)
 ###############################################################
 
 ### extract matern parameters and plot variogram function
-param=c(shape=1,range=7194,variance=0.06^2)
+param=c(shape=1,range=20000,variance=0.06^2)
 u=seq(0,4,len=20)
 uscale = sqrt(8*param['shape'])* u / param['range']
 theMaterns = cbind(
@@ -335,6 +372,14 @@ matplot(theMaterns[,'dist'],
 legend('topright', fill=c('red','blue'),
        legend=c('manual','geostatsp'))
 
+
+# example with raster
+myraster = raster(nrows=40,ncols=60,xmn=150000,xmx=300000,ymn=1950000,ymx=2150000)
+param = c(range=200000, shape=2,	anisoRatio=0, 
+          anisoAngleDegrees=0,variance=10)
+# plot correlation of each cell with the origin
+myMatern = matern(myraster, y=c(225000,2050000), param=param)
+plot(myMatern, main="anisortopic matern")
 
 
 mymatern = function(u, phi, kappa) {
