@@ -1,0 +1,26 @@
+
+
+\documentclass{article}
+
+\usepackage[tmargin=1.5in,bmargin=1.5in,lmargin=0.5in,rmargin=0.5in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\begin{document}
+\thispagestyle{empty}
+
+
+\center
+
+\LARGE{Séminaires invités en écologie}\\[0.25in]
+\LARGE{Vendredi 22 septembre    |    13:30    |    D3-2035\\[2.25in]
+  
+\textbf{\huge{Vigie-Nature, des observatoires de sciences participatives pour un suivi de la biodiversité en France.\\[0.08in] 
+Objectifs, mise en place, résultats.}}\\[2.25in]
+
+\LARGE{Gabrielle Martin}\\[0.5in]
+\LARGE{Centre d'Écologie et des Sciences de la Conservation (CESCO)}\\
+\LARGE{Muséum national d'Histoire naturelle}
+
+
+\end{document}
