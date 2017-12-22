@@ -1,26 +1,32 @@
 
 
-\documentclass{article}
+\documentclass[17pt]{article}
 
-\usepackage[tmargin=1.5in,bmargin=1.5in,lmargin=0.5in,rmargin=0.5in]{geometry}
+\usepackage[tmargin=1.5in,bmargin=1in,lmargin=1in,rmargin=1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
 \thispagestyle{empty}
 
 
 \center
 
-\LARGE{Séminaires invités en écologie}\\[0.25in]
-\LARGE{Vendredi 22 septembre    |    13:30    |    D3-2035\\[2.25in]
-  
-\textbf{\huge{Vigie-Nature, des observatoires de sciences participatives pour un suivi de la biodiversité en France.\\[0.08in] 
-Objectifs, mise en place, résultats.}}\\[2.25in]
+\huge{Séminaires invités en écologie}\\[1.5in]
 
-\LARGE{Gabrielle Martin}\\[0.5in]
-\LARGE{Centre d'Écologie et des Sciences de la Conservation (CESCO)}\\
-\LARGE{Muséum national d'Histoire naturelle}
+%\textbf{\Huge{Parallel and non-parallel evolution in northern freshwater fishes}}\\[1.75in]
+{\fontsize{30}{0}\selectfont \textbf{Parallel and non-parallel evolution in northern freshwater fishes}}\\[2.0in]
+
+
+%\Huge{Martin Béland}\\[0.5in]
+%\huge{Université Laval}\\[1.25in]
+\fontsize{30}{0}\selectfont Kathryn Elmer\\[0.5in]
+\fontsize{30}{0}\selectfont University of Glasgow\\[1.75in]
+
+\huge{Vendredi 10 novembre    |    13:30    |    D3-2035}\\
+
 
 
 \end{document}
