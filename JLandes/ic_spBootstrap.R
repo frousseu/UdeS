@@ -16,6 +16,13 @@ registerDoParallel(myCluster)
 m<-ic_sp(Surv(l,u,type='interval2')~x1+x2,data=d,useMCores=TRUE,bs_samples=100) # un modèle à updater avec de nouvelles données
 stopCluster(myCluster)
 
+plot(m)
+
+l<-getSCurves(m)$Tbull_ints[,"lower"]
+u<-getSCurves(m)$Tbull_ints[,"upper"]
+lines(l,getSCurves(m)$S_curves$baseline,col="red",type="s")
+lines(u,getSCurves(m)$S_curves$baseline,col="green",type="s")
+
 # m = model
 # d = data
 # d$id = frailty 
@@ -63,8 +70,28 @@ registerDoParallel(4) #put number of cores
 getDoParWorkers()
 
 cl<-foreach(i=seq_along(l),.packages=c("icenReg")) %dopar% {
-  coef(update_icenReg(m,data=l[[i]],bs_samples=0)) 
+  newm<-update_icenReg(m,data=l[[i]],bs_samples=0)
+  coef(newm) 
 }
+
+pr<-foreach(i=seq_along(l),.packages=c("icenReg")) %dopar% {
+  newm<-update_icenReg(m,data=l[[i]],bs_samples=0)
+  lo<-getSCurves(newm)$Tbull_ints[,"lower"]
+  up<-getSCurves(newm)$Tbull_ints[,"upper"]
+  ba<-getSCurves(newm)$S_curves$baseline
+  cbind(lo,up,ba)
+}
+
+plot(m)
+lapply(pr,function(i){
+  lines(i[,"lo"],i[,"ba"],col=alpha("red",0.03),type="s",lwd=3)
+  lines(i[,"up"],i[,"ba"],col=alpha("blue",0.03),type="s",lwd=3)
+})
+
+par(new=TRUE)
+plot(m)
+
+
 cl<-do.call("rbind",cl) # bind list of coefficients
 
 co<-t(apply(cl,2,function(i){

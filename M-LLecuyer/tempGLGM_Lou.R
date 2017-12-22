@@ -20,6 +20,7 @@ library(geostatsp)
 library(FRutils)
 library(RColorBrewer)
 library(tmap)
+library(AICcmodavg)
 
 # FRutils doit être installé une fois comme cela pour obtenir la fonction colo.scale:
 
@@ -53,14 +54,17 @@ waictab<-function(x){
 ### load data
 ################################################
 
-d<-as.data.frame(fread('C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.txt',dec=",",sep="\t"))
-d[]<-lapply(d,function(i){
-  if(any(grep(",",i))){
-    as.numeric(gsub(",",".",i))
-  }else{
-    i
-  }
-})
+#d<-as.data.frame(fread('C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.txt',dec=",",sep="\t"))
+
+d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.xlsx"),stringsAsFactors=FALSE)
+
+#d[]<-lapply(d,function(i){
+#  if(any(grep(",",i))){
+#    as.numeric(gsub(",",".",i))
+#  }else{
+#    i
+#  }
+#})
 
 ### test bt adding data
 #d<-rbind(d,d,d,d,d)
@@ -169,7 +173,48 @@ g$Cat_Typ<-"C"
 
 ds@data<-cbind(ds@data,obs)
 
-# g is a SpatialPixelsDataFrame
+### add pop index
+
+pop<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",layer="poblacion")
+
+
+di<-gDistance(pop,ds,byid=TRUE)
+f<-sqrt
+d$index_pop2<-rowSums(t(apply(di,1,function(i){exp(((log(0.1)/2000))*i)*f(pop$POBTOT)})))
+d$index_pop4<-rowSums(t(apply(di,1,function(i){exp(((log(0.1)/4000))*i)*f(pop$POBTOT)})))
+d$index_pop8<-rowSums(t(apply(di,1,function(i){exp(((log(0.1)/8000))*i)*f(pop$POBTOT)})))
+#d$index_pop16<-rowSums(t(apply(g,1,function(i){exp(((log(0.1)/16000))*i)*f(s$z)})))
+#d$index_pop32<-rowSums(t(apply(g,1,function(i){exp(((log(0.1)/32000))*i)*f(s$z)})))
+
+m1<-glm(Attack~Cat_Typ,data=d,family="binomial")
+m2<-glm(Attack~Cat_Typ+index_pop2,data=d,family="binomial")
+m3<-glm(Attack~Cat_Typ+index_pop4,data=d,family="binomial")
+m4<-glm(Attack~Cat_Typ+index_pop8,data=d,family="binomial")
+#m5<-glm(Attack~Cat_Typ+index_pop16,data=d,family="binomial")
+#m6<-glm(Attack~Cat_Typ+index_pop32,data=d,family="binomial")
+
+ml<-list(m1=m1,m2=m2,m3=m3,m4=m4)#,m5=m5,m6=m6)
+
+aictab(ml)
+
+visreg(m4,"index_pop8",scale="response")
+
+par(mfrow=c(1,2),oma=c(1,1,0,3))
+x<-0:20000
+plot(x,exp(co*x),type="l",ylim=0:1,xlim=c(0,10000),xlab="distance",ylab="pondération")
+abline(0.1,0,lty=2)
+plot(r)
+
+### add preidctions
+
+ds2<-ds[1:10,]
+ds2$Cat_Typ<-"C"
+ds2$Secondary<-seq(0,100,length.out=10)
+ds2$Attack<-NA
+
+ds<-rbind(ds,ds2)
+
+
 
 ######################################################################
 ### build model formulas
@@ -178,10 +223,8 @@ ds@data<-cbind(ds@data,obs)
 m0<-Attack~1
 m1<-Attack~Cat_Typ
 m2<-Attack~Cat_Typ+Secondary
-m3<-Attack~Cat_Typ+Secondary+Pasture 
-m4<-Attack~Cat_Typ+Secondary+Dist_Road
 
-ml<-list(m0=m0,m1=m1,m2=m2,m3=m3,m4=m4)
+ml<-list(m0=m0,m1=m1,m2=m2)
 
 # Puisque Dist_Road est manquantr du raster, on va surtout utiliser le m3
 
@@ -189,7 +232,7 @@ ml<-list(m0=m0,m1=m1,m2=m2,m3=m3,m4=m4)
 ### Explore variogram from glm residuals from model3
 ######################################################################
 
-glm1<-glm(m3,data=d,family="binomial")
+glm1<-glm(m2,data=d,family="binomial")
 
 coords<-as.matrix(d[,c("X","Y")])
 v<-variog(coords=coords,data=resid(glm1),breaks=seq(0,50000,by=500))
@@ -203,7 +246,7 @@ lines(fitv)
 ######################################################################
 
 covr<-stack(g[,c("Secondary","Pasture")])
-glm1<-glm(m3,data=d,family="binomial")
+glm1<-glm(m2,data=d,family="binomial")
 p<-predict(glm1,data.frame(as.matrix(aggregate(covr,fac=2)),Cat_Typ="C"),type="response")
 
 # this is the predicted attack grid from the simple glm with model4
@@ -240,28 +283,27 @@ plot(predr)
 
 print(ml)
 
-mm<-lapply(ml[4],function(i){
+mm<-lapply(ml,function(i){
   glgm(i, 
        data=ds,
-       grid=predr,
-       covariates=covr, 
+       grid=20,
+       covariates=NULL, 
        family="binomial", 
        buffer=10000,
        shape=1,
-       #priorCI=list(sd=c(0.05,5),range=c(2000,50000)),
-       priorCI=list(sd=c(0.2,5),range=c(0,50000)),
-       control.compute=list(waic=TRUE,mlik=TRUE))
+       priorCI=list(sd=c(0.2,4),range=c(2000,50000)),
+       control.compute=list(waic=TRUE,mlik=TRUE))#,
+       #control.predictor=list(link=c(rep(NA,101),rep(1,10))))
 })
 names(mm)<-names(ml)
 
-# summary(mm[["m4"]]$inla)
+# summary(mm[["m3"]]$inla)
 
 ##############################################################
 ### check priors and posteriors for matern parameters
 ##############################################################
 
-m<-mm[["m3"]]
-m<-mm[[1]]
+m<-mm[["m2"]]
 
 par(mfrow=c(1,2))
 
@@ -276,6 +318,13 @@ plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)',
 lines(m$parameters$range$prior,lty=2)
 #lines(dgamma(seq(0,50000,by=10),m$parameters$range$params.intern[1],m$parameters$range$params.intern[2]),col="red")
 legend("topright", lty=2:1, legend=c("prior","posterior"))
+
+
+##############################################################
+### plot prediction graphs
+##############################################################
+
+m$inla$summary.fitted.values
 
 
 ##############################################################
