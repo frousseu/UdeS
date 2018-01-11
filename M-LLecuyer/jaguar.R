@@ -28,6 +28,8 @@ library(visreg)
 library(plyr)
 library(rasterVis)
 library(INLAutils)
+library(randomForest)
+library(glmnet)
 
 
 ####################################################################
@@ -57,7 +59,7 @@ setwd("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc")
 
 #d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/LandEco_Complet_22_05.xlsx"),stringsAsFactors=FALSE)
 
-d=as.data.frame(fread('LandEco_Complet_05_12.txt', dec=','))
+d=as.data.frame(fread('LandEco_Complet_12_12_temp.txt', dec=','))
 d[]<-lapply(d,function(i){
   if(any(grep(",",i))){
     as.numeric(gsub(",",".",i))
@@ -249,46 +251,44 @@ foo<-function(i){
 
 ################################################################
 ### test
-summary(inla(Attack~Cat_Typ+Bridge_tg+Branch_tg,data=d,family="binomial",control.compute=list(waic=TRUE)))
+#summary(inla(Attack~Cat_Typ+Bridge_tg+Branch_tg,data=d,family="binomial",control.compute=list(waic=TRUE)))
 
 
-ds2<-ds[ds$Cat_Typ!="S",]
-ds2$Cat_Typ<-as.factor(as.character(ds2$Cat_Typ))
+#ds2<-ds[ds$Cat_Typ!="S",]
+#ds2$Cat_Typ<-as.factor(as.character(ds2$Cat_Typ))
 
-Attack~P_Past_g
-Attack~Cat_Typ+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
+#Attack~P_Past_g
+#Attack~Cat_Typ+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
 
-fit<-glgm(Attack~Cat_Typ+P_Past_g+index_pop8+Dist_Road,
-          data=ds,
-          grid=20,
-          covariates=NULL, 
-          family="binomial", 
-          buffer=10000,
-          shape=1,
-          priorCI=list(sd=c(0.5,3),range=c(5000,20000)),
-          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),#,config=TRUE),
-          #control.predictor=list(compute=TRUE,link=1)
-)
+#fit<-glgm(Attack~Cat_Typ+P_Past_g+index_pop8+Dist_Road,
+#          data=ds,
+#          grid=20,
+#          covariates=NULL, 
+#          family="binomial", 
+#          buffer=10000,
+#          shape=1,
+#          priorCI=list(sd=c(0.5,3),range=c(5000,20000)),
+#          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),#,config=TRUE),
+#          #control.predictor=list(compute=TRUE,link=1)
+#)
 
-summary(fit$inla)
+#summary(fit$inla)
 
-inla.rerun(fit$inla)$waic
+#inla.rerun(fit$inla)$waic
 
-m<-fit
+#m<-fit
 
-par(mfrow=c(1,2))
+#par(mfrow=c(1,2))
 
-ma<-max(c(m$parameters$sd$prior[,2],m$parameters$sd$posterior[,2]))
-plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density',lty=2,xlim=c(0,5),ylim=c(0,ma))
-lines(m$parameters$sd$posterior,lty=1)
-#lines(seq(0,10,by=0.1),dlgamma(seq(0,10,by=0.1),m$parameters$sd$params.intern$param[1],m$parameters$sd$params.intern$param[2]),col="blue")
-legend("topright", lty=2:1, legend=c("prior","posterior"))
+#ma<-max(c(m$parameters$sd$prior[,2],m$parameters$sd$posterior[,2]))
+#plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density',lty=2,xlim=c(0,5),ylim=c(0,ma))
+#lines(m$parameters$sd$posterior,lty=1)
+#legend("topright", lty=2:1, legend=c("prior","posterior"))
 
-ma<-max(c(m$parameters$range$prior[,2],m$parameters$range$posterior[,2]))
-plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)', ylab='density',lty=1,ylim=c(0,ma))
-lines(m$parameters$range$prior,lty=2)
-#lines(dgamma(seq(0,50000,by=10),m$parameters$range$params.intern[1],m$parameters$range$params.intern[2]),col="red")
-legend("topright", lty=2:1, legend=c("prior","posterior"))
+#ma<-max(c(m$parameters$range$prior[,2],m$parameters$range$posterior[,2]))
+#plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)', ylab='density',lty=1,ylim=c(0,ma))
+#lines(m$parameters$range$prior,lty=2)
+#legend("topright", lty=2:1, legend=c("prior","posterior"))
 
 
 #################selection variable VIF###########################@@
@@ -487,7 +487,11 @@ vif(VifLESC1tg3)
 
 ml<-list()
 
+
+
 # Model determination and model selection 
+
+###Forêt actuelle
 
 SC1bis0<-Attack~Cat_Typ
 SC1bis1<-Attack~Cat_Typ+P_matFor_p+P_indFor_p
@@ -499,8 +503,29 @@ SC1bis<-list(SC1bis0=SC1bis0,SC1bis1=SC1bis1,SC1bis2=SC1bis2,SC1bis3=SC1bis3,SC1
 ml[[length(ml)+1]]<-SC1bis
 sapply(SC1bis,vif2,data=d)
 
-### Selection de l'échelle TG mais peu d'écart avec les autres ! ###
 
+## echelle temporelle 
+
+TempSC1bis0<-Attack~Cat_Typ
+TempSC1bis1<-Attack~Cat_Typ+P_matFor_p_2000+P_indFor_p_2000
+TempSC1bis2<-Attack~Cat_Typ+P_matFor_m_2000+P_indFor_m_2000
+TempSC1bis3<-Attack~Cat_Typ+P_matFor_g_2000+P_indFor_g_2000
+TempSC1bis4<-Attack~Cat_Typ+P_matFor_tg_2000+P_indFor_tg_2000
+
+TempSC1bis<-list(TempSC1bis0=TempSC1bis0,TempSC1bis1=TempSC1bis1,TempSC1bis2=TempSC1bis2,TempSC1bis3=TempSC1bis3,TempSC1bis4=TempSC1bis4)
+ml[[length(ml)+1]]<-TempSC1bis
+sapply(TempSC1bis,vif2,data=d)
+
+
+####Temp
+Temp0<-Attack~Cat_Typ
+Temp1<-Attack~Cat_Typ+P_matFor_g+P_indFor_g
+Temp2<-Attack~Cat_Typ+P_matFor_g_2000+P_indFor_g_2000
+Temp3<-Attack~Cat_Typ+P_matFor_g_2000+P_indFor_g_2000+P_matFor_g+P_indFor_g
+
+Temp<-list(Temp0=Temp0,Temp1=Temp1,Temp2=Temp2,Temp3=Temp3)
+ml[[length(ml)+1]]<-Temp
+sapply(Temp,vif2,data=d)
 
 ####(SC2) Perforation dans le territoire.
 
@@ -535,10 +560,10 @@ vif(VifLESC2)
 # Model determination and model selection 
 
 V2SC0<-Attack~Cat_Typ
-V2SC1<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg
+V2SC1<-Attack~Cat_Typ+P_matFor_g+P_indFor_g+P_matFor_g_2000+P_indFor_g_2000
 V2SC2<-Attack~Cat_Typ+Perforation_tg
 V2SC3<-Attack~Cat_Typ+WatPA
-V2SC4<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg+WatPA+Perforation_tg
+V2SC4<-Attack~Cat_Typ+P_matFor_g+P_indFor_g+WatPA+Perforation_tg+P_matFor_g_2000+P_indFor_g_2000
 
 V2SC<-list(V2SC0=V2SC0,V2SC1=V2SC1,V2SC2=V2SC2, V2SC3=V2SC3,V2SC4=V2SC4)
 ml[[length(ml)+1]]<-V2SC
@@ -643,7 +668,7 @@ sapply(V2FC,vif2,data=d)
 
 #VIF for N
 
-V2VifLEN=model.matrix(~d$Cat_Typ+d$P_matFor_tg+d$P_indFor_tg+d$WatPA+d$Perforation_p+d$Bridge_p+d$Branch_p+d$P_SecFor_p)
+V2VifLEN=model.matrix(~d$Cat_Typ+d$P_matFor_g+d$P_indFor_g+d$WatPA+d$Perforation_p+d$Bridge_p+d$Branch_p+d$P_SecFor_p)
 
 V2VifLEN2=V2VifLEN[,-1] ##enlever l'intercept
 
@@ -652,9 +677,9 @@ vif(V2VifLEN2)
 ##Model determination and model selection 
 
 V2N0<-Attack~Cat_Typ
-V2N1<-V2SC4
+V2N1<-V2SC1
 V2N2<-V2FC3
-V2N3<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_tg+Branch_tg+P_matFor_tg+P_indFor_tg+WatPA+Perforation_tg ## + SC + FC
+V2N3<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_g+Branch_g+P_matFor_tg+P_indFor_g+WatPA+Perforation_tg+P_matFor_g_2000+P_indFor_g_2000 ## + SC + FC
 
 V2N<-list(V2N0=V2N0,V2N1=V2N1,V2N2=V2N2,V2N3=V2N3)
 ml[[length(ml)+1]]<-V2N
@@ -804,10 +829,34 @@ F<-list(F0=F0,F1=F1,F2=F2,F3=F3)
 ml[[length(ml)+1]]<-F
 sapply(F,vif2,data=d)
 
+
 #############################
 ### run models
 #############################
 
+########################
+### exploration techniques
+
+### random Forest
+vars<-unique(unlist(lapply(ml,function(i){lapply(i,function(j){all.vars(i[[3]])})})))
+rf<-randomForest(as.factor(Attack)~.,data=d[,c("X","Y",vars)],ntree=10000)
+varImpPlot(rf)
+
+### LASSo
+X<-as.matrix(d[,setdiff(vars,c("Attack","Cat_Typ"))])
+X<-cbind(X,Cat_TypS=ifelse(d$Cat_Typ=="S",1,0))
+X<-cbind(X,Cat_TypB=ifelse(d$Cat_Typ=="B",1,0))
+X<-cbind(X,Cat_TypC=ifelse(d$Cat_Typ=="C",1,0))
+X<-apply(X,2,scale)
+#corrplot:::corrplot(cor(X), order = "hclust")
+Y=d$Attack
+lasso<-glmnet(X,Y,family="binomial",alpha=1,maxit=10^6)
+lassocv<-cv.glmnet(X,Y,family="binomial",alpha=1,maxit=10^6)
+coef(lassocv, s = "lambda.min",alpha=1)
+
+
+####################################
+### glgm
 registerDoParallel(6) 
 getDoParWorkers()
 
@@ -825,7 +874,15 @@ getDoParWorkers()
 #build("C:/Users/rouf1703/Downloads/geostatsp","C:/Users/rouf1703/Downloads")
 #install.packages("C:/Users/rouf1703/Downloads/geostatsp_1.5.4.tar.gz",repos=NULL)
 
+cvar<-combn(vars[-(1:2)],3,simplify=FALSE)
+ml2<-lapply(cvar,function(i){
+  as.formula(paste0("Attack~Cat_Typ+",paste(i,collapse="+")),env = .GlobalEnv) 
+})
+
+
+
 m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
+#m<-for(i in 1:length(ml)){
      lapply(ml[[i]],function(j){
        glgm(j, 
          data=ds,
@@ -835,12 +892,14 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
          buffer=10000,
          shape=1,
          priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
-         control.compute=list(waic=TRUE,mlik=TRUE)
+         control.compute=list(waic=TRUE,mlik=TRUE),
+         num.threads=1 # to try and get more stable results, since foreach is already parallel
        )
      }) 
 }
 
 aic<-lapply(m,waictab)
+#aic<-lapply(m,function(i){i$inla$waic$waic})
 
 aic<-lapply(seq_along(aic),function(i){
   var<-gsub("Attack ~| ","",as.character(unlist(ml[[i]])))
@@ -850,6 +909,9 @@ aic<-lapply(seq_along(aic),function(i){
 })
 
 lapply(ml,function(i){lapply(i,vif2,data=d)})
+
+summary(m[[16]][[2]]$inla)
+plot(d$P_indFor_g_2000,d$P_indFor_g)
 
 
 ######################################################################

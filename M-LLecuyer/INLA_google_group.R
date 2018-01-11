@@ -23,16 +23,32 @@ fit<-glgm(y~f+x1+x2,
           family="binomial", 
           buffer=10000,
           shape=1,
-          priorCI=list(sd=c(0.7,2.5),range=c(5000,20000)),
-          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE)
+          priorCI=list(sd=c(0.5,3),range=c(2000,40000)),
+          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),
+          control.fixed=list(mean=list(fC=0,fS=0,x1=0,x2=0),prec=list(fC=1/((5)^2),fS=1/((5)^2),x1=1/((0.5)^2),x2=1/((0.5)^2))),
+          num.threads=1
 )
 
-summary(fit$inla)
+#summary(fit$inla)
 
-for(i in 1:10){
+#fit$inla$all.hyper$fixed
+
+#autoplot(fit$inla,which=1,priors=TRUE)
+plot_fixed_marginals(fit$inla, priors = TRUE, CI = TRUE)
+
+
+x<-seq(-5,5,by=0.01)
+plot(x,dnorm(x,0,0.5),type="l")
+plot(x,dnorm(x,0,0.5),type="l")
+lines(fit$inla$marginals.fixed$x2[,1],fit$inla$marginals.fixed$x2[,2])
+
+
+for(i in 1:3){
   m<-inla.rerun(fit$inla)
   print(c(m$waic$waic,m$dic$dic))
 }
+
+summary(glm(ml[[16]][[3]],data=d,family="binomial"))
 
 m<-fit
 
