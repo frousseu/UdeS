@@ -5,19 +5,23 @@ library(scales)
 library(vegan)
 library(devtools)
 library(ggbiplot)
+library(stargazer)
 
 
 
 d<-read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Doc/PLFA data.xls",sheet=2,skip=6)
+# read excel rajoute X__? et __1 pour les noms vides et les duplicats (cochonnerie!)
+d<-d[,-((ncol(d)-4):(ncol(d)))]
 
 ### format data
 n<-names(d)
-n<-n[!n%in%c("Peak name",NA,"NA")]
+n<-gsub(paste(c(paste0("X__",1:100),paste0("__",1:100)),collapse="|"),"",n)
+n<-n[!n%in%c("Peak name",NA,"NA","")]
 n<-gsub(" ","",gsub(" - ","_",n))
 n<-sapply(strsplit(n,"_"),function(i){paste(i[2],i[1],sep="_")})
 n<-rep(n,each=5)
 names(d)<-c("peak",n)
-d<-d[,-((ncol(d)-3):(ncol(d)))]
+
 
 d<-as.data.frame(t(d),stringsAsFactors=FALSE)
 names(d)<-unname(d[1,])
