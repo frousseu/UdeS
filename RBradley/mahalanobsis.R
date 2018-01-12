@@ -110,11 +110,23 @@ text(pca$x[,1],pca$x[,2],temp$plot,col=alpha(temp$time+1,0.5),font=2,cex=1.25)
 legend("topleft",legend=unique(paste(temp$time,temp$season,temp$year,sep=" ")),fill=alpha(unique(temp$time)+1,0.5),cex=1.5,border=NA,bty="n")
 r<-range(pca$x[,1])
 
-png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/BI_SI_biplot.png",units="in",res=500,width=8,height=8)
+lab<-unique(paste(temp$season,temp$year))
+l<-cbind(temp,pca$x)
+l<-split(l,paste(l$season,l$year))
+p<-sapply(l,function(i){
+  summary(manova(cbind(PC1,PC2)~plot,data=i))$stats[1,"Pr(>F)"]   
+})
+p<-p[match(lab,names(p))]
+all(names(p)==lab)
+p<-format(round(p,2),nsmall=2)
+p<-ifelse(p=="0.00",paste("p","<","0.01"),paste("p","=",p))
+lab<-paste0(lab," (",p,")")
+
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/BI_SI_biplot2.png",units="in",res=500,width=8,height=8)
 ### ggplot biplot pca
 g<-ggbiplot2(pca,choices=1:2,obs.scale=1,var.scale=1,groups=paste(temp$time),ellipse=TRUE,circle=FALSE,labels=NULL,labels.size=5)
-g<-g+scale_color_discrete(name='Date',label=unique(paste(temp$season,temp$year)))
-g<-g+scale_shape_manual(values=c(16,10),name="Treatment")
+g<-g+scale_color_manual(name='Date',label=lab,values=gray(seq(0.0,0.9,length.out=5)))
+g<-g+scale_shape_manual(values=c(16,17),name="Treatment")
 g<-g+theme_light()
 g<-g+theme(legend.direction='vertical',legend.position='right',panel.grid=element_blank(),panel.border=element_rect(colour="black"))
 g<-g+ylim(-4.5,3.5)
@@ -137,18 +149,32 @@ text(pca$x[,1],pca$x[,2],temp$plot,col=alpha(temp$time+1,0.5),font=2,cex=1.25)
 legend("topleft",legend=unique(paste(temp$time,temp$season,temp$year,sep=" ")),fill=alpha(unique(temp$time)+1,0.5),cex=1.5,border=NA,bty="n")
 r<-range(pca$x[,1])
 
-png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/CO_SR_biplot.png",units="in",res=500,width=8,height=8)
+lab<-unique(paste(temp$season,temp$year))
+l<-cbind(temp,pca$x)
+l<-split(l,paste(l$season,l$year))
+p<-sapply(l,function(i){
+  summary(manova(cbind(PC1,PC2)~plot,data=i))$stats[1,"Pr(>F)"]   
+})
+p<-p[match(lab,names(p))]
+all(names(p)==lab)
+p<-format(round(p,2),nsmall=2)
+p<-ifelse(p=="0.00",paste("p","<","0.01"),paste("p","=",p))
+lab<-paste0(lab," (",p,")")
+
+
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/CO_SR_biplot2.png",units="in",res=500,width=8,height=8)
 ### ggplot biplot pca
 g<-ggbiplot2(pca,choices=1:2,obs.scale=1,var.scale=1,groups=paste(temp$time),ellipse=TRUE,circle=FALSE,labels=NULL,labels.size=5)
-g<-g+scale_color_discrete(name='Date',label=unique(paste(temp$season,temp$year)))
-g<-g+scale_shape_manual(values=c(16,10),name="Treatment")
+g<-g+scale_color_manual(name='Date',label=lab,values=gray(seq(0.0,0.9,length.out=5)))
+#g<-g+scale_color_manual(name="Treatment & Date",label=unique(paste(temp$plot,temp$season,temp$year)),values=1:10)
+#g<-g+scale_shape_manual(name="Treatment & Date",label=unique(paste(temp$plot,temp$season,temp$year)),values=1:10)
+g<-g+scale_shape_manual(values=c(16,17),name="Treatment")
 g<-g+theme_light()
 g<-g+theme(legend.direction='vertical',legend.position='right',panel.grid=element_blank(),panel.border=element_rect(colour="black"))
 g<-g+xlim(-5.1,3.25)
 print(g)
 #ggscreeplot(pca)
 dev.off()
-
 
 
 ### betadisper
