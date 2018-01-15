@@ -88,7 +88,7 @@ ggbiplot2<-function (pcobj, choices = 1:2, scale = 1, pc.biplot = TRUE,
     }
     g <- g + geom_segment(data = df.v, aes(x = 0, y = 0, 
                                            xend = xvar, yend = yvar), arrow = arrow(length = unit(1/2, 
-                                                                                                  "picas")), color = "grey75")
+                                                                                                  "picas")), color = "grey50")
   }
   if (!is.null(df.u$labels)) {
     if (!is.null(df.u$groups)) {
@@ -122,12 +122,12 @@ ggbiplot2<-function (pcobj, choices = 1:2, scale = 1, pc.biplot = TRUE,
                        mu, FUN = "+"), groups = x$groups[1])
     })
     names(ell)[1:2] <- c("xvar", "yvar")
-    g <- g + geom_path(data = ell, aes(color = groups, group = groups),alpha=1,size=1)
+    g <- g + geom_path(data = ell, aes(color = groups, group = groups),alpha=1,size=0.3,linetype="dashed")
   }
   if (var.axes) {
     g <- g + geom_text(data = df.v, aes(label = varname, 
                                         x = xvar, y = yvar, angle = angle, hjust = hjust), 
-                       color = "grey75", size = varname.size)
+                       color = "grey50", size = varname.size)
   }
   return(g)
 }
