@@ -14,9 +14,8 @@ for(j in seq_along(dos)){
   keep<-names(l[[1]])[1:(g-1)] # Ce sont les colonnes à conserver et répéter (le buffer de 5km est sûrement à enlever)
 
   ld<-lapply(l,function(i){
-    res<-i[rep(1:nrow(i),ncol(i)-length(keep)),keep] # répète les infos communes
-    res$id<-gsub("P|TY|TN|TX","",rep(names(i)[g:ncol(i)],each=nrow(i))) # eliminate prefix from date data
-    res<-cbind(res,unlist(i[,g:ncol(i)],use.names=FALSE),stringsAsFactors=FALSE)
+    res<-melt(as.data.table(i),keep,variable.name="id") # put in long form
+    res$id<-gsub("P|TY|TN|TX","",res$id) # eliminate prefix from date data
     names(res)[ncol(res)]<-dos[j] # assign variable name
     res
   })
