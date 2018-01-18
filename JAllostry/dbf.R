@@ -1,12 +1,16 @@
 library(foreign)
 library(data.table)
+library(readxl)
+
+#############################################
+### temprature ##############################
 
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/Pieges_5km/Pieges_5km"
 dos<-c("PRTOT","TMOY","TMIN","TMAX") # list folders and variables
 d<-vector(mode="list",length=length(dos)) # create list to store data
 
 for(j in seq_along(dos)){
-
+  
   x<-list.files(file.path(path,dos[j]),pattern=".dbf",full.names=TRUE) # liste les fichiers dans le chemin
   l<-sapply(x,function(i){read.dbf(i)}) # lit tous les fichiers et les sauvegarde dans une liste
 
@@ -20,7 +24,7 @@ for(j in seq_along(dos)){
     res
   })
   d[[j]]<-rbindlist(ld) # ramène tous dans un même data.frame à partir de la liste ld
-
+  
 }
 
 d<-Reduce(function(...){merge(...,all=TRUE)},d) # merge four variables in a single data.frame
@@ -35,6 +39,31 @@ invisible(lapply(s,function(i){
    lines(as.Date(i$date),i$TMOY) 
 }))
 
+
+##########################################
+### epiweeks #############################
+
+w<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/Pieges_5km/Pieges_5km/EpiWeeks_calculation.xls",skip=5,col_types="text"))
+w<-melt(w,measure.vars=1:ncol(w))
+w<-split(w,rep(1:3,each=nrow(w)/3))
+w<-do.call("cbind",w)
+w<-w[,grep("value",names(w))]
+names(w)<-c("date","cdcweek","cdcweekcum")
+w$date<-as.character(as.Date(as.integer(w$date),origin="1899-12-30")) # usually the origin is 1970-01-01, make sure the dates are ok when back in R, excel might treat them otherwise
+
+###########################################
+### full data with temp and cdc weeks #####
+x<-merge(d,as.data.table(w),all.x=TRUE,by="date")
+
+###########################################
+### LULC ##################################
+
+path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc"
+s<-read.dbf(file.path(path,"LULC2011_2km.dbf"))
+vars<-names(s)[grep("HIST",names(s))]
+res<-s[,vars]/apply(s[,vars],1,sum)
+names(res)<-paste0(names(res),"p")
+s<-cbind(s,res)
 
 
 
