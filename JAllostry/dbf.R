@@ -58,14 +58,63 @@ x<-merge(d,as.data.table(w),all.x=TRUE,by="date")
 ###########################################
 ### LULC ##################################
 
+### ceci devra être modifié pour accomoder plusieurs buffers
+
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc"
 s<-read.dbf(file.path(path,"LULC2011_2km.dbf"))
 vars<-names(s)[grep("HIST",names(s))]
 res<-s[,vars]/apply(s[,vars],1,sum)
-names(res)<-paste0(names(res),"p")
+names(res)<-paste0(names(res),"p2km")
 s<-cbind(s,res)
 
+x<-merge(x,s[,setdiff(names(s),c(vars,"Buff"))],all.x=TRUE,by=c("Site_Seq","CodeSite"))
 
+###########################################
+### compute values ########################
 
+### temp hebdo
 
+lv<-list()
+
+com<-c("Site_Seq","CodeSite","cdcweekcum")
+temp<-c("TMOY","TMIN","TMAX")
+lv[[1]]<-setnames(x[,lapply(.SD,mean),by=com,.SDcols=temp],temp,paste0(temp,"week"))
+lv[[length(lv)+1]]<-setnames(x[,lapply(.SD,sum),by=com,.SDcols=c("PRTOT")],"PRTOT","PRTOTweek")
+
+tday<-function(x,val,sign){
+  if(sign){
+    sum(x>val)
+  }else{
+    sum(x<val)  
+  }
+}
+
+lv[[length(lv)+1]]<-setnames(x[,lapply(.SD,tday,val=32,sign=1),by=com,.SDcols=c("TMAX")],"TMAX","daysover32")
+lv[[length(lv)+1]]<-setnames(x[,lapply(.SD,tday,val=-5,sign=0),by=com,.SDcols=c("TMIN")],"TMIN","daysbelow5")
+
+### gdd
+
+# on le veut par jour ou par semaine?
+
+x$TMAXTMIN<-x$TMIN+x$TMAX
+
+gdd<-function(x,tseuil){ # pas sûr de cette formule, on fait la somme sur la semaine?
+  res<-(x/2)-tseuil
+  sum(ifelse(res<0,0,res))
+}
+
+temp<-c(9,12,18,20,25)
+
+for(i in seq_along(temp)){
+  lv[[length(lv)+1]]<-setnames(x[,lapply(.SD,gdd,tseuil=temp[i]),by=com,.SDcols=c("TMAXTMIN")],"TMAXTMIN",paste0("gdd",temp[i]))
+}
+
+### bind everything
+xx<-do.call("cbind",lapply(lv,function(i){
+  i[,setdiff(names(i),com),with=FALSE]  
+}))
+xx<-cbind(lv[[1]][,com,with=FALSE],xx)
+
+### merge with big database
+x<-merge(x,xx,by=com)
 
