@@ -43,17 +43,23 @@ invisible(lapply(s,function(i){
 ##########################################
 ### epiweeks #############################
 
+# dans le fichier epiweeks, on n'a aucune valeur de week pour le 2004-02-29, 2008-12-31, 2012-12-31
+
 w<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/Pieges_5km/Pieges_5km/EpiWeeks_calculation.xls",skip=5,col_types="text"))
 w<-melt(w,measure.vars=1:ncol(w))
 w<-split(w,rep(1:3,each=nrow(w)/3))
 w<-do.call("cbind",w)
 w<-w[,grep("value",names(w))]
 names(w)<-c("date","cdcweek","cdcweekcum")
+w$cdcweek<-as.integer(w$cdcweek)
+w$cdcweekcum<-as.integer(w$cdcweekcum)
 w$date<-as.character(as.Date(as.integer(w$date),origin="1899-12-30")) # usually the origin is 1970-01-01, make sure the dates are ok when back in R, excel might treat them otherwise
 
 ###########################################
 ### full data with temp and cdc weeks #####
 x<-merge(d,as.data.table(w),all.x=TRUE,by="date")
+
+x<-x[!is.na(x$cdcweek)] # on élimine les lignes sans cdcweek (voir commentaire plus haut, penser aux conséquences sur les calculs basés sur les weeks)
 
 ###########################################
 ### LULC ##################################
@@ -117,4 +123,45 @@ xx<-cbind(lv[[1]][,com,with=FALSE],xx)
 
 ### merge with big database
 x<-merge(x,xx,by=com)
+
+### get only weekly data
+xx<-x[!duplicated(paste(x$Site_Seq,x$cdcweekcum)),setdiff(names(x),c("date","id","Buff","PRTOT","TMOY","TMIN","TMAX")),with=FALSE]
+
+
+
+###############################################
+### MOSQUITO DATA #############################
+
+m<-as.data.table(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/BD.xlsx"))
+setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
+m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
+m<-merge(m,w,by=c("date","cdcweek"))
+
+b<-intersect(names(xx),names(m))
+m<-merge(xx,m[,c(b,"A29"),with=FALSE],by=b,all=TRUE)
+m$A29<-ifelse(is.na(m$A29),0,m$A29)
+
+m<-m[order(m$CodeSite,m$cdcweekcum),]
+
+lm<-split(m,m$CodeSite)
+
+
+########################
+
+
+d<-data.frame(x=1:100,v=rnorm(100,100,10),r=runif(100))
+
+corlag<-function(d,c("x","v","r"),lag=10){
+  
+  matrix(ncol=lag+1,nrow=lag+1)
+  
+}
+
+
+
+
+
+
+
+
 
