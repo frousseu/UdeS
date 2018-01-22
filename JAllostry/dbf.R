@@ -1,6 +1,9 @@
 library(foreign)
 library(data.table)
 library(readxl)
+library(raster)
+library(doParallel)
+library(foreach)
 
 #############################################
 ### temprature ##############################
@@ -133,9 +136,9 @@ xx<-x[!duplicated(paste(x$Site_Seq,x$cdcweekcum)),setdiff(names(x),c("date","id"
 ### MOSQUITO DATA #############################
 
 m<-as.data.table(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/BD.xlsx"))
-setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
-m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
-m<-merge(m,w,by=c("date","cdcweek"))
+#setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
+#m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
+#m<-merge(m,w,by=c("cdcweekcum"))
 
 b<-intersect(names(xx),names(m))
 m<-merge(xx,m[,c(b,"A29"),with=FALSE],by=b,all=TRUE)
@@ -145,17 +148,71 @@ m<-m[order(m$CodeSite,m$cdcweekcum),]
 
 lm<-split(m,m$CodeSite)
 
+# clarify what is a season and remove lines for which the trap was not there
+
 
 ########################
 
+lm<-lapply(lm,function(i){
+  obs<-i$cdcweek[i$A29>0]
+  r<-range(obs,na.rm=TRUE)
+  i$season<-as.integer(i$cdcweek>=r[1] & i$cdcweek<=r[2])
+  i
+})
 
-d<-data.frame(x=1:100,v=rnorm(100,100,10),r=runif(100))
 
-corlag<-function(d,c("x","v","r"),lag=10){
-  
-  matrix(ncol=lag+1,nrow=lag+1)
+
+n<-5
+d<-as.data.table(data.frame(v=1:n,r=runif(n)))
+
+
+corlag<-function(d,v="v",r="r",lag=3){
+  M<-expand.grid(0:lag,0:lag)
+  m<-M[M[,1]>=M[,2],]
+  me<-lapply(1:nrow(m),function(i){
+    res<-Map(":",(1:nrow(d))-m[i,1],(1:(nrow(d))-m[i,2]))
+    sapply(res,function(j){
+      if(any(j<=0)){
+        NA
+      }else{
+        mean(d[[v]][j])
+      }
+    })
+  })
+  browser()
+  co<-sapply(1:length(me),function(i){
+    cor(me[[i]][d$season==1],log(1+d[[r]])[d$season==1],use="complete.obs")  
+  })
+  ans<-cbind(m,co)
+  ans<-merge(M,ans,all.x=TRUE)
+  ans<-matrix(ans$co,nrow=lag+1,ncol=lag+1,byrow=TRUE)
+  dimnames(ans)[[1]]<-0:(lag)
+  dimnames(ans)[[2]]<-0:(lag)
+  ans
   
 }
+
+
+lm<-lm[sapply(lm,function(i){sum(i$A29)>0})] # remove traps with no observations
+
+
+registerDoParallel(6) 
+getDoParWorkers()
+
+cm<-foreach(i=1:length(lm[1:50]),.packages=c("data.table")) %dopar% {
+  
+  corlag(lm[[i]],v="gdd18",r="A29",lag=25)
+  
+}
+
+cmat<-Reduce("+", cm)/length(cm)
+
+r<-raster(cmat,xmn=0,xmx=nrow(cmat),ymn=0,ymx=ncol(cmat))
+plot(r,axes=FALSE)
+axis(1,at=0:nrow(cmat)+0.5,labels=0:nrow(cmat))
+axis(2,at=0:nrow(cmat)-0.5,labels=rev(0:nrow(cmat)))
+
+
 
 
 
