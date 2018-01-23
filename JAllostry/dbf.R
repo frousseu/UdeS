@@ -4,6 +4,7 @@ library(readxl)
 library(raster)
 library(doParallel)
 library(foreach)
+library(FRutils)
 
 #############################################
 ### temprature ##############################
@@ -139,12 +140,14 @@ m<-as.data.table(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllo
 #setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
 #m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
 #m<-merge(m,w,by=c("cdcweekcum"))
+m<-m[m$cdcweekcum<=679,] # meteo data not older
 
 b<-intersect(names(xx),names(m))
 m<-merge(xx,m[,c(b,"A29"),with=FALSE],by=b,all=TRUE)
-m$A29<-ifelse(is.na(m$A29),0,m$A29)
+#m$A29<-ifelse(is.na(m$A29),0,m$A29)
 
 m<-m[order(m$CodeSite,m$cdcweekcum),]
+
 
 lm<-split(m,m$CodeSite)
 
@@ -153,17 +156,17 @@ lm<-split(m,m$CodeSite)
 
 ########################
 
-lm<-lapply(lm,function(i){
-  obs<-i$cdcweek[i$A29>0]
-  r<-range(obs,na.rm=TRUE)
-  i$season<-as.integer(i$cdcweek>=r[1] & i$cdcweek<=r[2])
-  i
-})
+#lm<-lapply(lm,function(i){
+#  obs<-i$cdcweek[!is.na(i$A29)]
+#  r<-range(obs,na.rm=TRUE)
+#  i$season<-as.integer(i$cdcweek>=r[1] & i$cdcweek<=r[2])
+#  i
+#})
 
 
 
-n<-5
-d<-as.data.table(data.frame(v=1:n,r=runif(n)))
+#n<-5
+#d<-as.data.table(data.frame(v=1:n,r=runif(n)))
 
 
 corlag<-function(d,v="v",r="r",lag=3){
@@ -171,17 +174,16 @@ corlag<-function(d,v="v",r="r",lag=3){
   m<-M[M[,1]>=M[,2],]
   me<-lapply(1:nrow(m),function(i){
     res<-Map(":",(1:nrow(d))-m[i,1],(1:(nrow(d))-m[i,2]))
-    sapply(res,function(j){
-      if(any(j<=0)){
-        NA
-      }else{
-        mean(d[[v]][j])
-      }
+    w<-which(!is.na(d[[r]]))
+    ans<-sapply(w,function(j){
+      mean(d[[v]][res[[j]]])
     })
+    m<-rep(NA,nrow(d))
+    m[w]<-ans
+    m
   })
-  browser()
   co<-sapply(1:length(me),function(i){
-    cor(me[[i]][d$season==1],log(1+d[[r]])[d$season==1],use="complete.obs")  
+    cor(me[[i]],log(1+d[[r]]),use="complete.obs")  
   })
   ans<-cbind(m,co)
   ans<-merge(M,ans,all.x=TRUE)
@@ -189,28 +191,30 @@ corlag<-function(d,v="v",r="r",lag=3){
   dimnames(ans)[[1]]<-0:(lag)
   dimnames(ans)[[2]]<-0:(lag)
   ans
-  
 }
 
 
-lm<-lm[sapply(lm,function(i){sum(i$A29)>0})] # remove traps with no observations
+lm<-lm[sapply(lm,function(i){!all(i$A29%in%c(0,NA))})] # remove traps with no observations
 
 
 registerDoParallel(6) 
 getDoParWorkers()
 
-cm<-foreach(i=1:length(lm[1:50]),.packages=c("data.table")) %dopar% {
-  
-  corlag(lm[[i]],v="gdd18",r="A29",lag=25)
-  
+lag<-20
+cm<-foreach(i=1:length(lm[1:10]),.packages=c("data.table")) %dopar% {
+  corlag(lm[[i]],v="TMOYweek",r="A29",lag=lag)
 }
 
-cmat<-Reduce("+", cm)/length(cm)
 
-r<-raster(cmat,xmn=0,xmx=nrow(cmat),ymn=0,ymx=ncol(cmat))
-plot(r,axes=FALSE)
-axis(1,at=0:nrow(cmat)+0.5,labels=0:nrow(cmat))
-axis(2,at=0:nrow(cmat)-0.5,labels=rev(0:nrow(cmat)))
+
+#cmat<-Reduce("+",cm)/length(cm)
+
+r<-stack(lapply(cm,raster,xmn=0,xmx=lag,ymn=0,ymx=lag))
+#levelplot(r,col.regions=rasterTheme()$regions$col,cuts=99)
+levelplot(r,col.regions=colo.scale(1:100,c("darkred","red","lightgoldenrod","blue","navyblue")),cuts=99)
+#plot(r,axes=FALSE)
+#axis(1,at=0:nrow(cmat)+0.5,labels=0:nrow(cmat))
+#axis(2,at=0:nrow(cmat)-0.5,labels=rev(0:nrow(cmat)))
 
 
 
