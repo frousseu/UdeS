@@ -5,6 +5,7 @@ library(raster)
 library(doParallel)
 library(foreach)
 library(FRutils)
+library(rasterVis)
 
 #############################################
 ### temprature ##############################
@@ -140,10 +141,12 @@ m<-as.data.table(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllo
 #setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
 #m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
 #m<-merge(m,w,by=c("cdcweekcum"))
+colSums(m[,names(m)[substr(names(m),1,2)%in%paste0("A",1:10)],with=FALSE])
+
 m<-m[m$cdcweekcum<=679,] # meteo data not older
 
 b<-intersect(names(xx),names(m))
-m<-merge(xx,m[,c(b,"A29"),with=FALSE],by=b,all=TRUE)
+m<-merge(xx,m[,c(b,"A9"),with=FALSE],by=b,all=TRUE)
 #m$A29<-ifelse(is.na(m$A29),0,m$A29)
 
 m<-m[order(m$CodeSite,m$cdcweekcum),]
@@ -183,7 +186,7 @@ corlag<-function(d,v="v",r="r",lag=3){
     m
   })
   co<-sapply(1:length(me),function(i){
-    cor(me[[i]],log(1+d[[r]]),use="complete.obs")  
+    cor(me[[i]],d[[r]],use="complete.obs",method="spearman")  
   })
   ans<-cbind(m,co)
   ans<-merge(M,ans,all.x=TRUE)
@@ -194,15 +197,32 @@ corlag<-function(d,v="v",r="r",lag=3){
 }
 
 
-lm<-lm[sapply(lm,function(i){!all(i$A29%in%c(0,NA))})] # remove traps with no observations
+lm<-lm[sapply(lm,function(i){!all(i$A9%in%c(0,NA))})] # remove traps with no observations
+
+### add temperature normal
+n<-lapply(lm,function(i){
+  g<-gam(TMOYweek~s(cdcweek),data=i)
+  val<-0:53
+  p<-predict(g,data.frame(cdcweek=val))
+  p[match(i$cdcweek,val)]
+})
+
+lm<-Map("cbind",lm,n)
+lm<-lapply(lm,function(i){
+  i$diff<-i$TMOYweek-i$V2    
+  i
+})
 
 
 registerDoParallel(6) 
 getDoParWorkers()
 
+set.seed(1234)
 lag<-20
-cm<-foreach(i=1:length(lm[1:10]),.packages=c("data.table")) %dopar% {
-  corlag(lm[[i]],v="TMOYweek",r="A29",lag=lag)
+do<-sample(1:length(lm),12)
+#do<-261:262
+cm<-foreach(i=do,.packages=c("data.table")) %dopar% {
+  corlag(lm[[i]],v="diff",r="A9",lag=lag)
 }
 
 
@@ -210,15 +230,29 @@ cm<-foreach(i=1:length(lm[1:10]),.packages=c("data.table")) %dopar% {
 #cmat<-Reduce("+",cm)/length(cm)
 
 r<-stack(lapply(cm,raster,xmn=0,xmx=lag,ymn=0,ymx=lag))
+names(r)<-names(lm)[do]
 #levelplot(r,col.regions=rasterTheme()$regions$col,cuts=99)
 levelplot(r,col.regions=colo.scale(1:100,c("darkred","red","lightgoldenrod","blue","navyblue")),cuts=99)
+plot(mean(r,na.rm=TRUE),col.regions=colo.scale(1:100,c("darkred","red","lightgoldenrod","blue","navyblue")),cuts=99)
 #plot(r,axes=FALSE)
 #axis(1,at=0:nrow(cmat)+0.5,labels=0:nrow(cmat))
 #axis(2,at=0:nrow(cmat)-0.5,labels=rev(0:nrow(cmat)))
 
+k<-262
+plot(lm[[k]]$cdcweek,lm[[k]]$TMOYweek)
+points(lm[[k]]$cdcweek,log(1+lm[[k]]$A9),pch=16,col="darkgreen",cex=1.5)
+points(lm[[k]]$cdcweek[!is.na(lm[[k]]$A9)],lm[[k]]$TMOYweek[!is.na(lm[[k]]$A9)],col="red",pch=16)
+lines(lm[[k]]$cdcweek,lm[[k]]$V2,pch=16)
+#points(lm[[k]]$cdcweek,lm[[k]]$diff,pch=16)
 
 
-
+k<-1:
+dat<-rbindlist(lm[k])
+g<-gam(A9~s(cdcweek,bs="cc")+s(diff),data=dat)
+val<-15:45
+p<-predict(g,data.frame(cdcweek=val),type="response")
+plot(dat$cdcweek,dat$A9,ylim=c(0,10))
+lines(val,p,type="l")
 
 
 
