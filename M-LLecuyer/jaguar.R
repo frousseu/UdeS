@@ -891,8 +891,8 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
          family="binomial", 
          buffer=10000,
          shape=1,
-         priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
-         control.compute=list(waic=TRUE,mlik=TRUE),
+         priorCI=list(sd=c(0.5,2.5),range=c(10000,20000)),
+         control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),
          num.threads=1 # to try and get more stable results, since foreach is already parallel
        )
      }) 

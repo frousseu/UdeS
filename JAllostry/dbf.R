@@ -6,6 +6,7 @@ library(doParallel)
 library(foreach)
 library(FRutils)
 library(rasterVis)
+library(mgcv)
 
 #############################################
 ### temprature ##############################
@@ -138,6 +139,14 @@ xx<-x[!duplicated(paste(x$Site_Seq,x$cdcweekcum)),setdiff(names(x),c("date","id"
 ### MOSQUITO DATA #############################
 
 m<-as.data.table(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/BD.xlsx"))
+
+dis<-c(rep(NA,25),1,1,1,1,1,2,10,15,10,5,3,1,1,rep(NA,15))
+length(dis)
+plot(dis,type="l")
+
+
+#m$A9<-dis[m$Week] ## create fake data to check correlation patterns
+
 #setnames(m,c("Site","Day","Week"),c("CodeSite","date","cdcweek"))
 #m$date<-substr(m$date,1,10) # check if the dates are ok since they are considered UTC by read_excel
 #m<-merge(m,w,by=c("cdcweekcum"))
@@ -172,7 +181,7 @@ lm<-split(m,m$CodeSite)
 #d<-as.data.table(data.frame(v=1:n,r=runif(n)))
 
 
-corlag<-function(d,v="v",r="r",lag=3){
+corlag<-function(d,v="v",r="r",lag=3){ # gives a correlation
   M<-expand.grid(0:lag,0:lag)
   m<-M[M[,1]>=M[,2],]
   me<-lapply(1:nrow(m),function(i){
@@ -197,11 +206,38 @@ corlag<-function(d,v="v",r="r",lag=3){
 }
 
 
+corlag2<-function(d,v="v",r="r",lag=3){ # gives the mean data
+  M<-expand.grid(0:lag,0:lag)
+  m<-M[M[,1]>=M[,2],]
+  me<-lapply(1:nrow(m),function(i){
+    res<-Map(":",(1:nrow(d))-m[i,1],(1:(nrow(d))-m[i,2]))
+    w<-which(!is.na(d[[r]]))
+    ans<-sapply(w,function(j){
+      mean(d[[v]][res[[j]]])
+    })
+    m<-rep(NA,nrow(d))
+    m[w]<-ans
+    m
+  })
+  ans<-cbind(d[[r]],do.call("cbind",me))
+  dimnames(ans)[[2]]<-c("ab",paste(m[,1],m[,2]))
+  ans
+}
+
+
+
+
+
 lm<-lm[sapply(lm,function(i){!all(i$A9%in%c(0,NA))})] # remove traps with no observations
+
+w<-sapply(lm,function(i){which(!is.na(i$A9))[1]})
+
+lm<-lm[w>54] # remove traps for which we don't have one years prior
+
 
 ### add temperature normal
 n<-lapply(lm,function(i){
-  g<-gam(TMOYweek~s(cdcweek),data=i)
+  g<-gam(gdd12~s(cdcweek),data=i)
   val<-0:53
   p<-predict(g,data.frame(cdcweek=val))
   p[match(i$cdcweek,val)]
@@ -209,7 +245,7 @@ n<-lapply(lm,function(i){
 
 lm<-Map("cbind",lm,n)
 lm<-lapply(lm,function(i){
-  i$diff<-i$TMOYweek-i$V2    
+  i$diff<-i$gdd12-i$V2    
   i
 })
 
@@ -218,12 +254,37 @@ registerDoParallel(6)
 getDoParWorkers()
 
 set.seed(1234)
-lag<-20
-do<-sample(1:length(lm),12)
-#do<-261:262
+lag<-104
+#do<-sample(1:length(lm),12)
+do<-1:30
 cm<-foreach(i=do,.packages=c("data.table")) %dopar% {
-  corlag(lm[[i]],v="diff",r="A9",lag=lag)
+  corlag2(lm[[i]],v="gdd12",r="A9",lag=lag)
 }
+
+cm2<-do.call("rbind",cm)
+#keep<-unlist(lapply(lm[do],function(i){i[["cdcweek"]]}))==28
+#cm2<-cm2[keep,]
+pos<-strsplit(dimnames(cm2)[[2]][-1]," ")
+mat<-matrix(rep(NA,lag^2),nrow=lag)
+cm3<-sapply(2:ncol(cm2),function(i){
+  cor(cm2[,1],cm2[,i],use="complete.obs",method="spearman")
+})
+for(i in seq_along(pos)){
+  ij<-as.integer(pos[[i]])  
+  mat[ij[1],ij[2]]<-cm3[i]
+}
+
+r<-raster(mat,matrix(lag^2),xmn=0,xmx=lag,ymn=0,ymx=lag)
+brks<-seq(-1,1,by=0.1)
+plot(r)
+
+plot(lm[[1]]$cdcweek,log(1+lm[[1]]$A9),ylim=c(-25,28),type="n") 
+lapply(do,function(i){
+  points(lm[[i]]$cdcweek,log(1+lm[[i]]$A9),col=alpha("darkgreen",0.2),pch=16)
+  points(lm[[i]]$cdcweek,lm[[i]]$TMOYweek,col=alpha("black",0.05),pch=16)
+})
+
+
 
 
 
@@ -238,25 +299,151 @@ plot(mean(r,na.rm=TRUE),col.regions=colo.scale(1:100,c("darkred","red","lightgol
 #axis(1,at=0:nrow(cmat)+0.5,labels=0:nrow(cmat))
 #axis(2,at=0:nrow(cmat)-0.5,labels=rev(0:nrow(cmat)))
 
-k<-262
-plot(lm[[k]]$cdcweek,lm[[k]]$TMOYweek)
+k<-90
+plot(lm[[k]]$cdcweek,lm[[k]]$gdd12)
 points(lm[[k]]$cdcweek,log(1+lm[[k]]$A9),pch=16,col="darkgreen",cex=1.5)
-points(lm[[k]]$cdcweek[!is.na(lm[[k]]$A9)],lm[[k]]$TMOYweek[!is.na(lm[[k]]$A9)],col="red",pch=16)
+points(lm[[k]]$cdcweek[!is.na(lm[[k]]$A9)],lm[[k]]$gdd12[!is.na(lm[[k]]$A9)],col="red",pch=16)
 lines(lm[[k]]$cdcweek,lm[[k]]$V2,pch=16)
+
+
+
 #points(lm[[k]]$cdcweek,lm[[k]]$diff,pch=16)
 
 
-k<-1:
+k<-1:100
 dat<-rbindlist(lm[k])
-g<-gam(A9~s(cdcweek,bs="cc")+s(diff),data=dat)
-val<-15:45
-p<-predict(g,data.frame(cdcweek=val),type="response")
-plot(dat$cdcweek,dat$A9,ylim=c(0,10))
+dat$A9log<-log(1+dat$A9)
+#g<-gam(A9~s(cdcweek)+diff,data=dat,na.action=na.omit,family=poisson(link="log"))
+g<-gam(A9~te(cdcweek,TMOYweek),data=dat,na.action=na.omit,family=poisson(link="log"))
+val<-seq(15,45,by=0.01)
+newdat<-data.frame(cdcweek=val,TMOYweek=15,diff=0)
+p<-predict(g,newdat,type="response")
+plot(dat$cdcweek,dat$A9,ylim=c(0,5000))
 lines(val,p,type="l")
 
+plot(dat$cdcweekcum,dat$A9,ylim=c(0,1000))
+par(new=TRUE)
+plot(dat$cdcweekcum,dat$TMOYweek,type="l",col=alpha("red",0.3),yaxt="n")
+axis(4,col.axis="red")
+
+
+family = gevlss(link = list("identity", "identity", "identity"))
+
+   
+dat$A99<-rnorm(nrow(dat))
+m <- gam(list(A9~ s(cdcweek),
+                ~ s(cdcweek),
+                ~ 1),
+                 data = na.omit(dat[,c("A9","cdcweek")]), method = "REML", na.action=na.omit,
+                 family = gevlss)
+
+plot(m)
+
+library(mgcv)
+Fi.gev <- function(z,mu,sigma,xi) {
+  ## GEV inverse cdf.
+  xi[abs(xi)<1e-8] <- 1e-8 ## approximate xi=0, by small xi
+  x <- mu + ((-log(z))^-xi-1)*sigma/xi
+}
 
 
 
 
 
+
+## simulate test data...
+f0 <- function(x) 2 * sin(pi * x)
+f1 <- function(x) exp(2 * x)
+f2 <- function(x) 0.2 * x^11 * (10 * (1 - x))^6 + 10 * 
+  (10 * x)^3 * (1 - x)^10
+set.seed(1)
+n <- 500
+x0 <- runif(n);x1 <- runif(n);x2 <- runif(n)
+mu <- f2(x2)
+rho <- f0(x0)
+xi <- (f1(x1)-4)/9
+y <- Fi.gev(runif(n),mu,exp(rho),xi)
+dat <- data.frame(y,x0,x1,x2);pairs(dat)
+
+G<-function(x,mu,sigma,epsilon){
+  exp(-(1+(epsilon*((x-mu)/sigma)))^(-1/epsilon))
+}
+val<-seq(0,1,by=0.01)
+
+
+
+
+
+
+## fit model....
+b <- gam(list(y~s(x1),~s(x1),~s(x1)),family=gevlss,data=dat)
+
+plot(x1,y)
+
+val<-seq(0,1,by=0.01)
+p<-predict(b,data.frame(x1=val))
+plot(x1,y)
+plot(-100:100,G(-100:100,p[,1],p[,2],p[,3]))
+
+
+
+## plot and look at residuals...
+plot(b,pages=1,scale=0)
+summary(b)
+
+par(mfrow=c(2,2))
+mu <- fitted(b)[,1];rho <- fitted(b)[,2]
+xi <- fitted(b)[,3]
+## Get the predicted expected response... 
+fv <- mu + exp(rho)*(gamma(1-xi)-1)/xi
+rsd <- residuals(b)
+plot(fv,rsd);qqnorm(rsd)
+plot(fv,residuals(b,"pearson"))
+plot(fv,residuals(b,"response"))
+
+
+#############################################
+###
+
+png("C:/Users/rouf1703/Desktop/test.png",width=8,height=12,res=200,units="in")
+
+par(mfrow=c(4,2),oma=c(0,2,0,2),mar=c(4,4,3,3))
+
+week<-seq(-500,500,by=1)
+trend<--20*cos((2*pi/53*(week+(10*pi/2))))
+trend<-rep(10,length(week))
+trend<-ifelse(week>=0 & week<=10,trend+abs(15-abs(week-5)),trend)
+temp<-trend+rnorm(length(week),0,1)
+ab<-c(rep(NA,16),0,1,1,1,2,3,4,4,5,10,20,1,0,0,rep(NA,24))
+d<-data.frame(week,temp,trend)
+d$ab<-ab[match(week,seq_along(ab))]
+d$diff<-temp-trend
+
+#par(mfrow=c(1,2),oma=c(0,2,0,2))
+plot(d$week,d$temp,xlim=c(-50,40),ylim=c(-25,40),xlab="week",ylab="temperature")
+lines(week,trend)
+points(d$week,d$ab-20,col="red",pch=16)
+lines(d$week,d$ab-20,col="red",pch=16)
+axis(4,at=pretty(d$temp),labels=pretty(d$temp)+20,col.axis="red")
+legend("topleft",pch=c(1,NA,16),lwd=c(NA,1,NA),col=c(1,1,2),legend=c("temperature","seasonal trend","mosquito abundance"),bty="n")
+lag<-104
+cm<-corlag2(d,v="temp",r="ab",lag=lag)
+cm2<-cm
+
+pos<-strsplit(dimnames(cm2)[[2]][-1]," ")
+mat<-matrix(rep(NA,lag^2),nrow=lag)
+cm3<-sapply(2:ncol(cm2),function(i){
+  co<-cor(cm2[,1],cm2[,i],use="complete.obs",method="spearman")
+  co
+})
+for(i in seq_along(pos)){
+  ij<-as.integer(pos[[i]])  
+  mat[ij[1],ij[2]]<-cm3[i]
+}
+r<-raster(mat,matrix(lag^2),xmn=0,xmx=lag,ymn=0,ymx=lag)
+plot(r,col=colo.scale(1:100,c("darkred","red","lightgoldenrod","blue","navyblue")),xaxt="n",yaxt="n",axes=FALSE,box=FALSE,main=paste("lag =",lag))
+#axis(2,at=0:104,labels=rev(0:104),las=2,cex.axis=0.55)
+#axis(1,at=-100:110,las=2,cex.axis=0.55)
+
+dev.off()
 
