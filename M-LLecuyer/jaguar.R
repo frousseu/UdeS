@@ -865,14 +865,17 @@ getDoParWorkers()
 #ds<-ds[rep(1:nrow(ds),each=2),]
 #ds$Attack[(nrow(ds)/2):nrow(ds)]<-NA
 
-#untar("C:/Users/rouf1703/Downloads/geostatsp_1.5.4.tar.gz",list=TRUE)  ## check contents
-#untar("C:/Users/rouf1703/Downloads/geostatsp_1.5.4.tar.gz")
+### Ce code était pour recompiler le package en hackant la fonction glgm pour qu'elle n'enlève pas les lignes avec les NA dans la variable réponse. Avec la version 1.6.0, ceci est corrigé comparativement à la version d,avant, 1.5.4
+
+#untar("C:/Users/rouf1703/Downloads/geostatsp_1.6.0.tar.gz",exdir="C:/Users/rouf1703/Downloads",list=TRUE)  ## check contents
+#untar("C:/Users/rouf1703/Downloads/geostatsp_1.6.0.tar.gz",exdir="C:/Users/rouf1703/Downloads")
 
 #lf<-list.files("C:/Users/rouf1703/Downloads/geostatsp/R",full.names=TRUE)
 #sapply(lf,source)
 
 #build("C:/Users/rouf1703/Downloads/geostatsp","C:/Users/rouf1703/Downloads")
-#install.packages("C:/Users/rouf1703/Downloads/geostatsp_1.5.4.tar.gz",repos=NULL)
+#install.packages("C:/Users/rouf1703/Downloads/geostatsp_1.6.0.tar.gz",repos=NULL)
+
 
 cvar<-combn(vars[-(1:2)],3,simplify=FALSE)
 ml2<-lapply(cvar,function(i){
@@ -891,7 +894,7 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
          family="binomial", 
          buffer=10000,
          shape=1,
-         priorCI=list(sd=c(0.5,2.5),range=c(10000,20000)),
+         priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),
          num.threads=1 # to try and get more stable results, since foreach is already parallel
        )
@@ -924,7 +927,7 @@ plot(d$P_indFor_g_2000,d$P_indFor_g)
 ### 
 ### check if proportions sum to 1
 
-path<-"Landcover_2015_extended.tif"
+path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Landcover_2015_extended.tif"
 r <- raster(path)
 code<-read.table("Legend.txt",header=TRUE,sep=",",stringsAsFactors=FALSE)
 code$Category[which(code$Category=="Agriculture\t")]<-"Agriculture"
@@ -1083,7 +1086,7 @@ rvar<-stack(rland,rfrag,rroad,rpop)
 
 ### run chosen model with raster covariates
 
-mform<-ml[[13]][[2]]
+mform<-ml[[16]][[2]]
 
 fit<-glgm(mform, 
             data=ds,
@@ -1094,6 +1097,17 @@ fit<-glgm(mform,
             shape=1,
             priorCI=list(sd=c(0.4,4),range=c(2000,50000))
 )
+
+lo<-calc(fit$raster$predict.0.025quant,fun=inla.link.invlogit)
+me<-calc(fit$raster$predict.mean,fun=inla.link.invlogit)
+up<-calc(fit$raster$predict.0.975quant,fun=inla.link.invlogit)
+
+pr<-stack(lo,me,up)
+names(pr)<-c("lower","mean","upper")
+
+
+levelplot(pr,col.regions=colo.scale(1:100,c("darkred","red3","lightgoldenrod","white")),cuts=99,at=seq(0,1,by=0.01))
+#levelplot(pr,col.regions=matlab.like(100),cuts=99,at=seq(0,1,by=0.01))
 
 ### visualize predictions (static)
 
@@ -1137,9 +1151,9 @@ tm_shape(fit$raster[["predict.invlogit"]])+tm_raster(alpha=0.6,palette=colo.scal
 
 ### temp pred
 
-p<-stack(calc(m[[13]][[1]]$raster$predict.0.025quant,inla.link.logit),
-         calc(m[[13]][[1]]$raster$predict.0.5quant,inla.link.logit),
-         calc(m[[13]][[1]]$raster$predict.0.975quant,inla.link.logit))
+p<-stack(calc(m[[13]][[1]]$raster$predict.0.025quant,inla.link.invlogit),
+         calc(m[[13]][[1]]$raster$predict.mean,inla.link.invlogit),
+         calc(m[[13]][[1]]$raster$predict.0.975quant,inla.link.invlogit))
 
 levelplot(p,col.regions=terrain.colors(100),cuts=99)
 
@@ -1147,17 +1161,27 @@ ds2<-ds@data
 ds2$x<-coordinates(ds)[,1]
 ds2$y<-coordinates(ds)[,2]
 
-mform<-ml[[13]][[2]]
-nvar<-"Dist_Road"
+mform<-ml[[16]][[3]]
+nvar<-"index_pop8"
 xvar<-seq(min(ds2[,nvar]),max(ds2[,nvar]),length.out=50)
 allvars<-all.vars(mform)
 vars<-allvars[!allvars%in%c("Cat_Typ","Attack",nvar)]
-newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars])))))
+newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars,drop=FALSE])))))
 newdat<-newdat[rep(1,length(xvar)),]
 newdat[,nvar]<-xvar
 
-newdat$x<-175000
-newdat$y<-1990000
+newdat$x<-187127
+newdat$y<-1993691
+
+#plot(r)
+#plot(ds,add=TRUE)
+#points(newdat$x[1],newdat$y[2],pch=16,cex=5,col="yellow")
+
+### Explore variogram from glm residuals from model3
+
+plot(calc(fit$raster$predict.mean-fit$raster$random.mean,fun=inla.link.invlogit))
+plot()
+
 
 ds2<-rbind.fill(ds2,newdat)
 coordinates(ds2)<-~x+y
@@ -1172,19 +1196,19 @@ fit<-glgm(mform,
           buffer=10000,
           shape=1,
           priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
-          control.compute=list(waic=TRUE,mlik=TRUE,config=TRUE),
           control.predictor=list(compute=TRUE,link=1)
 )
 
 summary(fit$inla)
+p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
 p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
-plot(xvar,p$mean,ylim=0:1)
+plot(xvar,p$mean,ylim=0:1,type="l")
 lines(xvar,p$"0.025quant",lty=2)
 lines(xvar,p$"0.975quant",lty=2)
 
 glm1<-glm(mform,data=d,family="binomial")
 summary(glm1)
-visreg(glm1)
+visreg(glm1,scale="response")
 
 ### posteriors param
 autoplot(fit$inla,which=1)
