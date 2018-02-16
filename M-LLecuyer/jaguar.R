@@ -30,6 +30,9 @@ library(rasterVis)
 library(INLAutils)
 library(randomForest)
 library(glmnet)
+library(colorRamps)
+library(fastshp)
+library(sf)
 
 
 ####################################################################
@@ -160,6 +163,7 @@ ds@data<-cbind(ds@data,obs)
 ###################################################################################
 
 pop<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",layer="poblacion")
+pop<-read.shp("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/poblacion")
 
 ### for the obs
 
@@ -821,7 +825,7 @@ vif(VifLEF2)
 
 #Model determination
 F0<-Attack~Cat_Typ
-F1<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_tg+Branch_tg
+F1<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
 F2<-Attack~Cat_Typ+Cat_Typ+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
 F3<-Attack~Cat_Typ+Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_tg+Branch_tg+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
 
@@ -1075,6 +1079,25 @@ levelplot(rfrag,col.regions=rev(terrain.colors(100)),cuts=99)
 
 #e<-raster:::extract(mspa,b[1:10])
 
+#########################################
+### dist and dens to patch
+#########################################
+
+# on prend sf, car plus rapide et il n'y a pas de bugs d'indexage
+
+outshp<-st_read("C:/Users/rouf1703/Documents",layer="outshp")
+dis<-as.vector(st_area(outshp))/1000/1000
+
+largepatch<-outshp[dis>1500,]
+
+xy<-xyFromCell(rpred,1:ncell(rpred),spatial=TRUE)
+
+g1<-apply(st_distance(largepatch,st_as_sf(xy)),2,min)
+ds$dis<-g1
+
+rdens<-rpred
+rdens<-setValues(rdens,g1)
+names(rdens)<-"Dist_HabP"
 
 #########################################################################
 ### Plot predictions
@@ -1082,15 +1105,20 @@ levelplot(rfrag,col.regions=rev(terrain.colors(100)),cuts=99)
 
 ### build total prediction raster
 
-rvar<-stack(rland,rfrag,rroad,rpop)
+rvar<-stack(rland,rfrag,rroad,rpop,rdens)
 
 ### run chosen model with raster covariates
 
 mform<-ml[[16]][[2]]
+mform<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
+mform<-Attack~Cat_Typ+Branch_p+Dist_HabP+Bridge_p+Den__MinPS_g
+#mform<-Attack~Cat_Typ+Bridge_p+Branch_p
+#mform<-Attack~Cat_Typ+Dist_Road
 
 fit<-glgm(mform, 
             data=ds,
-            grid=rpred,
+            grid=50,
+            #grid=rpred,
             covariates=rvar, 
             family="binomial", 
             buffer=10000,
@@ -1106,14 +1134,20 @@ pr<-stack(lo,me,up)
 names(pr)<-c("lower","mean","upper")
 
 
-levelplot(pr,col.regions=colo.scale(1:100,c("darkred","red3","lightgoldenrod","white")),cuts=99,at=seq(0,1,by=0.01))
-#levelplot(pr,col.regions=matlab.like(100),cuts=99,at=seq(0,1,by=0.01))
+levelplot(pr,col.regions=colo.scale(1:100,c("black","darkred","red","gold","white")),at=seq(0,1,by=0.01))#+spplot(ds,"Attack",pch=1,col.regions=c("blue","green"))
+
+#tmap_mode("view")
+#tm_shape(me)+tm_raster(alpha=0.7,palette=colo.scale(1:10,c("black","darkred","red","gold","white")),n=7)+tm_shape(ds)+tm_dots("Attack",palette=c("green","blue"))
+
+
+
 
 ### visualize predictions (static)
 
 mm<-glm(mform,data=ds@data,family=binomial) 
 p<-predict(mm,data.frame(as.matrix(rvar),Cat_Typ="B"),type="response")
 tempr<-setValues(rpred,p)
+#plot(tempr)
 
 ### 
 bp<-brewer.pal(5,"RdBu")
@@ -1161,8 +1195,9 @@ ds2<-ds@data
 ds2$x<-coordinates(ds)[,1]
 ds2$y<-coordinates(ds)[,2]
 
-mform<-ml[[16]][[3]]
-nvar<-"index_pop8"
+#mform<-ml[[16]][[2]]
+mform<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
+nvar<-"Branch_p"
 xvar<-seq(min(ds2[,nvar]),max(ds2[,nvar]),length.out=50)
 allvars<-all.vars(mform)
 vars<-allvars[!allvars%in%c("Cat_Typ","Attack",nvar)]
@@ -1170,8 +1205,8 @@ newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars
 newdat<-newdat[rep(1,length(xvar)),]
 newdat[,nvar]<-xvar
 
-newdat$x<-187127
-newdat$y<-1993691
+newdat$x<-233173.6
+newdat$y<-2037153
 
 #plot(r)
 #plot(ds,add=TRUE)
@@ -1179,9 +1214,7 @@ newdat$y<-1993691
 
 ### Explore variogram from glm residuals from model3
 
-plot(calc(fit$raster$predict.mean-fit$raster$random.mean,fun=inla.link.invlogit))
-plot()
-
+#plot(calc(fit$raster$predict.mean-fit$raster$random.mean,fun=inla.link.invlogit))
 
 ds2<-rbind.fill(ds2,newdat)
 coordinates(ds2)<-~x+y
@@ -1199,10 +1232,10 @@ fit<-glgm(mform,
           control.predictor=list(compute=TRUE,link=1)
 )
 
-summary(fit$inla)
+#summary(fit$inla)
 p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
 p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
-plot(xvar,p$mean,ylim=0:1,type="l")
+plot(xvar,p$mean,ylim=0:1,type="l",xlab=nvar,ylab="Probability of attack")
 lines(xvar,p$"0.025quant",lty=2)
 lines(xvar,p$"0.975quant",lty=2)
 
@@ -1226,4 +1259,17 @@ fitv<-variofit(v,ini.cov.pars=c(2,5000),cov.model="matern",fix.nugget=TRUE,nugge
 plot(v)
 lines(fitv)
 
+### explore patch size dist habp
+
+
+patch<-raster("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/Mature_forest_2015_include_bajos_secondary.tif")
+par(mfrow=c(1,2))
+plot(patch)
+plot(ds,cex=5*ds$Dist_HabP/max(ds$Dist_HabP),add=TRUE,pch=1,col="white")
+plot(patch,col=c("white","lightgreen"))
+plot(ds,cex=5*ds$Den__MinPS_tg/max(ds$Den__MinPS_tg),add=TRUE,pch=1,col="darkred")
+
+patch<-aggregate(patch,50,fun=mean)
+test<-rasterToPolygons(patch,dissolve=TRUE)
+test<-rasterToContour(patch)
 
