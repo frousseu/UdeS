@@ -407,14 +407,16 @@ plot(fv,residuals(b,"response"))
 
 png("C:/Users/rouf1703/Desktop/test.png",width=8,height=12,res=200,units="in")
 
-par(mfrow=c(4,2),oma=c(0,2,0,2),mar=c(4,4,3,3))
+par(mfrow=c(2,2),oma=c(0,2,0,2),mar=c(4,4,3,3))
 
+ab<-c(rep(NA,10),0,1,1,10,20,30,4,4,5,4,3,2,1,1,rep(NA,30))
 week<-seq(-500,500,by=1)
 trend<--20*cos((2*pi/53*(week+(10*pi/2))))
-trend<-rep(10,length(week))
-trend<-ifelse(week>=0 & week<=10,trend+abs(15-abs(week-5)),trend)
-temp<-trend+rnorm(length(week),0,1)
-ab<-c(rep(NA,16),0,1,1,1,2,3,4,4,5,10,20,1,0,0,rep(NA,24))
+#trend<-rep(10,length(week))
+#trend<-ifelse(week>=0 & week<=10,trend+abs(15-abs(week-5)),trend)
+temp<-trend+rnorm(length(week),0,3)
+#temp<-rnorm(length(week),0,3)
+#temp<-rep(ab[!is.na(ab)],length.out=length(week))+rnorm(length(week),0,3)
 d<-data.frame(week,temp,trend)
 d$ab<-ab[match(week,seq_along(ab))]
 d$diff<-temp-trend
@@ -442,6 +444,10 @@ for(i in seq_along(pos)){
 }
 r<-raster(mat,matrix(lag^2),xmn=0,xmx=lag,ymn=0,ymx=lag)
 plot(r,col=colo.scale(1:100,c("darkred","red","lightgoldenrod","blue","navyblue")),xaxt="n",yaxt="n",axes=FALSE,box=FALSE,main=paste("lag =",lag))
+lag1<-"1 0"
+lag2<-"10 0"
+plot(cm2[,lag1],cm2[,"ab"],xlab="Temperature",ylab="Abundance",main=paste("lag",lag1))
+plot(cm2[,lag2],cm2[,"ab"],xlab="Temperature",ylab="Abundance",main=paste("lag",lag2))
 #axis(2,at=0:104,labels=rev(0:104),las=2,cex.axis=0.55)
 #axis(1,at=-100:110,las=2,cex.axis=0.55)
 
