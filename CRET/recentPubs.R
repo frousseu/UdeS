@@ -38,6 +38,8 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
     bold<-authors # tkae this out redundant  
   }
   
+  #authors<-c(authors,bold)
+  
   l<-lapply(authors,function(i){
     a<-unlist(strsplit(i," "))
     tx<-cr_works(query=keyword,filter=c(from_pub_date=date),flq=c(query.author=a[2]),limit=200,sort='published',order="desc")
