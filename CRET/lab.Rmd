@@ -1,0 +1,1565 @@
+---
+title: "Ateliers R"
+author: ""
+date: ""
+output:
+  html_document:
+    depth: 4
+    fig_height: 5
+    fig_width: 6
+    number_sections: no
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+---
+
+<script>
+    $(document).ready(function() {
+      $items = $('div#TOC li');
+      $items.each(function(idx) {
+        num_ul = $(this).parentsUntil('#TOC').length;
+        $(this).css({'text-indent': num_ul * 20, 'padding-left': 0});
+      });
+
+    });
+</script>
+
+
+<style>
+
+pre.r {
+    background-color: #CCCCCC!important;
+    border-color: #EEEEEE!important;
+    font-size: 14pt;
+}
+
+pre code {
+  font-size: 14pt;
+}
+
+body {
+  font-size: 14pt;
+}
+
+.main-container {
+    max-width: 1300px !important;
+}
+
+#TOC {
+  font-size: 12pt;
+  border-color: white;
+}
+
+.list-group-item.active:focus{
+    z-index: 2;
+    color: darkgreen;
+    background-color: #EEEEEE;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+.list-group-item.active:hover {
+    z-index: 2;
+    color: darkgreen;
+    background-color: #EEEEEE;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+.list-group-item.active{
+    z-index: 2;
+    color: darkgreen;
+    background-color: #EEEEEE;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+h1.title {
+  margin-top: 120px;
+  font-size: 42px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h1 {
+  padding-top: 50px;
+  font-size: 42px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h2 {
+  padding-top: 50px;
+  font-size: 36px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+
+h3 {
+  padding-top: 10px;
+  font-size: 32px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h4 {
+  font-size: 28px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h5 {
+  font-size: 26px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, tidy=TRUE)
+```
+
+<br><br><br>
+
+# Atelier 1
+
+## Opérations et objets de base 
+
+R peut être utilisé comme une simple calculatrice!
+
+```{r}
+
+3*4
+13/3
+3^3
+
+```
+
+On peut également assigner des objets à des symboles avec l'opérateur `<-` et concaténer des nombres ensemble pour créer un vecteur, un objet à **1 dimension**. Par la suite, on peut effectuer des opérations vectorisées. 
+
+```{r}
+v1<-c(1,2,3,4,5,6,7,8,9)  
+v1
+v2<-c(10,10,10,10,10,10,10,10,10)
+v1+v2
+v1*v2+1
+```
+
+On peut aussi coller ces deux vecteurs ensembles pour créer une matrice (`matrix`), un objet à **2 dimension**. 
+
+```{r}
+
+m<-cbind(v1,v2)  #! Colle deux vecteurs ensemble
+m
+```
+
+Une matrice est composée d'un même type de valeur, soit numérique, caractère ou logique. Plus général, un `data.frame` peut contenir plusieurs types de valeurs. C'est l'équivalent d'un tableau de données dans Excel. 
+
+```{r}
+
+d<-data.frame(v1,v2,z=c("a","b","c","d","e","f","g","h","i"))
+d
+
+```
+
+Les listes peuvent contenir tout type d'objets et sont des objets à une dimension.
+
+```{r}
+
+l<-list(v1,m,d)
+l
+
+```
+
+### Principaux objets avec des données
+
+- vecteur (1 dimension, 1 type de données)
+- matrice (`matrix`) (2 dimensions, 1 type de données)
+- data.frame (2 dimensions, tout type de données)
+- liste (`list`)(1 dimension, tout type d'objets)
+- `array` (3 dimension, un type de données)
+
+### Type de données
+
+Les principaux types de données ou de valeurs dans R sont:
+
+```{r, results="hold"}
+class(1)
+class("allo")
+class(TRUE)
+```
+
+### Objets et assignation
+
+Tout ce qui est contenu dans une session R est un **objet** qui porte un nom. Lorsque l'on modifie un objet, il faut se rappeler d'assigner le résultat afin de le conserver dans le même objet ou dans un nouvel objet. Par exemple, affichons le contenu de v1:
+
+```{r}
+v1
+```
+
+Maintenant, ajoutons une valeur à v1:
+
+```{r}
+v1+100
+```
+
+Le résultat s'affiche, mais l'objet n'a toujours pas changé:
+
+```{r}
+v1
+```
+
+L'objet `v1` n'a toujours pas changé, car il faut assigner le résultat à un nouvel objet ou à l'objet v1 en "écrasant" l'ancien objet v1.
+
+```{r}
+v1<-v1+100
+v1
+```
+
+Tout ce qui est contenu dans une session R est un **objet** qui porte un nom.
+
+<br><br><br>
+
+## Indexation
+
+L'indexation est le processus par lequel on accède aux données à l'intérieur d'un objet. Pour ce faire, on utilise généralement les opérateurs `[` et `$` avec différentes conditions pour établir notre sélection.
+
+### Avec un vecteur
+
+```{r}
+v1
+```
+
+On accède au 3e élément du vecteur.
+
+```{r}
+v1[3]
+```
+
+On accède à tous les éléments supérieurs à 105.
+
+```{r}
+v1[v1>105]
+```
+
+On accède à tous les éléments supérieurs à 105 et inférieurs ou égal à 108.
+
+```{r}
+v1[v1>105 & v1<=108]
+```
+
+### Avec un `data.frame`
+
+Un `data.frame` est un objet en 2 dimensions qui contient des lignes et des colonnes `d[i, j]`.
+
+```{r}
+d
+```
+
+On sélectionne les lignes 4 à 6 du `data.frame`.
+
+```{r}
+d[4:6,]
+```
+
+On sélectionne les colonnes 1 et 3 du `data.frame`.
+
+```{r}
+d[,c(1,3)]
+```
+
+On sélectionne la colonne nommée `z`. 
+
+```{r}
+d$z
+```
+
+On sélectionne toutes les lignes où `v1` est supérieur à 7. 
+
+```{r}
+d[d$v1>7,]
+```
+
+### Avec une liste
+
+Avec les "`[`" simples, on accède aux éléments de la liste qui sont aussi retournés sous forme de liste.
+
+```{r}
+l[1]
+```
+
+Avec les doubles "`[[`", on accède directement à un seul élément contenu dans la liste.
+
+```{r}
+l[[1]]
+```
+
+On peut également accéder aux éléments de la liste par leur nom si cette liste est nommée.
+```{r}
+l$v1
+```
+
+Puisque la liste n'est pas nommée, la valeur `NULL` nous est retournée.
+
+```{r}
+names(l)<-c("allo","bonjour","bye")
+l$bye
+```
+
+
+## Fonctions
+
+On retrouve également dans R des objets qui sont des **fonctions**. Les fonctions peuvent être appliquées à des objets pour obtenir des résultats. On applique les fonctions aux objets en utilisant les parenthèses `()`, contrairement aux crochets `[]` qui servent à l'indexation. Par exemple, `c` est une fonction qui permet de coller des valeurs ensembles dans un vecteur.
+
+```{r}
+temp<-c(37,54,79,23,3,101,4)
+```
+
+La fonction `mean` permet de calculer des moyennes et la fonction `sd` des écarts-types.
+
+```{r,results="hold"}
+mean(temp)
+sd(temp)
+```
+
+La fonction `rep` permet de répéter des valeurs. Ici, on répète le vecteur `1:2` 5 fois.
+
+```{r}
+
+rep(1:3,times=5)
+
+```
+
+Ceci permet d'introduire les *arguments* qui composent les fonctions. On pourrait aussi utiliser l'argument `length.out` ou `each` pour modfifier la façon dont les valeurs sont répétées.
+
+```{r,results="hold"}
+
+rep(1:3,each=5)
+rep(1:3,length.out=5)
+
+```
+
+En général, la majorité des arguments d'une fonction ont des valeurs par défaut. Par exemple, les valeurs par défaut de `rep` sont `times = 1`.
+
+```{r}
+
+rep(1:3)
+
+```
+
+Par défaut, le premier élément listé à l'intérieur d'une fonction est l'objet auquel on veut l'appliquer et correspond au premier argument de la fonction. Cet argument n'a généralement par besoin d'être nommé. Par contre, il est souvent préférable ou nécessaire de nommer les éléments suivants. Si ceux-ci ne sont pas nommés, l'ordre dans lequel ils sont donnés sera utilisé pour les associer aux arguments correspondant.
+
+### Opérateurs
+
+Certaines fonctions sont représentées par des opérateurs. En voici quelques exemples.
+
+
+```{r, results="hold"}
+
+3==4 # égal
+3+4 # addition
+TRUE&TRUE # "et" logique
+TRUE&FALSE # "et" logique
+3==4 | 3==5 # "ou" logique
+c(3,4)%in%c(4,5,6,7) # élément du vecteur 1 contenule vecteur 2
+3:10 # crée un vecteur avec tous les entiers de 3 à 10
+
+```
+
+
+## Aide
+
+Dès que l'on se met à jouer avec R, on est vite obligé d'aller inspecter son fichier d'aide. Ceci peut être tout aussi éclairant que frustrant! Mais c'est généralement éclairant et absolument essentiel. Pour accéder à l'aide sur la fonction `rep`, on n'a qu'à taper `?rep`.
+
+### Section *Description*
+
+Cette section contient une courte description de ce que fait la fonction.
+
+### Section *Usage*
+
+Cette section montre comment la fonction est utilisée et liste également la plupart du temps les valeurs par défaut des arguments.
+
+### Section *Arguments*
+
+Cette section explique l'utilisation de chacun des arguments de la fonction et donne également les valeurs par défaut.
+
+### Section *Details*
+
+Cette section donne parfois des détails plus précis par rapport à l'utilisation de la fonction.
+
+### Section *Value*
+
+Cette section décrit la valeur retournée par la fonction.
+
+### Section *See Also*
+
+Cette section donne des suggestions concernant d'autres fonctions jouant un rôle similaire.
+
+### Section *Examples*
+
+Cette section très utile donne des exemples d'utilisation de la fonction. Ces exemples peuvent être copiés et collés directement dans votre session R afin d'étudier l'utilisation de la fonction. Pour bien comprendre l'utilisation d'une fonction, cette section n'est pas à négliger! 
+
+
+## Importation des données
+
+### Le répertoire courant (*Working directory*)
+
+Lorsqu'on débute avec R, c'est souvent à cette première étape cruciale qu'on a des problèmes! Premièrement, R travaille dans un seul dossier à la fois, c'est-à-dire que la base de données doit être dans le bon dossier, appelé **répertoire courant**. Pour dire à R quel est ce dossier, on va dans RStudio sous l'onglet *Session/Set Working Directory*. On doit généralement faire cette opération à chaque début de session de travail dans R, à moins que RStudio s'ouvre par défaut au bon endroit. On peut également inspecter le répertoire courant à l'aide de la fonction `getwd`.
+
+```{r}
+
+getwd()
+
+```
+
+Pour s'assurer que notre base de données se trouve bien à cet endroit, on peut utiliser la fonction `list.files`.
+
+```{r}
+
+list.files()
+
+```
+
+### Les données manquantes (`NA`)
+
+Avant d'importer des données, il est nécessaire d'aborder la gestion des données manquantes par R. Les données manquantes sont toujours représentées par des `NA`, que ce soit dans les vecteurs ou dans les tableaux de données. Lorsqu'on veut importer des données avec des cellules vides, il est souvent nécessaire de remplacer les cellules vides par des `NA`. Parfois, il est possible de dire à une éventuelle fonction que les cellules vides correspondent à des `NA`.
+
+### Les fonctions d'importation
+
+Il existe plusieurs méthodes pour importer des données dans R. La façon classique est par l'intermédiaire de la fonction `read.table`. Cette fonction prend des fichiers textes (*.txt*) qui doivent répondre à plusieurs critéres:
+
+- Il ne doit y avoir aucun espace dans les noms des différentes variables et dans les éléments de la base de données. Par exemple, Â« bon à modéré» va créer des problèmes. On devrait plutôt écrire "bon.à.modéré" ou "bon_à_modéré". Encore mieux serait d'éviter les accents ou d'utiliser un code.
+
+- **AUCUNE** cellule ne doit être vide. Si une cellule est vide ou si on a écrit un commentaire au lieu d'un nombre, on écrit `NA` dans la cellule. Autrement, R produira un message d'erreur puisqu'il considérera qu'une ligne du tableau est incomplète.
+
+- Il faut généralement utiliser le point plutÃ´t que la virgule pour les nombres décimaux (à moins de le spécifier dans les arguments)
+
+Les messages d'erreurs sont pratiquement obligatoires lors de l'importation d'une nouvelle base de données. Il s'agit juste d'être en mesure de bien les interpréter et d'observer ces quelques règles de base.
+
+Plusieurs autres fonctions sont disponibles selon le format des données (`read.delim`, `read.csv`, etc.). Le format *.csv* est souvent le plus pratique, car il réduit les risques de problèmes lors de l'importation en raison de la délimitation des cellules. Il est également possible d'utiliser le package **readxl** pour lire directement des fichiers `.xlsx`. Bien qu'étant la façon classique d'importer des données, la fonction `read.table` est assez capricieuse... On peut également exporter des données avec la fonction `write.table`.
+
+<!-- Mettre un exemple de read.table ou de read.csv avec le complete path ou pas-->
+
+
+## Packages
+
+Les packages sont des banques de fonctions destinées à des tâches spécifiques. Plusieurs packages de bases sont installés avec R, mais il existe plusieurs milliers de packages de toutes sortes. Pour installer un package donné sur son ordinateur (par exemple le package **spatstat**, pour les statistiques spatiales), on utilise la fonction `install.packages` de cette façon :
+ 
+```{r, eval=FALSE} 
+install.packages("spatstat")
+```
+
+Dépendamment de si on travaille avec R ou RStudio, on demande parfois de sélectionner un miroir CRAN à partir duquel le téléchargement sera fait. Une fois le package installé, il faut activer le package dans notre session de travail R. Pour les packages spéciaux qui ne font pas partie des packages de base de R, on doit les activer à chaque session de travail avec la fonction `library`
+
+```{r, eval=FALSE}
+library("spatstat")
+```
+
+Il est fréquent d'utiliser une fonction dans R sans avoir préalablement charger le package la contenant. Dans ce cas, un message d'erreur nous dit que la fonction utilisée n'existe pas. Ceci peut également résulter d'une mauvaise orthographe de la fonction.
+
+
+## Exercice
+
+Ce premier exercice consiste à importer une base de données en format *.txt*. Cette base de données contient des mesures morphométriques d'une espèce de bruants (un oiseau). Vous pouvez la télécharger à l'adresse suivante: [https://github.com/frousseu/ECL749/tree/master/data](https://github.com/frousseu/ECL749/tree/master/data).
+
+Par la suite, vous devez calculer la longueur moyenne de la corde de l'aile (wingcrd) et de la masse (wt) et effectuez un graphique mettant en relation les deux mesures. La fonction `plot` devrait vous être utile. 
+
+Vous devez également utiliser la fonction `table` pour compter le nb d'observations de mâles et de femelles et apprendre la fonction `boxplot` pour comparer la variabilité de la masse chez les deux sexes.
+
+Finalement, effectuez et interprétez un test de t pour comparer la masse chez les deux sexes. Ici, la fonction subset pourrait être utile, mais il est possible de s'en sortir en utilisant seulement l'indexage.
+
+Il y a peut-être quelques petits problèmes avec la base de données...
+
+### Solution 
+
+On télécharge le fichier *sparrows.txt* avec le bouton de droit en appuyant sur le bouton *raw*. On met ce fichier à un endroit correspondant au répertoire courant ou on change le répertoire courant pour accomoder la localisation du fichier. Vous pouvez aussi utiliser le menu de RStudio *Session / Set Working Directory / Choose Directory*. Remarquez que la ligne `setwd("chemin/vers/le/fichier.txt")` va s'écrire dans la console. Le mieux serait d'inclure cette ligne dans votre script. Remarquez qu'il serait aussi possible d'écrire le chemin vers le fichier au long au lieu de seulement inscrire le nom du fichier (entre guillemets) pour la fonction `read.table`.
+
+```{r, error=TRUE,cache=TRUE}
+
+setwd("C:/Users/rouf1703/Desktop")
+d<-read.table("sparrows.txt",header=TRUE)
+
+```
+
+Le message d'erreur retourné nous dit qu'il manque un élément à la ligne 83 du tableau de données. Il est important de bien lire les messages d'erreur, car la plupart du temps, ils nous donnent une indication du problème. Le plus simple est probablement d'aller dans le tableau de données et de remplacer manuellement la cellule manquante par un `NA`. 
+
+```{r, error=TRUE}
+
+setwd("C:/Users/rouf1703/Desktop")
+d<-read.table("sparrows.txt",header=TRUE)
+
+```
+
+Maintenant qu'on a les données, on peut calculer les moyennes des deux variables *wingcrd* et *wt*.
+
+```{r, hold=TRUE}
+
+mean(d$wingcrd)
+mean(d$wt)
+
+```
+
+On on obtient un `NA` pour la première moyenne et un message d'erreur pour la seconde. Inspectons ce que contient le vecteur `d$wingcrd` pour comprendre pourquoi un `NA` est retourné. On voit que le vecteur contient une valeur de `NA` et par défaut, la fonction `mean` retourne un `NA` (`?mean`). Pour corriger cette situation, on doit utiliser l'argument `na.rm = TRUE` de la fonction `mean`.
+
+```{r, hold=TRUE}
+
+mean(d$wingcrd,na.rm=TRUE)
+mean(d$wt,na.rm=TRUE)
+
+```
+
+On obtient une valeur pour la longueur de l'aile, mais on obtient toujours un message d'erreur pour la masse. Inspectons le contenu de *d$wt* pour comprendre un peu mieux.
+
+```{r}
+
+d$wt
+
+```
+
+On semble avoir des valeurs, mais on voit également que le résultat indique qu'il y a `48 Levels` dans notre vecteur. Ceci indique que R a transformé la colonne en **facteur**. Par défaut, la fonction `read.table` converti en facteur toute colonne qui ne semble pas être composée de données numériques ou logiques. Ceci vaut certainement pour les données de type caractère. Puisqu'une virgule se trouve quelque part dans notre série de valeurs, R a considéré que ces données étaient des facteurs et a converti le tout en conséquence. Pour comprendre un peu mieux l'utilisation des facteurs avec R, consultez la section d'aide sur la fonction `?factor`. En bref, les `factor` sont des valeurs comportant une étiquette (la plupart du temps un caractère) et étant représentées par un entier allant de 1 au nombre d'étiquettes différentes. Pour éviter ce problème, le plus simple serait de retourner dans le tableau de données initiales et de changer la virgule pour un point pour que la colonne soit interprétée comme une colonne de valeurs numériques. 
+
+Maintenant que nous avons toutes nos valeurs, nous pouvons calculer les deux moyennes et effectuer un graphique représentant le lien entre ces deux mesures avec la fonction `plot`.
+
+
+
+```{r, hold=TRUE}
+
+mean(d$wingcrd,na.rm=TRUE)
+mean(d$wt,na.rm=TRUE)
+plot(d$wingcrd,d$wt)
+
+```
+
+Sans surprise, les deux variables semblent positivement corrélées. Par la suite, on utilise la fonction `table` pour compter le nombre d'observations des deux sexes. 
+
+```{r}
+
+table(d$Sex)
+
+```
+
+La fonction `boxplot` nous permet de comparer la masse chez les deux sexes.
+
+```{r}
+
+boxplot(wt~Sex,data=d)
+
+```
+
+Remarquez la forme des arguments de la fonction `boxplot`. Ceux-ci sont donnés sous forme de formule (`?formula`) et non sous forme de caractères entre guillemets. Avec l'argument `data`, la fonction `boxplot` va chercher dans le `data.frame` les noms de colonnes correspondants. Cette façon de spécifier les variables sous forme de formule sera beaucoup utilisée lorsque nous ferons des modèles. 
+
+Par la suite, nous devons trouver le moyen de séparer les mâles des femelles afin d'effectuer notre test de t. Pour ce faire, il est possible d'utiliser la fonction `subset` ou simplement d'utiliser l'indexage. Les 4 lignes suivantes produisent les mêmes objets.
+
+```{r}
+
+m<-subset(d,subset=Sex=="m")
+f<-subset(d,subset=Sex=="f")
+
+m<-d[d$Sex=="m",]
+f<-d[d$Sex=="f",]
+
+```
+
+Un peu comme dans la fonction `boxplot`, il n'est pas nécessaire d'utiliser les guillemets ou le `$` puisque la fonction `subset` cherchera dans le `data.frame` soumis pour trouver la colonne demandée (ici, *Sex*). Avec l'indexage régulier, il faut toutefois identifé où se trouve la colonne avec `d$Sex`. Par la suite, on effectue notre test de t.
+
+```{r}
+
+t.test(m$wt,f$wt)
+
+```
+
+La valeur de *p* est inférieure à 0.05 et l'intervalle de confiance a des bornes inférieure et supérieures positives, on conclut donc que les mâles ont une masse supérieure aux femelles et que cette différence est de l'ordre de 1 ou 2 grammes.
+
+# Atelier 2
+
+## Retour
+
+### Script et console
+
+Un script R est un fichier *.R* où on écrit le code qu'on veut conserver et à partir duquel on peut envoyer les différentes lignes de codes vers la console R. La console est l'endroit où sont évalué les différentes commandes et où les objets de la session R sont contenus. On peut écrire directement dans la console pour envoyer des commandes, mais il est préférable d'écrire ces commandes dans un script lorsqu'on veut conserver les commandes importantes. 
+
+### Insertion de commentaires
+
+Pour insérer des commentaires dans un script, on utilise le dièse `#` (ou, pour utiliser un langage plus moderne, le *hashtag*...). Ces lignes ne seront pas interprétées lorsque'elle seront envoyées à la console.
+
+```{r}
+# Voici un commentaire qui ne sera pas interprété comme une commande
+```
+
+### Environnement de travail
+
+Il est possible de sauvegarder à la fois un script (un fichier *.R*) qui contient du code ou un environnement de travail (un fichier *.RData*, le *Workspace*) qui contient les objets créés dans l'environnement. En général, il est beaucoup plus utile de conserver un script avec le code important puisque celui-ci peut être relancé à nouveau et c'est celui qui contient le travail important. Sauvegarder l'environnement de travail n'est généralement utile que si on crée des objets longs à produire ou si on veut partager des objets avec d'autres personnes par exemple. Pour sauvergarder l'environnement de travail, on peut aller sous le menu de RStudio et faire *Session / Save Workspace As*. Il est également possible de conserver l'historique des commandes, mais ceci n'est pas très utile puisque cela conserve l'ensemble des commandes qui ont été envoyées à la console, y compris les commandes contenant des erreurs.
+
+
+### Importation de données
+
+Comme vous avez pu le constater, l'importation de données avec `read.table` peut être ardue lorsqu'on débute. Pour éviter beaucoup de problème, une inspection préalable de la base de données est souvent nécessaire. Le message d'erreur le plus commun est probablement celui-ci.
+
+```{r,error=TRUE}
+d<-read.table("sparrows2.txt",header=TRUE)
+```
+
+Ce message indique que soit on a fait une erreur dans le nom du fichier, soit le fichier ne se trouve pas dans le répertoire courant. Dans cet exemple, il s'agit d'une erreur dans le nom du fichier. Remarquez également l'utilisation de l'argument `header` pour spécifier que la première ligne du tableau de données contient les noms de colonnes. Un autre argument très utilisé est `stringsAsFactors = FALSE` qui permet de spécfier que les données de type caractère ne doivent pas être automatiquement converties en `factor`.
+
+#### Nom du fichier / chemin
+
+Avec la plupart des fonctions d'importation, on peut soit donner le nom du fichier (avec l'extension) si celui-ci se trouve dans le répertoire courant, soit donner le chemin complet vers où le fichier se trouve.
+
+```{r,eval=FALSE,include=TRUE}
+d<-read.table("C:/Users/rouf1703/Desktop/sparrows.txt",header=TRUE)
+```
+
+De cette façon, on s'affranchit du répertoire courant, car on indique directement à R où aller chercher le fichier. Ceci peut être très utile lorsqu'on ne veut pas changer le répertoire courant à chaque session ou si on a des fichiers classés à différents endroits sur l'ordinateur.
+
+#### Autres fonctions d'importation
+
+L'importation de fichiers *.txt* est la base, mais il est souvent plus facile d'utiliser le format *.csv* et la fonction `read.csv`. Ce format cause généralement moins de problèmes avec les cellules vides et la séparation entre les différentes colonnes est souvent moins ambigue qu'avec les espaces ou les tabulations.
+
+Il est également possible de lire directement dans un fichier Excel avec les packages [readxl](https://cran.r-project.org/web/packages/readxl/index.html) et [xlsx](https://cran.r-project.org/web/packages/xlsx/index.html), mais je vais vous laisser le soin d'étudier ces possibilités.
+
+### Inspection des données
+
+Une fois qu'une base de données est importée, plusieurs fonctions peuvent être utilisées pour inspecter un `data.frame`. Les plus communes sont les fonctions `head`, `str`, `summary`. Voici des exemples.
+
+```{r,hold=TRUE}
+head(d)
+str(d)
+summary(d)
+```
+
+La fonction `head` affiche les 6 premières lignes d'un `data.frame`. La fonction `str` liste les colonnes et informe sur le type de données dans chacune de celles-ci. La fonction `summary` calcule un résumé de l'information dans chaque colonne qui dépend du type de données.
+
+Il est également possible d'inspecter les objets en utilisant l'onglet *Environment* dans RStudio et en cliquant sur les différents objets.
+
+### Les guillemets
+
+Les guillemets sont régulièrement utilisés dans R pour indiquer des valeurs correspondant à des caractères. Par exemple, le nom d'un fichier doit être donné entre guillemets à la fonction `read.table`. Pour certaines fonctions (e.g. `library`, `subset`) et pour les fonctions avec des formules et un argument `data`, les guillemets ne sont pas nécessaires. Il peut être frustrant au début de distinguer entre ces deux possibilités, mais on finit par s'y habituer. Encore une fois, se référer au fichier d'aide!
+
+### `=` vs. `==`
+
+Le signe d'égalité simple `=` est la plupart du temps utilisé pour spécifier un argument à une fonction. Il peut parfois être utilisé pour faire des assignations au lieu de la flèche d'assignation `<-`, mais on recommande d'éviter cette pratique. Le double `==` est utilisé comme une fonction pour tester l'égalité entre des valeurs ou des objets.
+
+### Les facteurs
+
+Étudions un peu plus les facteurs. Comme dit plus haut, un `factor` est un vecteur avec différents niveaux ayant une étiquette et représenter internalement par des entiers. Par défaut, les étiquettes sont classées par ordre alphabétique pour établir la représentation en entier. En général, avant de faire une analyse statistique comportant des facteurs, il faut s'assurer que nos variables catégoriques sont converties en tant que tel avec les fonctions `factor` ou `as.factor`. Ceci est particulièrement important pour les facteurs représentés par des valeurs numériques. Autrement, les modèles risquent de considérer ces variables comme numériques.
+
+```{r}
+v<-c("c","b","b","a","a","a")
+v<-factor(v)
+v
+```
+
+```{r,error=TRUE}
+as.numeric(v)
+as.character(v)
+levels(v)
+mean(v)
+v+1
+```
+
+### Consulter l'aide!
+
+Avant d'utiliser une fonction, il faut se rappeler que c'est toujours un bon réflexe de consulter l'aide et particulièrement les exemples qui montrent comment utliser la fonction et ses arguments.
+
+## Brève introduction aux graphiques
+
+La principale fonction pour créer des graphiques est la fonction `plot`. Certains arguments de cette fonction sont décrits dans le fichier d'aide de la fonction (`?plot`), mais la plupart des arguments sont décrits dans la page de la fonction `?par` qui sert à établir les paramètres graphiques utilisés. Voici quelques paramètres (ou arguments) graphiques fréquemment utilisés. Notez la fonction `par` et l'argument `mfrow` qui sert à créer une fenêtre graphique 2 x 2. L'argument `mar` de la fonction `par` permet de modifier la largeur des marges du graphique (bas, gauche, haut et droite). 
+
+```{r,error=TRUE,fig.height=7,fig.width=8}
+par(mfrow=c(2,2),mar=c(5,5,2,2))
+
+plot(1:20,1:20,pch=1:20,col="black",cex=2) # graphique 1
+
+plot(1:20,1:20,pch=16,col=1:20,cex=3) # graphique 2
+
+plot(1:20,1:20,pch=1,col="red",cex=1:20/4) # graphique 3
+
+plot(1:20,1:20, xlim=c(5,15),ylim=c(5,15)) # graphique 4
+points(1:20,1:20+1,pch=2,col="magenta")
+lines(1:20,1:20+2,lwd=2,lty=1,col="blue")
+text(12,6,labels="Voici du texte",font=2)
+
+```
+
+La fonction `plot` permet d'établir la fenêtre graphique. Par la suite, on peut ajouter des points, des lignes ou du texte à un graphique à l'aide des fonctions `points`, `lines` et `text`. Notez que ces fonctions ne permettent pas de créer ou d'ouvrir un graphique. Elles ne permettent que d'ajouter des éléments sur un graphique déjà exsitant. La fonction `legend` permet d'identifier des éléments sur un graphique.
+
+```{r,error=TRUE,fig.height=7,fig.width=8}
+par(mfrow=c(1,1))
+
+plot(1:10,1:10,pch=16,col="red",xlim=c(0,10),ylim=c(0,10),xlab="Valeurs X",ylab="Valeurs Y",main="Voici un titre")
+points(1:10,1:10-1,pch=16,col="blue")
+legend("topleft",pch=16,col=c("red","blue"),legend=c("Série 1","Série 2"),title="Titre de légende")
+
+```
+
+### ggplot2
+
+Il existe trois principaux systèmes dans R pour effectuer des graphiques. Les graphiques de bases sont représentés par les fonctions `plot`, `par` et les fonctions associées. Un autre système, passablement plus compliqué est le package [lattice](https://cran.r-project.org/web/packages/lattice/index.html) qui est souvent utilisé par d'autres fonctions. Un autre système, très populaire, est ggplot2 qui est de plus en plus utilisé. Un des principaux avantages de [ggplot2](http://ggplot2.org/) est que ce système permet de faire rapidement des graphiques plus attrayants comparativement aux graphiques de bases. La documentation concernant ggplot2 est également très détaillée et bien expliquée pour quiconque voudrait employer ce système. Toutefois, dans ce cours, nous n'utiliserons que les graphiques de bases puisque ceux-ci sont plus souvent utilisés par d'autres packages utiles en écologie.
+
+## Exercice
+
+Pour cet exercice, nous utiliserons une base de données ( [pines.csv](https://github.com/frousseu/ECL749/tree/master/data) ) portant sur la croissance de jeunes Pins blancs (*Pinus strobus*) en lien avec avec l'utilisation d'un fertilisant, la déprédation par le Cerf de Virginie, la compétition avec la strate arbustive et l'espacement entre les individus. Cette base de données comporte plusieurs colonnes:
+
+<br>
+
+- **height**: hauteur de l'arbre
+- **width**: largeur de l'arbre (maximale avec les branches)
+- **height_ini**: hauteur initiale de l'arbre
+- **row**: position de l'arbre selon les rangées de la plantation
+- **col**: position de l'arbre selon les colonnes de la plantation
+- **deer**: présence de broutage par le cerf (0 = non, 1 = oui)
+- **fert**: utilisation d'un fertilisant (0 = non, 1 = oui)
+- **spacing**: espacement avec les voisins (10 ou 15m) 
+- **cover**: recouvrement arbustif (0 = aucun, 1 = un peu, 2 = modéré, 3 = beaucoup)
+
+<br>
+
+Vous devrez réaliser plusieurs tâches et/ou répondre aux questions suivantes:
+
+1) Importez la base de données.
+
+2) Explorez et illustrez les liens entre la hauteur et la largeur et les différentes variables explicatives (utilisez `boxplot`, `mfrow`).
+
+3) Effectuez une ANOVA afin d'étudier l'effet du broutement, de la couverture arbustive, du fertilisant et de l'espacement sur la hauteur et la largeur des individus. Pour ce faire, vous pouvez utiliser les fonctions `lm` ou `aov` en combinaison avec la fonction `summary` Interprétez également les résultats.
+
+4) Réalisez une carte schématique permettant d'illustrer la plantation et les traitements (espacement et fertilisant). Pour ce faire, vous devrez utiliser les fonctions `plot` et `legend`. Voux aurez également besoin des différents paramètres graphiques (arguments) décrit plus haut (`col`, `cex`, `pch`). La tâche pourrait aussi être facilitée en créant des groupes selon les différentes possibilités.
+
+### Solution
+
+#### 1.
+
+En premier, on importe la base de données. On peut visualiser son contenu avant l'importation ou après avec différentes fonctions comme `head` ou `summary`.
+```{r}
+
+d<-read.csv("U:/2018/2018/Ateliers/pines.csv",header=TRUE)
+head(d)
+
+```
+
+#### 2.
+
+Par la suite, on peut explorer les liens entre les variables réponses (hauteur et largeur) et les variables explicatives. Pour ce faire, on peut utiliser le `boxplot` et créer deux graphiques à quatre panneaux contenant toutes les variables.
+
+```{r}
+
+par(mfrow=c(2,2),mar=c(4,3,1,1))
+
+boxplot(height~deer,data=d,xlab="deer")
+boxplot(height~fert,data=d,xlab="fert")
+boxplot(height~spacing,data=d,xlab="spacing")
+boxplot(height~cover,data=d,xlab="cover")
+
+```
+
+On peut faire de même pour la largeur des arbres.
+
+```{r}
+
+par(mfrow=c(2,2),mar=c(4,3,1,1))
+
+boxplot(width~deer,data=d,xlab="deer")
+boxplot(width~fert,data=d,xlab="fert")
+boxplot(width~spacing,data=d,xlab="spacing")
+boxplot(width~cover,data=d,xlab="cover")
+
+```
+
+#### 3.
+
+Pour effectuer une ANOVA, on peut utiliser la commande très générale `lm`. Avant de faire ceci, il faudra toutefois convertir nos variables numériques en facteurs, autrement, `lm` interprétera les différentes variables comme étant des variables numériques. Par exemple, dans la sortie suivante, on peut voir qu'il n'y a qu'une seule ligne par variable et on ne voit pas les niveaux des facteurs (1, 2 ou 3) à côté des noms de variables.
+
+```{r}
+
+m<-lm(height~deer+fert+spacing+cover,data=d)
+summary(m)
+
+```
+
+Avant de faire notre modèle, on doit donc convertir nos variables en facteur en utilisant la fonction `as.factor`. Ce problème ne se poserait pas si nous avions des niveaux représentés par des caractères, puisque la fonction `read.csv` aurait automatiquement converti ces valeurs en `factor`. Cela n'indique pas qu'il faut nécessairement utiliser des caractères pour désigner des facteurs, mais seulement qu'il faut porter attention aux niveaux identifiés par des entiers, ce qui est relativement commun dans les bases de données.
+
+```{r}
+
+d$deer<-as.factor(d$deer)
+d$fert<-as.factor(d$fert)
+d$spacing<-as.factor(d$spacing)
+d$cover<-as.factor(d$cover)
+
+m<-lm(height~deer+fert+spacing+cover,data=d)
+summary(m)
+
+```
+
+On voit maintenant que les noms des coefficients ont changé puisqu'ils se rapportent maintenant aux niveaux des différents facteurs. Maintenant, si on interprète l'effet de nos variables, on voit que le broutement par le cerf à un effet positif sur la taille, mais l'utilisation du fertilisant et l'espacement entre les arbres ont tous deux un effet négatif sur la hauteur des arbres. Quant au recouvrement arbustif, des valeurs faibles ou modérées ont un effet positif comparativement à l'absence de recouvrement arbustif, mais un recouvrement élevé à un effet négatif comparativement à toutes les autres classe de recouvrement. Globablement, on peut aussi dire que nos variables expliquent une portion significative de la variance en hauteur, comme en témoigne le test du *F*. La proportion de variance expliquée (*R*^*2*^) est d'environ 15%. Comment interpréteriez vous ces résultats?
+
+Je vous laisse explorer l'effet des variables sur la largeur des arbres.
+
+#### 4.
+
+Pour construire une carte schématique de la plantation en fonction des traitements (fertilisation et espacement), nous pouvons utiliser les numéros de lignes et de colonnes de chacun des arbres. Il y a plusieurs options pour associer des symboles aux traitements. À ce stade, le plus simple est probablement de créer différents sous-ensembles et d'ajouter les points sur un graphique déjà existant. En illustrant la localisation de tous les arbres en premier, on s'assure que la fenêtre graphique couvrira l'ensemble de la plantation. Pour éviter que des points se tracent avec la fonction `plot` initiale, on peut soit utiliser la couleur blanche avec l'argument `col = "white"` ou encore utiliser l'argument `type = "n"`. Ceci produit le graphique, mais sans tracer les points associés. On peut également utiliser la fonction `legend` pour identifier les différentes possibilités. Pour éviter de taper des commandes trop longue, j'utilise un vecteur `leg` où j'écris le texte qui composera la légende.
+
+```{r,fig.height=7,fig.width=8}
+
+d1<-d[d$fert==0 & d$spacing==10,]
+d2<-d[d$fert==0 & d$spacing==15,]
+d3<-d[d$fert==1 & d$spacing==10,]
+d4<-d[d$fert==1 & d$spacing==15,]
+
+plot(d$col,d$row,type="n")
+
+points(d1$col,d1$row,col="red",pch=16)
+points(d2$col,d2$row,col="blue",pch=16)
+points(d3$col,d3$row,col="red",pch=1)
+points(d4$col,d4$row,col="blue",pch=1)
+
+leg<-c("fert = 0, spacing = 10","fert = 0, spacing = 15","fert = 1, spacing = 10","fert = 1, spacing = 15")
+
+legend("bottomright",pch=c(16,16,1,1),col=c("red","blue","red","blue"),legend=leg,bty="n",title="Traitements")
+
+
+```
+
+
+# Atelier 3
+
+## Retour
+
+### L'argument `sep`
+
+L'argument `sep` permet de spécifier aux fonctionx `read.table` ou `read.csv` quel est le séparateur utilisé dans un fichier *.csv*. Par défaut, `sep = ","` dans la fonction `read.csv`. Si vous spécifiez `sep = ";"`, alors qu'en réalité vos données sont séparées par une virgule, vos données seront lues et considérées comme faisant parti d'une seule colonne. Consultez la page d'aide sur la fonction `?read.table` pour plus de détails.
+
+### Vecteurs vs `data.frame`
+
+Plusieurs ont été tenté de renommer les colonnes et de se créer des vecteurs indépendants pour ensuite les soumettre aux fonctions `boxplot` ou `lm`. Ceci est plutôt à éviter. Premièrement, cela implique plus de travail et plus de lignes de codes. Ensuite, en créant des vecteurs indépendants, on court le risque de perdre l'ordre selon lequel les valeurs sont emmagasinées ou d'avoir des vecteurs de longueurs différentes si on décide de supprimer les valeurs manquantes dans certains vecteurs, mais qu'on oublie de le faire dans d'autres. La meilleure façon de procéder est de faire usage de l'argument `data` lorsque celui-ci est disponible et donc d'utiliser notre `data.frame`. De plus, lorsque l'argument `data` est utilié, il devient inutile d'utiliser le `$` pour indiquer nos variables. Par exemple, les deux lignes suivantes sont équivalentes.
+
+```{r, eval=FALSE}
+boxplot(d$height~d$deer,data=d)
+boxplot(height~deer,data=d)
+```
+
+### Les formules
+
+Les formules sont beaucoup utilisées dans R, particulièrement lorsqu'on fait des modèles. Une formule s'écrit généralement de cette façon: ` réponse ~ var1 + var2`. Le symble `~` veut souvent dire "expliqué par" ou "groupé par". Par exemple, le premier argument à la fonction `boxplot` est une formule. Les arguments donnés sous cette forme sont généralement accompagnés d'un argument `data`.
+
+### `boxplot` avec `num ~ num`
+
+Les boxplots sont faits pour étudier les valeurs de variables quantitatives en fonction de variables catégoriques. Si vous faites un boxplot pour deux valeurs numériques, vous obtiendrez une boîte pour chacune des valeurs uniques de la variable "explicative", ce qui n'est pas très utile.
+
+```{r}
+boxplot(height~width,data=d)
+```
+
+### Transformation en facteurs
+
+La plupart des fonctions servant à faire des modèles vont exiger que les variables catégoriques soient préalablement transformées en facteur. Dans certains cas, les variables caractères seront converties en facteurs par la fonction utilisée. Cependant, si vos facteurs sont représentés par des valeurs numériques, il est impératif de les transformer en facteurs, autrement, ils seront considérés comme des variables numériques et vos analyses seront erronées.
+
+## Mieux comprendre son modèle avec `predict`
+
+La fonction `predict` est utilisée pour générer des prédictions à partir d'un modèle déjà existant. Par exemple, voici comment utiliser cette fonction avec un modèle fictif. Premièrement, créeons un modèle fictif avec une variable explicative numérique (x) et une variable explicative catégorique (sexe).
+
+```{r}
+
+n<-100
+x<-runif(n,min=0,max=100)
+val<-rep(c(0,100),each=n/2)
+sexe<-rep(c("m","f"),each=n/2)
+y<-100+2*x+val+rnorm(n,mean=0,sd=20)
+d<-data.frame(y,x,sexe)
+plot(d$x,d$y,col=ifelse(d$sexe=="m","red","blue"))
+```
+
+Voici l'estimation des paramètres du modèle avec la fonction `lm`.
+
+```{r}
+
+m<-lm(y~x+sexe,data=d)
+summary(m)
+
+```
+
+Avec `predict`, on soumet des données à notre modèle pour générer des prédictions. Ici, on demande de faire varier x de 0 à 100 et on fixe le facteur sexe à "m". On met ces valeurs dans un `data.frame` qui sera utilisé par `predict` pour générer les prédictions. Ensuite, on traces ces valeurs prédites à l'aide fonction `lines`. 
+
+```{r}
+
+dat<-data.frame(x=0:100,sexe="m")
+p<-predict(m,newdata=dat)
+
+plot(d$x,d$y,col=ifelse(d$sexe=="m","red","blue"))
+lines(0:100,p,col="red")
+
+```
+
+
+## Exercices
+
+### Les coûts de la reproduction
+
+Le premier exercice consiste à étudier l'effet de la reproduction sur la longévité chez les mâles de drosophiles (une espèce de mouche). Voici la base de données [flies.csv](https://github.com/frousseu/ECL749/tree/master/data). Cinq traitements ont été utilisés. Les mâles ont été mis en présence de 0, 1 ou 8 femelles et celles-ci étaient soient vierges, soient gestantes (donc non-réceptives à l'accouplement). D'autres variables ont été mesurées, notamment la longueur du thorax des mâles et la proportion du temps passé à dormir. Dans cet exercice vous devez:
+
+1) Explorez les données
+
+2) Déterminer si la longévité est influencée par le traitement
+
+3) Vérifiez les conditions d'applications avec la fonction `plot` appliquée sur votre modèle.
+
+### Solution
+
+On importe d'abord le fichier et on effectue quelques graphiques pour explorer les données.
+
+```{r,fig.width=9,fig.height=3}
+
+d<-read.csv("https://raw.githubusercontent.com/frousseu/ECL749/master/data/flies.csv")
+par(mfrow=c(1,3),mar=c(4,4,1,1))
+plot(d$Thorax,d$Longevity)
+plot(d$Sleep,d$Longevity)
+boxplot(Longevity~Treatment,data=d)
+
+```
+
+La longévité semble beaucoup plus faible pour les mâles exposés à plusieurs femelles réceptives. Aussi, la taille du thorax semble avoir un effet positif très fort sur la longévité. Il serait donc important d'inclure cette variable comme contrôle (même si elle n'est pas spécifiquement d'intérêt) afin de réduire le bruit dans nos observations. La proportion du temps passé à dormir ne semble pas avoir d'effet sur la longévité, mais vérifions tout de même ceci en incluant ces variables dans un modèle.
+
+```{r}
+m<-lm(Longevity~Treatment+Thorax+Sleep,data=d)
+summary(m)
+```
+
+On a un effet positif du thorax sur la longévité et un effet du traitement sur la longévité. Les mâles exposés à des femelles réceptives vivent moins longtemps que les mâles moins ou pas exposés et ceci est particulièrement vrai chez les mâles fortement exposés. On pourrait également comparer les traitements entre eux avec un test de comparaison multiple. Puisque nous avons utilisé la fonction `lm` nous ne pouvons pas prendre `TukeyHSD` qui ne fonctionne qu'avec `aov`, mais nous pouvons prendre la fonction plus générale `glht` dans le package [multcomp](https://cran.r-project.org/web/packages/multcomp/index.html).
+
+```{r}
+library(multcomp)
+summary(glht(m,linfct = mcp(Treatment = "Tukey")))
+```
+
+ce sont surtout les traitements où les mâles ont été mis en présence de femelles réceptives qui ont eu un effet négatif sur la longévité. Du côté des conditions d'applications de la régression, on note une certaine hétéroscédasticité, *i.e.* que la variance change selon les valeurs prédites. Ceci est possiblement un problème, mais nous assumerons que les conditions ne dévient pas trop de l'homoscédasticité. Par contre, on peut voir que les résidus ont une distribution normale comme en témoigne le *QQ-plot*.
+
+```{r,fig.width=7,fig.height=5}
+par(mfrow=c(2,2))
+plot(m)
+```
+
+Pour mieux illustrer les prédictions de notre modèle, utilisons un graphique à bande avec des intervalles de confiance sur les prédictions. Je vais vous laisser étudier le code. Notez l'utilisation d'une boucle à la fin du code. Ici, *i* prendra toute les valeurs correspondant aux lignes du tableau de prédictions.
+
+```{r,fig.width=7,fig.height=4.5}
+# on produit un tableau de valeurs à prédire
+dat<-with(d,data.frame(Treatment=unique(Treatment),Thorax=mean(Thorax),Sleep=mean(Sleep)))
+
+# on organise nos valeurs dans un ordre logique
+dat<-dat[c(2,3,4,1,5),]
+
+# on prédit nos valeurs avec un intervalle de confiance
+p<-predict(m,newdata=dat,interval="confidence")
+
+# on produit un barplot
+b<-barplot(p[,1],names.arg=dat$Treatment,col="green4",border=NA,ylim=c(0,max(p)),ylab="Longevity",xlab="Treatment")
+
+# on ajoute les bornes inférieures et supérieurs des intervalles de confiance
+for(i in 1:nrow(dat)){
+  lines(rep(b[i,1],2),c(p[i,2],p[i,3]))
+}
+  
+```
+
+
+### Tendances dans la phénologie de nidification
+
+Pour ce deuxième exercice, on veut savoir s'il y a des changements dans les dates de pontes chez une espèce d'oiseau (la Paruline jaune). Voici la base de données [warblers.csv](https://github.com/frousseu/ECL749/tree/master/data). Est-ce que ces changements sont les mêmes d'une province à l'autre? La colonne *jul* donne le jour julien de la date de ponte du premier oeuf (nb de jour depuis le 1er janvier. Dans cet exercice, vous devez:
+
+1) Explorez les données
+
+2) Déterminer s'il y a des changements dans les dates de ponte au cours des dernières années et si ces changements sont différents d'une province à l'autre.
+
+3) Illustrez les prédictions de votre modèle en utilisant la fonction `predict`. Pour ce faire, vous devrez utiliser l'argument `newdata` avec lequel vous soumettrez des observations à votre modèle.
+
+4) Est-ce que les suppositions de base sont respectées? Est-ce que vous voyez des choses à améliorer avec cette analyse?
+
+#### Solution
+
+Chargeons d'abord les données et explorons les données à l'aide d'un graphique.
+```{r}
+d<-read.csv("https://raw.githubusercontent.com/frousseu/ECL749/master/data/warblers.csv")
+plot(d$year,d$jul,type="n")
+points(d$year[d$prov=="ON"],d$jul[d$prov=="ON"],col="darkred")
+points(d$year[d$prov=="QC"],d$jul[d$prov=="QC"],col="darkblue")
+points(d$year[d$prov=="NB"],d$jul[d$prov=="NB"],col="green4")
+legend("topright",pch=1,col=c("darkred","darkblue","green4"),legend=c("ON","QC","NB"),bty="n")
+
+```
+
+Pour déterminer si les changements dans la date de ponte dépendent de la province, il faut utiliser une interaction entre l'année et la province. Pour ce faire, on peut écrire notre modèle de cette façon.
+
+```{r}
+
+m<-lm(jul~year*prov,data=d)
+summary(m)
+
+```
+
+On a effectivement une interaction significative entre la province et l'année ce qui nous indique que les changements dans la date de ponte ne sont pas les mêmes d'une province à l'autre. Cependant, pour bien interpréter cette interaction, nous utiliserons un graphique de prédictions afin d'éviter la gymnastique difficile du calcul avec les coefficients du modèle.
+
+```{r}
+
+dat<-expand.grid(year=min(d$year):max(d$year),prov=c("ON","QC","NB"))
+p<-predict(m,dat)
+dat$p<-p
+
+plot(d$year,d$jul,type="n")
+points(d$year[d$prov=="ON"],d$jul[d$prov=="ON"],col="darkred")
+points(d$year[d$prov=="QC"],d$jul[d$prov=="QC"],col="darkblue")
+points(d$year[d$prov=="NB"],d$jul[d$prov=="NB"],col="green4")
+legend("topright",pch=1,col=c("darkred","darkblue","green4"),legend=c("ON","QC","NB"),bty="n")
+
+lines(p~year,data=dat[dat$prov=="ON",],col="darkred",lwd=2)
+lines(p~year,data=dat[dat$prov=="QC",],col="darkblue",lwd=2)
+lines(p~year,data=dat[dat$prov=="NB",],col="green4",lwd=2)
+
+```
+
+Du côté des conditions d'applications, les résidus ne suivent clairement pas une distribution normale. Il n'est toutefois pas évident de déterminer ce qui devrait être fait pour corriger la situation. Une option serait peut être d'utiliser la régression quantile, qui comporte moins de conditions et qui permet d'étudier la réponse à des quantiles spécifiques au lieu de la régression qui permet d'étudier la réponse moyenne. Un autre problème évident est que nous ne prenons pas en compte la possible corrélation temporelle entre les observations. Il faudrait également ajouter des intervalles de confiance à nos courbes de prédictions. 
+
+
+# Atelier 4
+
+Pour cet atelier, nous nous intéresserons aux variables affectant la présence d'une espèce de grenouilles ([Southern Corroboree frog](https://en.wikipedia.org/wiki/Corroboree_frog)) retrouvée en Australie. Pour ce faire, nous avons une base de données [frogs.csv](https://github.com/frousseu/ECL749/tree/master/data) avec différentes variables explicatives. Pour cet exercice, vous devrez déterminer quelles sont les variables pertinentes à utiliser pour comprendre ou prédire l'occurence de l'espèce et vous devrez illustrer les prédictions de votre modèle à l'aide de la fonction `predict` et de graphiques ou encore en utilisant le package [visreg](https://cran.r-project.org/web/packages/visreg/index.html). Pour mieux comprendre l'utilisation de ce package, le plus simple est de se référer à la vignette expliquant comment le package est utilisé. N'oubliez pas de faire un peu d'explorations de données avant de sélectionner vos variables explicatives. 
+
+- **pres.abs**: 0 = espèce absente, 1 = espèce présente
+- **northing**: coordoonées nord
+- **easting**: coordonnées est
+- **altitude**: altitude en mètres
+- **distance**: distance à la population ou à la mention de présence connue la plus près
+- **NoOfPools**: nombre de mares de reproduction potentielles
+- **avrain**: quantité de pluie moyenne pendant le printemps
+- **meanmin**: température moyenne minimale pendant le printemps
+- **meanmax**: température moyenne maximale pendant le printemps
+
+## Solution
+
+La première étape consiste à explorer les différentes valeurs de nos variables. On peut faire cela avec la fonction `summary`. 
+
+```{r}
+
+d<-read.csv("https://raw.githubusercontent.com/frousseu/ECL749/master/data/frogs.csv",sep=";")
+summary(d)
+
+```
+
+Par la suite, il serait préférable d'inspecter les liens entre les différentes variables explicatives potentielles. On peut s'attendre à ce que certaines soient fortement corrélées (*i.e.* **meanmin** et **meanmax**). Pour illustrer toutes les paires de variables, on peut utiliser les fonctions `plot` ou `pairs` appliquées à notre jeu de données. On peut également éliminer la variable réponse et les coordonnées puisque celles-ci ne feront pas partie de nos variables explicatives. Ces trois variables se trouvent dans les 3 premières colonnes de notre tableau et on peut les éliminer en utilisant l'indexage négatif. 
+
+```{r,fig.width=8,fig.height=7}
+
+plot(d[,-(1:3)])
+
+```
+
+À première vue, on a une corrélation très forte entre certaines variables, notamment entre l'altitude et les températures minimales et maximales. Il serait donc préférable de choisir l'une ou l'autre de ces variables pour éviter la collinéarité et la redondance dans notre modèle. On pourrait également utiliser la fonction `cor` pour calculer la corrélation entre chacune de nos paires de variables. 
+
+```{r}
+
+cor(d[,-(1:3)])
+
+```
+
+On a également une corrélation importante entre la pluie et l'altitude et la température maximale. Encore une fois, il pourrait être important de choisir l'une ou l'autre de ces variables. Bien que la température est certainement très importante pour les amphibiens, l'altitude est selon moi plus utile comme variable si l'intention est de faire de la prédiction sur la présence de l'espèce. En effet, cette variable est probablement plus facilement accessible à l'échelle du paysage comparativement à la température. 
+
+Maintenant, on peut également se poser la question quelle est la relation entre les variables explicatives et la probabilité de présence? Pour ce faire, on peut encore une fois utiliser la fonction plot avec une formule. L'utilisation du point `.` indique que nous voulons considérer toutes les variables du tableau de données.
+
+```{r,fig.width=8,fig.height=6}
+par(mfrow=c(2,3))
+plot(pres.abs~.,data=d[,-(2:3)])
+
+```
+
+Ce n'est pas si évident sur les graphiques en raison des valeurs binaires, mais il semble parfois y avoir des probabilité de présence plus élevées pour des valeurs intermédiaires de nos différentes variables environnementales. Si on y réfléchit un peu, ceci n'est pas nécessairement surprenant. Imaginons une espèce fictive ayant une aire de distribution donnée et une variable climatique comme la température moyenne annuelle. Il y aura probablement une température minimale en dessous de laquelle l'espèce ne sera jamais présente ainsi qu'une température maximale au delà de laquelle l'espèce ne sera jamais rencontrée. Si on fait des inventaires à grande échelle pour trouver cette espèce, on obtiendra probablement que l'espèce est davantage rencontrée pour des valeurs intermédiaires de température moyenne annuelle. Il est possible qu'on trouve une relation linéaire positive ou négative entre la température et la présence de l'espèce, mais si on couvre un gradient de température assez étendu, on obtiendra nécessairement que l'espèce est moins abondante ou absente pour les valeurs extrêmes de température de la superficie inventoriée. Dans notre cas, il se pourrait que notre espèce de grenouille se retrouve davantage à des altitudes intermédiaires ce qui pourrait donner lieu à une relation quadratique. Il pourrait donc être judicieux d'inclure des relations quadratiques dans notre modèle. 
+
+A *priori*, il ne me semble pas y avoir d'interactions évidentes à inclure dans le modèle. Puisque les variables climatiques sont très fortement corrélées, je ne sélectionnerais que l'altitude. Les deux autres variables me semblent toutes deux pertinentes à inclure. On s'attend à ce que le nombre de mares *NoOfPools* influence positivement la probabilité de présence. Pour ce qui est de la distance, on s'attend à la même relation. En effet, il est raisonnable de penser que plus on est près d'une présence connue, plus on risque de rencontrer l'espèce. L'effet de cette variable est plus à considérer comme étant un indicateur des conditions locales que comme une variable influençant directement la présence de l'espèce. Par exemple, on a de l'information partielle sur la présence de l'espèce dans une région donnée où on veut raffiner nos connaissances de distribution de l'espèce. Elle pourrait également être liée au potentiel de dispersion de l'espèce dans un context de méta-population.  Un modèle potentiel serait celui-ci:
+
+
+```{r}
+
+m<-glm(pres.abs~NoOfPools+distance+altitude+I(altitude^2),family="binomial",data=d)
+summary(m)
+
+```
+
+On peut voir que l'abondance de mares influence positivement la présence de l'espèce, alors que la distance à une présence connue a un effet négatif sur la probabilité de présence de l'espèce. Du côté de l'altitude, il est très difficile de décrire quel est l'effet sur la probabilité de présence sans utiliser de graphiques. On peut toutefois dire que l'effet quadratique semble justifié comme en témoigne la valeur du coefficient du terme quadratique qui est significativement différent de 0. Remarquez l'utilisation de la fonction `I` qui facilite la formulation du modèle et qui permet d'indiquer de la variable altitude est à la base des deux termes (linéaires et quadratiques). Cela peut nous éviter d'avoir à calculer plus de valeurs lorsque nous utiliserons la fonction `predict`. 
+
+Visualisons cet effet avec la fonction `predict`. En premier, on crée un `data.frame` avec des valeurs que nous allons soumettre à notre modèle. Pour ce faire, on couvre l'étendue de nos valeurs d'altitude et on fixe les autres variables à leur valeur moyenne.
+
+```{r,fig.width=8,fig.height=6}
+
+# on fait varier l'altitude de la valeur min à la valeur max par bond de 10
+alt<-seq(min(d$altitude),max(d$altitude),by=10) 
+
+# on crée un newdata avec les autres variables fixées à leur valeur moyenne
+dat<-data.frame(altitude=alt,NoOfPools=mean(d$NoOfPools),distance=mean(d$distance)) 
+
+# on sort les prédictions du modèle en précisant que nous les voulons sous l'échelle de notre réponse
+p<-predict(m,newdata=dat,type="response")
+
+# on illustre les résultats
+plot(d$altitude,d$pres.abs)
+lines(alt,p)
+
+```
+
+La probabilité de présence semble atteindre un pic aux alentours de 1400m. Il faut toutefois rester prudent dans l'interprétation précise de ces valeurs, car nous n'avons pas d'intervalles de confiance autour de ces courbes. On pourrait les ajouter en utilisant l'argument `se.fit` de `predict`, mais cela demanderait un peu plus de travail. Nous n'avons d'ailleurs pas encore visualisé l'effet de nos autres variables. Il faudrait produire ces graphiques pour chacune des variables. Il serait possible d'optimiser cette tâche en généralisant le code de prédictions, mais pour l'instant ceci donnerait un code un un peu plus difficile à suivre. 
+
+
+Pour faciliter la visualisation des résultats, nous pouvons faire appel au package [visreg](https://cran.r-project.org/web/packages/visreg/index.html) qui s'occupe de la majeure partie du travail. Pour comprendre son utilisation, lisez attentivement la [vignette](https://cran.r-project.org/web/packages/visreg/vignettes/quick-start.pdf) du package. Les deux premières pages vous indiquent de façon assez simple comment créer des graphiques de visualisation d'un modèle linéaire et même comment visualiser une interaction! Le package a même un [site web](http://pbreheny.github.io/visreg/index.html) pour décrire les fonctionnalités. Il y a notamment une section sur les [GLM](http://pbreheny.github.io/visreg/glm.html). Pour ce package, l'argument qui permet de spécifier que l'on veut notre prédiction sous l'échelle de la réponse s'appelle `scale` contrairement à `type` pour la fonction `predict`.
+
+```{r,fig.width=8,fig.height=6}
+library(visreg)
+
+par(mfrow=c(2,2),mar=c(4,3,1,1))
+visreg(m,scale="response",ylim=0:1)
+
+```
+
+Certains ont utilisé les coordonnées comme variables explicatives dans leur modèle. Ceci n'est pas nécessairement mauvais, mais cela mérite une bonne réflexion. Est-ce que la relation entre la présence et les coordonnées est linéaire ou est-elle plus complexe? Est-ce que la relation entre les coordonnées et la probabilité de présence pourrait servir à prédire la présence de l'espèce dans d'autres régions? Probablement pas. Si le but est de prédire la présence de l'espèce seulement à l'intérieur de la zone étudiée, les coordonnées pourraient être utilisées. Cependant, il faudrait s'assurer que la relation est linéaire, ce qui serait assez suprenant. Si c'est le cas, il faudrait plutôt se demander s'il n'y a pas une ou des variables non prises en compte qui pourraient créer un tel gradient de probabilité de présence dans l'aire d'étude. Si on s'intéresse à comprendre l'influence des variables environnementales sur l'occurence des grenouilles à l'extérieur de la zone étudiée, la relation observée avec les coordonnées devient probablement inutile. 
+
+Malheureusement, ou plutôt heureusement, il n'y a pas nécessairment une meilleure ou une unique réponse à ce défi d'analyse de données. La mienne n'est qu'une suggestion et vous avez peut être de meilleures suggestions. L'important est de justifier nos choix et de prendre en considération les éléments les plus importants. Un élément important que j'ai ignoré est la potentielle corrélation spatiale entre les observations. Par exemple, est-ce que les observations près les unes des autres peuvent être considérées comme étant indépendantes? Aussi, est-ce qu'il y aurait d'autres variables à prendre en compte dans cette analyse? Comment les inventaires ont été réalisés? Est-ce qu'il faudrait tenir compte de la probabilité de détection de l'espèce? 
+
+# Atelier 5
+
+## Les parasites chez le Colibri à gorge rubis
+
+Pour cet exercice, vous étudierez ce qui influence la charge parasitaire chez le Colibri à gorge rubis (*Archilochus colubris*), une espèce retrouvée au Québec. Dans la base de données [colibris.csv](https://github.com/frousseu/ECL749/tree/master/data), vous retrouverez différentes variables comme le sexe (4 = mâle, 5 = femelle) et l'âge (1 = jeune, 2 = adulte). L'exercice consiste à déterminer quelles sont les variables qui affectent la quantité de parasites. Pour interpréter vos résultats, illustrez graphiquement votre modèle. 
+
+### Solution
+
+On importe d'abord les données et on affiche notre `data.frame` et un petit résumé de ce qu'il contient.
+```{r}
+
+d <- read.csv("https://raw.githubusercontent.com/frousseu/ECL749/master/data/colibris.csv")
+head(d)
+summary(d)
+
+```
+
+On voit quelques zéros dans la colonne parasites et on peut donc se demander à quel type de données nous avons à faire. On peut illustrer les valeurs de parasites avec un histogramme.
+```{r}
+
+hist(d$parasites)
+
+```
+
+On a ici un nombre d'individus, avec des valeurs allant de 0 à environ 40. Il faudra donc probablement modéliser l'abondance de parasites avec une distribution de poisson. On a également plusieurs colibris dans la base de données. Une deuxième question à se poser est est-ce qu'on plusieurs décomptes de parasites pour un même individus? On peut vérifier ceci en utilisant la fonction table qui va comptabiliser le nombre de fois que chaque numéro de bague apparaît dans la base de données.
+
+```{r}
+
+table(d$bague)
+
+```
+
+On voit que pour la majorité des colibris, on a une seule valeur, mais certain on plusieurs valeurs. On devrait donc par défaut se diriger vers les modèles mixtes pour traiter l'individu comme un effet aléatoire puisque les comptes de parasites sur un même individu ne sont pas indépendants. Par contre, puisque la majorité des individus ont une seule observation, cela peut créer des problèmes dans le cadre des modèles mixtes et on pourrait plutôt opter pour effectuer une moyenne ou pour une sélection aléatoire d'une seule observation pour les individus ayant plusieurs observations. On pourrait également comparer les deux approches et déterminer si nos conclusions par rapport à l'effet de nos variables sont fortement affectées par notre méthode d'analyse. Si ce n'est pas le cas, on peut choisir la méthode qui nous convient en justifiant notre choix et en exposant le fait que nos conclusions ne sont pas affectées par la méthode choisie.
+
+On devrait également explorer les liens entre nos variables explicatives. On peut faire ceci avec des `boxplot` ou des graphiques standards.
+
+```{r}
+
+par(mfrow=c(1,2))
+boxplot(masse~age,data=d)
+boxplot(masse~sexe,data=d)
+table(d$sexe,d$age)
+
+```
+
+
+
+## La richesse spécifique le long du littoral
+
+Ici, on s'intéresse aux variables influençant le nb d'espèces rencontrées le long du littoral. On a la hauteur de la station d'échantillonnage par rapport à la hauteur moyenne de la marée ainsi que l'exposition qui est quantifiée à l'aide d'un index construit à partir de la "sévérité" des conditions de la station (force des vagues, longueur de la zone d'impact, pente, substrat allant de fin à grossier). La base de données se trouve à cet endroit [plages.csv](https://github.com/frousseu/ECL749/tree/master/data). Illustrez vos résultats. 
+
+
+# Travaux
+
+Le travail de session se déroulera en deux temps. La première partie (25%) consistera en l'établissement d'une méthodologie afin de répondre à la mise en situation.
+
+La première partie devra comprendre un plan détaillé de la méthodologie proposée pour récolter et analyser les données. Plus spécifiquement,
+elle ou il devra présenter un plan d’échantillonnage en plus d’indiquer quelles mesures seront
+prises sur le terrain. Une méthode d’analyse statistique devra également être proposée. Cette partie
+du travail devra être remise par courriel au plus tard le vendredi 23 mars à 16h00
+
+Comment-allez vous répondre à cette question? Quel sera votre plan d'échantillonnage? Quelles seront les variables que vous utilisez pour Quelles méthodes envisagez-vous utiliser pour analyser les données récoltées?
+
+## Mises en situation
+
+**La composition du paysage affecte-t-elle l'occurence des strigidés?**
+
+On vous demande de déterminer quels sont les éléments du paysage affectant la présence des espèces les plus communes de strigidés dans le sud du Québec.
+
+**Facteur influençant la richesse en poissons dans les récif coraliens**
+
+**Effet de la fragmentation et de la forêt mature sur la richesse aviaire en milieu tropical**
+
+**Variables influençant l'abondance de moineaux en milieu agricole**
+
+
+# Liens utiles
+
+## R
+
+[Quick-R](https://www.statmethods.net/index.html)
+
+[Base R Cheat Sheet](http://github.com/rstudio/cheatsheets/raw/master/base-r.pdf)
+
+[RStudio Cheat Sheets](https://www.rstudio.com/resources/cheatsheets/)
+
+## Statistiques
+
+[GLMM FAQ](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html)
+
+[A protocol for conducting and presenting results of regression-type analyses](http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12577/abstract)
+
+[A protocol for data exploration to avoid common statistical problems](http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2009.00001.x/full)
+
+
+
+```{r, eval=FALSE, include=FALSE}
+
+# formule
+
+# argument data vs. $ vs création des vecteurs indépendants
+
+# read.csv avec mauvais séparateur égal une seule colonne
+
+# transformation des variables numériques en facteur
+
+# subset pour créer le graphique
+
+# aov vs lm
+
+# summary.lm vs summary.aov
+
+# boxplot pour variable cat et non num
+
+# pourquoi binom.test vs khi2?
+
+# exemple analyse de puissance
+
+# tableau des tests classiques
+
+# moins d'exemples de khi2
+
+# anova le premier exemple ne devrait avoir qu'un seul facteur
+
+# dire dans une boîte verte explicitement qu'on compare au niveau de référence
+
+# mieux distingué le test global sur la variance et celui sur les coefficients
+
+# parler de la minimisation des carrés
+
+```
+
+
+
+```{r, eval=FALSE, include=FALSE} 
+d<-read.table("C:/Users/rouf1703/Downloads/ZuurDataMixedModelling/Sparrows.txt",header=TRUE)
+d<-read.table("U:/2018/2018/Ateliers/sparrows.txt",header=TRUE)
+library(plyr)
+ddply(d,.(Sex),function(i){mean(i$wingcrd,na.rm=TRUE)})
+d$Sex<-ifelse(d$Sex==4,"m","f")
+write.table(d[sample(1:nrow(d),87),c("Sex","wingcrd","wt")],"U:/2018/2018/Ateliers/sparrows.txt",row.names=FALSE)
+``` 
+
+
+
+
+
+```{r,eval=FALSE,include=FALSE}
+
+d
+d$v1
+d[2,3]
+d[,3]
+d[3:5,]
+d$v1[5:7]
+
+d[d$v1>3 | d$z=="a",]
+d[d$v1>3 & d$z=="b",]
+
+vec<-v
+vec
+vec[3:5]
+vec
+vec<-vec[3:5]
+vec
+vec<-vec+1
+vec
+vec<-"salut"
+vec
+v
+
+mean(v)     # moyenne de v
+length(v)   # nb d'?l?ments
+max(v)      # valeur maximale
+dim(m)      # nb de lignes et nb de colonnes dans m
+dim(d)
+
+subset(x=d,subset=v1>5,select=c(v1,z))
+subset(d,v1>5,c(v1,z))
+d
+?subset
+
+x<-c(15,10,11,12,10,11,14,NA,13,NA,13)
+mean(x)
+mean(x,na.rm=TRUE)
+
+x
+unique(x)
+which(x==13)
+x[which(x==13)]
+which.min(x)
+x %in% c(12,13)
+sort(x)
+order(x)
+x[order(x)]
+ifelse(x>12,1,0)
+is.na(x)
+x[is.na(x)]
+x
+x[is.na(x)]<-33
+x
+
+d<-d[c(1:9,1,1),]
+d
+order(d$v1)
+d[rev(order(d$v1)),]
+
+#dat<-data.frame(id=LETTERS[1:10],long=rnorm(10,mean=50,sd=10))
+#write.table(dat,"data.txt",row.names=F)
+
+donnee<-read.table("data.txt",header=T)
+getwd()
+setwd("C:/Documents and Settings/Francois/Mes documents/ECL749/CoursR")
+donnee<-read.table("data.txt",header=T)
+head(donnee)
+dim(donnee)
+
+d<-read.table("test1.txt",header=T,stringsAsFactors=F)
+d
+mean(d$long)
+d$long
+d<-read.table("test1.txt",header=T,dec=",")
+mean(d$long)
+
+d<-read.table("test2.txt",header=T)
+
+d<-read.table("test3.txt",header=T)
+
+## EXERCICE 1 ##################################################################
+
+# remplir l'espace vide avec un NA
+# changer le N avec un NA
+# rajouter les - dans la date incompl?te
+# retransformer la colonne stay en num?rique s'il y a lieu
+# enlever les NA ou mettre la vraie valeur à partir des dates
+
+d<-read.table("oiescorrige.txt",header=T,stringsAsFactors=F)
+d<-d[!is.na(d$stay),]
+res<-aggregate(d$stay,list(?tat=d$state),mean)
+res<-aggregate(stay~state,data=d,mean)
+oie<-res[rev(order(res[,2])),]
+head(oie)
+################################################################################
+
+x<-runif(50,20,30)
+y<-x+rnorm(50,mean=0,sd=2)
+plot(x,y)
+
+plot(x,y,col="red",pch=16,cex=2)
+
+plot(x,y,col="red",pch=16,cex=2,xlim=c(10,40),ylim=c(10,40),main="Graphique",xlab="Axe des X",ylab="Axe des Y")
+
+d<-data.frame(x=x,y=y)
+d<-d[order(d$x),]
+plot(d$x,d$y,type="n",xlab="X",ylab="Y")
+lines(d$x,d$y)
+points(d$x,d$y,col="red",cex=1.5)
+
+par(mfrow=c(1,2))
+plot(d$x,d$y,type="n")
+lines(d$x,d$y,lwd=2,col="blue")
+plot(d$x,d$y,type="n",col="black",xlab="X",ylab="Y")
+lines(d$x,d$y,col="black")
+points(d$x,d$y,col="red",cex=1.5)
+text(26.5,20,label="augmentation",col="orange",cex=2)
+
+par(mfrow=c(1,1))
+plot(1:20,1:20,col=1:20,pch=1:20,cex=3,xlim=c(0,22))
+text(1:20+1,1:20,label=1:20,cex=1.1)
+
+age<-c(rep("juv?nile",20),rep("immature",20),rep("adulte",20))
+longueur<-c(rnorm(20,mean=10,sd=5),rnorm(20,mean=55,sd=10),rnorm(20,mean=75,sd=15))
+masse<-c(rnorm(20,mean=10,sd=2),rnorm(20,mean=45,sd=10),rnorm(20,mean=75,sd=15))
+d<-data.frame(age,longueur,masse)
+head(d)
+plot(d$longueur,d$masse,type="n",xlab="Longueur",ylab="Masse")
+points(d$longueur[d$age=="juv?nile"],d$masse[d$age=="juv?nile"],col="darkgreen",pch=16)
+points(d$longueur[d$age=="immature"],d$masse[d$age=="immature"],col="blue",pch=16)
+points(d$longueur[d$age=="adulte"],d$masse[d$age=="adulte"],col="red",pch=16)
+legend(x="topleft",legend=c("juv?nile","immature","adulte"),pch=16,col=c("darkgreen","blue","red"),inset=0.1,title="Ã‚ge")
+
+par(mfrow=c(1,2))
+temp<-rnorm(1000,mean=20,sd=5)
+hist(temp)
+hist(temp,breaks=0:40)
+
+par(mfrow=c(1,1))
+head(oie)
+barplot(oie$stay,ylab="Temps de r?sidence moyen",xlab="Ã‰tat",names.arg=oie$state,border="white",col="red",cex.names=0.7,space=0)
+
+## EXERCICE 2 ##################################################################
+
+#setwd("C:/Documents and Settings/Francois/Mes documents/COLIBRIS/Donn?es/Base de donn?es propres")
+#dd<-read.table("calcul08d?cembre2009.txt",header=T,stringsAsFactors=F)
+#d<-subset(dd,dd$annee>2006,select=c(abreuv,typemilieu,bague,x,y))
+#d$typemilieu<-ifelse(d$typemilieu%in%c("autre","plantation"),"friche",d$typemilieu)
+#names(d)[2]<-"milieu"
+#names(d)[3]<-"nbind"
+#d<-aggregate(nbind~abreuv+milieu+x+y,data=d,function(i){length(unique(i))})
+#write.table(d,"colibris.txt",row.names=F)
+
+setwd("C:/Documents and Settings/Francois/Mes documents/ECL749/CoursR")
+d<-read.table("colibris.txt",header=T,stringsAsFactors=F)
+barplot(d$nbind,names.arg=d$abreuv,cex.names=0.6,las=2,xlab="Abreuvoir",ylab="Nb d'individus",col="blue",border="white",space=0)
+par(bg="black",mar=c(4,4,1,1))
+plot(d$x,d$y,cex=d$nbind/20,xlim=c(0,600),ylim=c(0,1300),type="n",xaxt="n",yaxt="n",xlab="",ylab="")
+axis(1,at=c(100,200,300,400,500),labels=c(100,200,300,400,500),col="white")
+axis(2,at=seq(100,1200,by=100),labels=seq(100,1200,by=100),col="white",las=2)
+points(d$x[d$milieu=="champs"],d$y[d$milieu=="champs"],cex=d$nbind[d$milieu=="champs"]/20,pch=16,col="lightgoldenrod")
+points(d$x[d$milieu=="foret"],d$y[d$milieu=="foret"],cex=d$nbind[d$milieu=="foret"]/20,pch=16,col="darkgreen")
+points(d$x[d$milieu=="friche"],d$y[d$milieu=="friche"],cex=d$nbind[d$milieu=="friche"]/20,pch=16,col="brown")
+box(col="white")
+legend(x="topright",legend=c("champs","for?t","friche"),pch=16,cex=1.5,pt.cex=2,col=c("lightgoldenrod","darkgreen","brown"),inset=0.05,text.col="white")
+
+install.packages("lme4")
+library(lme4)
+
+a<-matrix(1:30,5,6)
+a
+
+t(a)
+
+help.search("piechart")
+
+## Exercice 3 ##################################################################
+#letters[]
+#paste(letters[],collapse="")
+#Sys.time()
+#substr(Sys.time(),1,4)
+################################################################################
+
+age<-c(rep("juv?nile",20),rep("immature",20),rep("adulte",20))
+longueur<-c(rnorm(20,mean=10,sd=5),rnorm(20,mean=55,sd=10),rnorm(20,mean=75,sd=15))
+masse<-c(rnorm(20,mean=10,sd=2),rnorm(20,mean=45,sd=10),rnorm(20,mean=75,sd=15))
+d<-data.frame(age,longueur,masse)
+head(d)
+m<-lm(masse~age+longueur+age:longueur,data=d)
+m<-lm(masse~age*longueur,data=d)
+
+summary(m)
+
+summary(1:10)
+summary(d)
+
+d<-data.frame(age,longueur,masse,stringsAsFactors=F)
+m<-lm(masse~age*longueur,data=d)
+class(d$age)
+d$age<-as.factor(d$age)
+class(d$age)
+m<-lm(masse~age*longueur,data=d)
+
+par(mfrow=c(2,2))
+plot(m)
+
+par(mfrow=c(2,2))
+plot(fitted(m),resid(m))
+hist(resid(m))
+qqnorm(resid(m))
+qqline(resid(m))
+
+pjuv<-predict(m,data.frame(longueur=0:20,age=rep("juv?nile",length(0:20))))
+pimm<-predict(m,data.frame(longueur=30:80,age=rep("immature",length(30:80))))
+padu<-predict(m,data.frame(longueur=30:110,age=rep("adulte",length(30:110))))
+plot(d$longueur,d$masse,type="n")
+points(d$longueur[d$age=="juv?nile"],d$masse[d$age=="juv?nile"],col="red",pch=16)
+points(d$longueur[d$age=="immature"],d$masse[d$age=="immature"],col="blue",pch=16)
+points(d$longueur[d$age=="adulte"],d$masse[d$age=="adulte"],col="darkgreen",pch=16)
+lines(0:20,pjuv,col="red",lwd=2)
+lines(30:80,pimm,col="blue",lwd=2)
+lines(30:110,padu,col="darkgreen",lwd=2)
+legend("bottomright",legend=c("juv?nile","immature","adulte"),pch=16,col=c("red","blue","darkgreen"),inset=0.05)
+
+mjuv<-predict(m,data.frame(age="juv?nile",longueur=mean(d$longueur[d$age=="juv?nile"])))
+ijuv<-predict(m,data.frame(age="immature",longueur=mean(d$longueur[d$age=="immature"])))
+ajuv<-predict(m,data.frame(age="adulte",longueur=mean(d$longueur[d$age=="adulte"])))
+barplot(c(mjuv,ijuv,ajuv),names.arg=c("juv?nile","immature","adulte"))
+
+
+
+
+
+
+
+
+
+
+
+####################
+####################
+###################
+lac<-c(rep("A",25),rep("B",25),rep("C",25))
+age<-sample(1:4,75,replace=TRUE)
+masse<-c(rnorm(n=25,mean=20,sd=3),rnorm(n=25,mean=25,sd=3),rnorm(n=25,mean=35,sd=3))  
+longueur<-c(rnorm(n=25,mean=150,sd=20),rnorm(n=25,mean=159,sd=19),rnorm(n=25,mean=220,sd=25))
+d<-data.frame(lac,age,masse,longueur)
+head(d)
+hist(d$masse)
+plot(d$longueur,d$masse)
+summary(d)
+points(d$longueur[d$lac=="A"],d$masse[d$lac=="A"],col="blue")
+points(d$longueur[d$lac=="B"],d$masse[d$lac=="B"],col="red")
+points(d$longueur[d$lac=="C"],d$masse[d$lac=="C"],col="green")
+t.test(d$masse[d$lac=="A"],d$masse[d$lac=="B"])
+analysedevariance<-aov(masse~lac,data=d)
+r?gression<-lm(masse~longueur,data=d)
+summary(analysedevariance)
+summary(r?gression)
+plot(longueur,masse)
+abline(r?gression)
+
+
+
+d<-subset(InsectSprays,spray%in%c("A","B","C"))
+m<-aov(count~spray,data=d)
+summary(m)
+summary.lm(m)
+TukeyHSD(m)
+
+Orthodont
+
+
+
+
+
+
+
+
+
+
+
+
+boxplot(count~spray,data=d)
+
+
+
+
+
+
+help.search("Orthodont")
+library(nlme)
+summary(glm(distance~age+Sex,data=d))
+
+
+```
