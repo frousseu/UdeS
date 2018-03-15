@@ -1,10 +1,38 @@
 
+library(sp)
+library(rgdal)
+library(raster)
+library(rgeos)
 library(foreach)
 library(doParallel)
 library(signal)
 library(robustbase)
 library(MODIS)
 library(plyr)
+
+library(gimms)
+library(ncdf4)
+library(rgdal)
+library(rasterVis)
+library(rgeos)
+library(FRutils)
+library(signal)
+library(scales)
+
+library(MODIStsp)
+library(velox)
+library(mgcv)
+library(rgeos)
+library(tmap)
+library(data.table)
+library(scales)
+library(quantreg)
+library(FlexParamCurve)
+library(signal)
+library(zoo)
+library(rasterVis)
+library(FRutils)
+library(phenex)
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -355,7 +383,7 @@ res2<-ddply(res,.(years),function(i){format(i[-1],"%j")})
 names(res2)[2:ncol(res2)]<-paste0(names(res2)[2:ncol(res2)],"jul")
 
 res<-merge(res,res2)
-fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",row.names=FALSE,sep=";")
+#fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",row.names=FALSE,sep=";")
 
 
 
