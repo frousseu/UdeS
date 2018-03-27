@@ -152,6 +152,10 @@ buff<-gBuffer(bbox2pol(z),width=50000)
 pol<-spTransform(z,CRS("+init=epsg:4326")) # en latlon
 buff<-spTransform(buff,CRS("+init=epsg:4326")) # en latlon
 
+#pol<-buff<-bbox2pol(c(-80.1174150,-78.511416,72.716907,73.1160817))
+#proj4string(pol)<-"+init=epsg:4326"
+#proj4string(buff)<-"+init=epsg:4326"
+
 #############################################################
 ##### Get GIMMS raster ######################################
 
@@ -210,8 +214,9 @@ cell<-lapply(1:nrow(v[1:nrow(v),]),function(i){
     names(jul)<-doy
     
     ### Savitsky-Golay Filter
-    s0<-sgolayfilt(na.approx(val),n=7,p=3,m=0) ### hacky take out of first year that begins in 07-08, thus only max available, not gu
-    s1<-sgolayfilt(na.approx(val),n=15,p=3,m=1)
+    # I added the na.rm because last NA values are removed if they can't be estimated
+    s0<-sgolayfilt(na.approx(val,na.rm=FALSE),n=7,p=3,m=0) ### hacky take out of first year that begins in 07-08, thus only max available, not gu
+    s1<-sgolayfilt(na.approx(val,na.rm=FALSE),n=15,p=3,m=1)
     names(s0)<-names(val)
     names(s1)<-names(val)
     #pos<-findminmax(s1,n=5,beg="03-01",end="07-01")
