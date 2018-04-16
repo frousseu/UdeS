@@ -1,5 +1,6 @@
+%\documentclass{article}
 \documentclass{article}
-\usepackage[margin=0.75cm]{geometry}
+\usepackage[lmargin=0.75cm,tmargin=0.75cm,rmargin=0.75cm,bmargin=0.5cm]{geometry}
 
 \usepackage{multirow}
 \usepackage[table]{xcolor}
@@ -8,16 +9,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{setspace}
 \usepackage{graphicx}
-\graphicspath{ {"C:/Users/User/Downloads/"} }
-
-
-
-
-%\usepackage[sfdefault,light,condensed]{roboto}  %% Option 'sfdefault' only if the base font of the document is to be sans serif
-%\usepackage[T1]{fontenc}
-
-%\usepackage[sfdefault,condensed]{cabin}
-%\usepackage[T1]{fontenc}
+\graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
 
 \renewcommand{\familydefault}{\sfdefault}
 
@@ -32,6 +24,7 @@
 \definecolor{cefd}{RGB}{28,110,72}
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 
 %\lipsum
 \small\setstretch{1}
@@ -49,17 +42,15 @@
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{ll}
-%\noindent\includegraphics[scale=0.5,trim={4cm 3.0cm 0cm 5.32cm},clip]{Affiche_Colloque_2018petite}
-%&
-\noindent\includegraphics[scale=1.08,trim={0 10.3cm 0 0.4cm},clip]{Affiche_Colloque_2018petite}
-&
-\noindent\includegraphics[scale=1.29,trim={0 8.2cm 0 2.89cm},clip]{Affiche_Colloque_2018petite}
+\begin{tabular}{lll}
+\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
+\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
+\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
 
-\renewcommand{\arraystretch}{1.1} % General space between rows (1 standard)
+\renewcommand{\arraystretch}{1.1} % General space between rows (1 standard)            
 
 \vspace{-1.2em}
 
@@ -75,7 +66,7 @@
 \multicolumn{2}{!{\color{white}\vline}c}{\textbf{\color{y}CONFÉRENCE D'OUVERTURE}} \\
 \rowcolor{white}
 \multicolumn{1}{c}{09:20} &
-\multicolumn{2}{c}{\parbox{18cm}{\centering\vspace{0.5em}\color{black}Écologie spatiale de l'échelle locale à régionale \\\textbf{Marie-Josée Fortin} \\University of Toronto\vspace{0.5em}}} \\
+\multicolumn{2}{c}{\parbox{18cm}{\centering\vspace{0.5em}\textbf{\color{black}ÉCOLOGIE SPATIALE DE L'ÉCHELLE LOCALE À RÉGIONALE}\vspace{0.5em} \\\textbf{Marie-Josée Fortin} \\University of Toronto\vspace{0.5em}}} \\
 
 \rowcolor{y}
 \multicolumn{1}{c}{10:30} &
@@ -92,13 +83,13 @@
 \rowcolor{white}
 \multicolumn{1}{c}{11:00} &
 \multicolumn{2}{c}{\parbox{18cm}{\centering\vspace{0.5em} \color{black}La Chaire de leadership en enseignement (CLE) en foresterie autochtone:
-\\quelles possibilités de collaboration pour les membres du CEF? \\\textbf{Jean-Michel Beaudoin}, Université Laval\vspace{0.5em}}} \\
+\\quelles possibilités de collaboration pour les membres du CEF? \\\textbf{Jean-Michel Beaudoin}\\Université Laval\vspace{0.5em}}} \\
 \hline
 
 \rowcolor{white}
 \multicolumn{1}{c}{11:30} &
 \multicolumn{2}{!{\color{white}\vline}c}{\parbox{18cm}{\centering\vspace{0.5em}\color{black}Hydroclimatologie de l'intérieur de l'Ouest canadien à partir d'anneaux d'arbres,
-de \\relevés polliniques à haute résolution et de relevés instrumentaux de débit fluvial \\\textbf{Jeannine-Marie St-Jacques}, Université Concordia \vspace{0.5em}}} \\
+de \\relevés polliniques à haute résolution et de relevés instrumentaux de débit fluvial \\\textbf{Jeannine-Marie St-Jacques}\\Université Concordia \vspace{0.5em}}} \\
 
 \rowcolor{y}
 \multicolumn{1}{c}{12:00} &
@@ -157,7 +148,7 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 
 
 \begin{figure}[h]
-\noindent\includegraphics[scale=0.247,trim={0cm 12cm 0cm 0cm},clip]{partenairesCEF2018}
+\noindent\scalebox{1.25}{\includegraphics[trim={23.5cm 5.5cm 5cm 85.8cm},clip]{colloque2018}}
 \centering
 \end{figure}
 
@@ -167,12 +158,10 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{ll}
-%\noindent\includegraphics[scale=0.5,trim={4cm 3.0cm 0cm 5.32cm},clip]{Affiche_Colloque_2018petite}
-%&
-\noindent\includegraphics[scale=1.08,trim={0 10.3cm 0 0.4cm},clip]{Affiche_Colloque_2018petite}
-&
-\noindent\includegraphics[scale=1.29,trim={0 8.2cm 0 2.89cm},clip]{Affiche_Colloque_2018petite}
+\begin{tabular}{lll}
+\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
+\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
+\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -285,11 +274,11 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
  
 \end{tabular} 
 
+
 \begin{figure}[h]
-\noindent\includegraphics[scale=0.247,trim={0cm 12cm 0cm 0cm},clip]{partenairesCEF2018}
+\noindent\scalebox{1.25}{\includegraphics[trim={23.5cm 5.5cm 5cm 85.8cm},clip]{colloque2018}}
 \centering
 \end{figure}
-
 
 
 % AFFICHES
@@ -298,12 +287,10 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{ll}
-%\noindent\includegraphics[scale=0.5,trim={4cm 3.0cm 0cm 5.32cm},clip]{Affiche_Colloque_2018petite}
-%&
-\noindent\includegraphics[scale=1.08,trim={0 10.3cm 0 0.4cm},clip]{Affiche_Colloque_2018petite}
-&
-\noindent\includegraphics[scale=1.29,trim={0 8.2cm 0 2.89cm},clip]{Affiche_Colloque_2018petite}
+\begin{tabular}{lll}
+\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
+\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
+\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -322,15 +309,15 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \arrayrulecolor{palegray}
 \rowcolor{cefd}
 \multicolumn{1}{c}{\textbf{\color{y}NO.}} &
-\multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}PRÉSENTEUR}} &
+\multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}PRÉSENTATEUR}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}AFFICHE}} \\
 01 & \textbf{Martin Barrette} & Évaluer les écarts entre la forêt aménagée et la forêt naturelle avec la naturalité pour soutenir l’aménagement écosystémique\\\hline
-02 & \textbf{Julien Beguin} & Predicting soil properties in the Canadian boreal forest with limited data: Comparison of spatial and non-spatial statistical approaches\\\hline
+02 & \raggedright\textbf{Julien Beguin} & Predicting soil properties in the Canadian boreal forest with limited data: Comparison of spatial and non-spatial statistical approaches\\\hline
  03 & \textbf{Annie Claude Bélisle} & Modélisation des impacts des changements environnementaux sur les paysages autochtones à partir des savoirs locaux et scientifiques\\\hline
  04 & \textbf{Lahcen Benomar} & La migration assistée comme mesure proactive d’adaptation aux changements climatiques : cas de l’épinette blanche au Québec\\\hline
  05 & \textbf{Batistin Bour} & Apport du LiDAR dans l’évaluation de la croissance de la forêt boréale après perturbation majeure.\\\hline
  06 & \textbf{Valentina Buttò} & Production et période de formation du xylème de l’épinette noire le long d’un gradient latitudinal au Québec\\\hline
- 07 & \textbf{Thais Campos de Oliveira} & Rôle des transporteurs d'ammonium dans la fitness des champignons responsables de la Maladie Hollandaise de l'Orme\\\hline
+ 07 & \raggedright\textbf{Thais Campos de Oliveira} & Rôle des transporteurs d'ammonium dans la fitness des champignons responsables de la Maladie Hollandaise de l'Orme\\\hline
  08 & \textbf{Emilie Champagne} & Étude de la résistance au broutement de plants forestiers dans un contexte de migration assistée en forêt mixte tempérée\\\hline
  09 & \textbf{Jérôme Chapuis} & Génomique fonctionnelle de la virulence et la fitness chez 'Ophiostoma novo-ulmi'\\\hline
  10 & \textbf{Clément Chion} & Démarche participative et jeux sérieux en support à l’adaptation de l'aménagement forestier multi-usage aux changements globaux\\\hline
@@ -345,7 +332,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
  18 & \textbf{David Grenier-Héon} & Analyse des patrons de mortalité des arbres de la forêt boréale du québec dans le contexte des changements climatiques et du bilan de carbone
 \\\hline
  19 & \textbf{Tanya Handa} & Canadian Repository of Invertebrate Traits and Trait-like Ecological Records – Traits des invertébrés du Canada (CRITTER)\\\hline
- 20 & \textbf{Steve Roussel Kentsa Kouom} & Cartographie participative des services écosystémiques des paysages autochtones\\\hline
+ 20 & \raggedright\textbf{Steve Roussel Kentsa Kouom} & Cartographie participative des services écosystémiques des paysages autochtones\\\hline
  21 & \textbf{Rim Khlifa} & Effets de l’augmentation de la température du sol et des dépôts d’azote sur la structure et la diversité des communautés bactériennes de la phyllosphère chez l’épinette noire\\\hline
  22 & \textbf{Mathieu Landry} & Taxonomic and functional variations of spruce budworm bacterial communities over time and space\\\hline
  23 & \textbf{Audrey Lemay} & Comparison of wood density in roots and stems of black spruce before and after commercial thinning\\\hline
@@ -371,12 +358,10 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{ll}
-%\noindent\includegraphics[scale=0.5,trim={4cm 3.0cm 0cm 5.32cm},clip]{Affiche_Colloque_2018petite}
-%&
-\noindent\includegraphics[scale=1.08,trim={0 10.3cm 0 0.4cm},clip]{Affiche_Colloque_2018petite}
-&
-\noindent\includegraphics[scale=1.29,trim={0 8.2cm 0 2.89cm},clip]{Affiche_Colloque_2018petite}
+\begin{tabular}{lll}
+\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
+\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
+\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -385,7 +370,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \noindent\begin{tabular}{m{3cm}m{7.9cm}m{7.9cm}}
 \rowcolor{cefd}
-\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.5em}\textbf{\color{white}ATELIERS, MERCREDI, 2 MAI}\vspace{0.5em}}} \\
+\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.5em}\textbf{\color{white}ATELIERS, MERCREDI, 2 MAI} \itshape{\color{white}Pavillion Abitibi-Price}\vspace{0.5em}}} \\
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
@@ -429,7 +414,7 @@ d$titrepres<-gsub("  "," ",d$titrepres)
 d$heure<-gsub("h",":",d$heure)
 
 a<-d[d$typepres=="affiche",]
-cat(paste(a$noaffiche,paste0("\\textbf{",a$prenom," ",a$nom,"}"),paste0(a$titrepres,"\\\\\\hline\n"),sep=" & "))
+cat(paste(a$noaffiche,paste0("\\raggedright\\textbf{",a$prenom," ",a$nom,"}"),paste0(a$titrepres,"\\\\\\hline\n"),sep=" & "))
 
 o<-d[d$typepres%in%c("orale","") & !is.na(d$colonne) & d$colonne!="" ,]
 o<-o[order(o$bloc,o$heure,o$colonne),]
