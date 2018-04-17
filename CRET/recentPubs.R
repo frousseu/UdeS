@@ -50,6 +50,9 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
       x
     }else{
       k<-sapply(x[,"author"],function(j){ ### searching for a specific pattern here cause app does fuzzy matching
+        
+        #if(i=="Fanie Pelletier"){browser()}
+        
         if(any(!c("given","family")%in%names(j))){ # sometimes some names are missing and not consistant
           return(TRUE)
         }
@@ -80,9 +83,23 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
   df<-df[!duplicated(df$DOI),] # remove because of authors together
   df<-df[rev(order(df$created)),]
   if(html && nrow(df)){
-    
-    refs_orig<-lapply(df$DOI,function(i){cr_cn(dois = i, format = "text", style = "apa")}) # cr_cn gets nothing out if it can't find a DOI, so use sapply to know which one is missing
+    refs_orig<-lapply(df$DOI,function(i){
+      m<-tryCatch(
+        cr_cn(dois = i, format = "text", style = "apa")
+        ,error=function(j){TRUE}
+      )
+      if(!isTRUE(m)){
+        m
+      }else{
+        NULL
+      }
+    }) # cr_cn gets nothing out if it can't find a DOI, so use sapply to know which one is missing
     refs_orig<-unlist(lapply(refs_orig,function(i){if(is.null(i)){NA}else{i}}),use.names=FALSE)
+    #print missing refs
+    cat("MISSING REFS \n\n\n")
+    print(df[is.na(unlist(refs_orig)),])
+    cat("\n\n\n\n\n\n")
+    
     prof<-string2name(authors)
     stud<-string2name(bold)
     name<-unique(c(prof,stud))
