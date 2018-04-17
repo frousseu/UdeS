@@ -40,12 +40,16 @@
 %\centering
 %\end{figure}
 
+\setlength{\fboxsep}{0pt}
+\setlength{\fboxrule}{0pt}
+
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
 \noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -93,7 +97,7 @@ de \\relevés polliniques à haute résolution et de relevés instrumentaux de d
 
 \rowcolor{y}
 \multicolumn{1}{c}{12:00} &
-\multicolumn{2}{!{\color{white}\vline}c}{\color{white}Dîner \itshape{Espace Jardin} -- \textnormal{AGA des membres} \itshape{ADJ-2320}} \\
+\multicolumn{2}{!{\color{white}\vline}c}{\color{white}Dîner \itshape{Espace Jardin} -- \textnormal{\textbf{AGA des membres}} \itshape{ADJ-2320}} \\
 \arrayrulecolor{white}
 \hline
 \hline
@@ -158,10 +162,11 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
 \noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -287,10 +292,11 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
 \noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
@@ -358,10 +364,11 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
 \noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
 \renewcommand{\tabcolsep}{6pt}
