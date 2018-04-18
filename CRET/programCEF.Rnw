@@ -60,7 +60,7 @@
 
 \noindent\begin{tabular}{m{0.8cm}m{9.025cm}m{9.025cm}}
 \rowcolor{cefd}
-\multicolumn{3}{l}{\parbox{18cm}{\vspace{0.5em}\textbf{\color{white}LUNDI, 30 AVRIL}\vspace{0.5em}}} \\
+\multicolumn{3}{l}{\parbox{18cm}{\vspace{0.5em}\textbf{\color{white}LUNDI, 30 AVRIL}\vspace{0.5em}}}\\
 \multicolumn{1}{c}{09:00} &
 \multicolumn{2}{c}{\parbox{18cm}{\vspace{0.5em}Mot de bienvenue, \textbf{Pierre Drapeau} et \textbf{Louis Bernier}, direction du CEF \hfill \itshape{Amphithéâtre Hydro-Québec ADJ-2530}\vspace{0.5em}}} \\
 \arrayrulecolor{palegray}\hline
@@ -389,17 +389,34 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \multicolumn{1}{c}{\textbf{\color{y}SUJET}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}AM} \itshape{\color{y}08:00 à 12:00}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}PM} \itshape{\color{y}13:00 à 17:00}} \\
+\textbf{Intro R}\newline	& 
+Introduction au langage et environnement R (partie 1)\newline	& 
+Introduction au langage et environnement R (partie 2)\newline\hspace*{\fill} \hfill  \textbf{Marc Mazerolle}\\\hline
+\textbf{Cartographie}\newline	& 
+Introduction à la cartographie avec QGIS (partie 1)\newline	& 
+Introduction à la cartographie avec QGIS (partie 2)\newline\hspace*{\fill} \hfill  \textbf{Pierre Racine}\\\hline
+\raggedright\textbf{Analyse son/image avec R}\newline	& 
+Introduction à bioacoustics, un package R dédié à la détection et l’extraction automatisée de signaux acoustiques\newline\hspace*{\fill} \hfill  \textbf{François Fabianek} et \textbf{Jean Marchal}	& 
+Introduction aux techniques de mesure d'anatomie du xylème et élaboration des données en R\newline\hspace*{\fill} \hfill  \textbf{Valentina Butto} et \textbf{Sergio Rossi}\\\hline
+\textbf{Télédétection}\newline\newline	& 
+Introduction à la télédétection avec le capteur MODIS\newline\newline\hspace*{\fill} \hfill  \textbf{Jean-François Bourdon} & 
+Manipulation de données de lidar aéroporté avec R dans un contexte forestier\newline\hspace*{\fill} \hfill  \textbf{Jean-Romain Roussel}\\\hline
+\textbf{Communication}\newline\newline	& 
+Scientific writing - How to better read and write journal articles\newline\hspace*{\fill} \hfill  \textbf{Emma Despland} & 
+La communication scientifique... pour être vu et compris!\newline\newline\hspace*{\fill} \hfill  \textbf{Nathalie Gagnon}\\\hline
+\textbf{Base de données}\newline\newline	& 
+Introduction aux bases de données avec Access\newline\newline\hspace*{\fill} \hfill  \textbf{Daniel Lesieur} & 
+\\\hline
+\textbf{R	et statistiques}\newline & 
+Introduction à GitHub et à la création de packages avec RStudio	& GAM 101\newline\hspace*{\fill} \hfill  \textbf{François Rousseu}\\\hline
+\textbf{Inkscape et NetLogo}\newline\newline	& 
+Introduction au dessins vectoriels pour la publication scientifique - Inkscape 101\newline\hspace*{\fill} \hfill  \textbf{Michaël Belluau} &
+Bottom-up simulation of forest disturbances using NetLogo\newline\newline\hspace*{\fill} \hfill  \textbf{Liliana Perez} et \textbf{Saeed Harati}\\\hline
+\textbf{SpaDES}\newline\newline	& 
+SpaDES, not “just another model” Part 1: Introducing a modular simulation platform for non-programmers\newline	& 
+SpaDES, not “just another model” Part 2: Getting started with SpaDES in R\newline\hspace*{\fill} \hfill  \textbf{Mario van Telgen} et \textbf{Ceres Barros}\\\hline
 
-Intro R	& Introduction au langage et environnement R -(1re partie)-	& Introduction au langage et environnement R -(2e partie)-\\\hline
-Cartographie	& Introduction à la cartographie avec QGIS -(1re partie)-	& Introduction à la cartographie avec QGIS -(2e partie)-\\\hline
-Analyse son/image avec R	& Introduction à bioacoustics, un package R dédié à la détection et l’extraction automatisée de signaux acoustiques	& Introduction aux techniques de mesure d'anatomie du xylème et élaboration des données en R\\\hline
-Télédétection	& Introduction à la télédétection avec le capteur MODIS	& Manipulation de données de lidar aéroporté avec R dans un contexte forestier\\\hline
-Communication	& Scientific writing - How to better read and write journal articles	& La communication scientifique... pour être vu et compris!\\\hline
-Base de données	& Introduction aux bases de données avec Access	& Utilisation d’un téléphone Android pour la saisie de données géoréférencées sur le terrain ANNULÉ\\\hline
-R	et statistiques & Introduction à GitHub et à la création de packages avec RStudio	& GAM 101\\\hline
-Inkscape et NetLogo	& Introduction au dessins vectoriels pour la publication scientifique - Inkscape 101
-COMPLET	& Bottom-up simulation of forest disturbances using NetLogo\\\hline
-SpaDES	& SpaDES, not “just another model” Part 1: Introducing a modular simulation platform for non-programmers	& SpaDES, not “just another model” Part 2: Getting started with SpaDES in R\\\hline
+
 
 \end{tabular} 
 
@@ -437,6 +454,18 @@ o<-lapply(o,function(i){
   })
   cat("\n\n\n\n\n\n")
 })
+
+
+### le csv ne marche pas!
+
+#w<-as.data.frame(fread("C:/Users/rouf1703/Downloads/ateliers.txt",sep=";"))
+#w<-paste(readLines("C:/Users/rouf1703/Downloads/ateliers.txt"),collapse=";")
+#w<-readLines("C:/Users/rouf1703/Downloads/ateliers.txt")
+#w<-w[w!=""]
+#w<-unlist(strsplit(w,";"))[-(1:2)]
+#w<-paste(w,collapse=";")
+#w<-unlist(strsplit(w,";"))
+
 
 @
 

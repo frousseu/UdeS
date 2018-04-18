@@ -1,16 +1,19 @@
 \documentclass{article}
-\usepackage[lmargin=2.5cm,tmargin=2.5cm,rmargin=2.5cm,bmargin=2.5cm]{geometry}% http://ctan.org/pkg/geometry
+\usepackage[lmargin=1cm,tmargin=1cm,rmargin=1cm,bmargin=1cm]{geometry}% http://ctan.org/pkg/geometry
 
 %\geometry{papersize={864mm,1116mm}}
-\geometry{papersize={36in,48in}}
+\geometry{papersize={36in,46.3in}}
 
-\usepackage{pdfpages}% http://ctan.org/pkg/pdfpages
+%\usepackage{pdfpages}% http://ctan.org/pkg/pdfpages
+\usepackage{graphicx}
+\graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
 
 \usepackage[utf8]{inputenc}
 \usepackage{kantlipsum}
 \usepackage{setspace}
 \usepackage{multicol}
 
+\usepackage[export]{adjustbox} % option valign=t in include graphics
 
 
 \usepackage{xcolor}
@@ -23,17 +26,39 @@
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
+%\vspace{1em}
+%\fcolorbox{cefd}{cefd}{
+%\begin{minipage}[t][5cm]{0.98\linewidth} 
+%HUGE TITLE BRAH!
+%\end{minipage}
+%}
 
-\includepdf[pages={1,3,2,4},nup=2x2,frame=FALSE,fitpaper=FALSE,delta=0cm 0cm]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}
+\noindent\scalebox{1.3}{\includegraphics[page=1,trim={0.8cm 24.4cm 0cm 0.7cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
 
-%\includepdfmerge[pages={1,2,3,4,5},nup=3x2,frame=FALSE,fitpaper=TRUE,delta=0cm 0cm]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf,1-3,C:/Users/rouf1703/Downloads/affiche_colloque_cef_2018.pdf}
+\vspace{1cm}
 
-\small\setstretch{0.0}
-\begin{multicols}{5}
+\begin{multicols}{2}
 
-%Yo\textsubscript{th}
+\noindent\scalebox{0.64}{\includegraphics[page=1,trim={0.5cm 3.5cm 0cm 3.7cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}\vspace{1cm}
+\noindent\scalebox{0.64}{\includegraphics[page=2,trim={0.5cm 2cm 0cm 3.7cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
+\noindent\scalebox{0.64}{\includegraphics[page=4,trim={0cm 10cm 0cm 3.7cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}\vspace{-6cm}
+\noindent\scalebox{0.64}{\includegraphics[page=3,trim={0cm 0cm 0cm 3.7cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
+%\noindent\scalebox{0.64}{\includegraphics[page=3,trim={25cm 29cm 0cm 50cm},clip]{colloque2018}}
 
-<<eval=TRUE,echo=FALSE,include=FALSE,results=tex>>=
+%\end{figure}
+%\includepdf[pages={1,3,2,4},nup=2x2,frame=FALSE,fitpaper=FALSE,delta=0cm 0cm]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}
+
+\end{multicols}
+
+\noindent\scalebox{1.3}{\includegraphics[page=2,trim={0.8cm 0.5cm 0cm 26cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
+
+\vspace{1cm}
+
+%\small\setstretch{0.0}
+%\begin{multicols}{5}
+
+
+<<eval=FALSE,echo=FALSE,include=FALSE,results=tex>>=
 
 d<-read.csv("C:/Users/rouf1703/Downloads/resumesCEF12-02-18.xlsx - resumesCEF12-02-18.csv",encoding="UTF-8",stringsAsFactors=FALSE)
 #d<-d[,c("bloc","heure","colonne","noaffiche","prenom","nom","typepres","titrepres","resumeprinc")]
@@ -119,7 +144,7 @@ cat("Au Québec, la législation encadrant les aménagements forestiers ne tient
 @
 
 
-\end{multicols}
+%\end{multicols}
 
 %\large\setstretch{0.8}
 %\textbf{La communication scientifique... pour être vu et compris!}
