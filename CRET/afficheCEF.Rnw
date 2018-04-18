@@ -1,0 +1,130 @@
+\documentclass{article}
+\usepackage[lmargin=2.5cm,tmargin=2.5cm,rmargin=2.5cm,bmargin=2.5cm]{geometry}% http://ctan.org/pkg/geometry
+
+%\geometry{papersize={864mm,1116mm}}
+\geometry{papersize={36in,48in}}
+
+\usepackage{pdfpages}% http://ctan.org/pkg/pdfpages
+
+\usepackage[utf8]{inputenc}
+\usepackage{kantlipsum}
+\usepackage{setspace}
+\usepackage{multicol}
+
+
+
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+\definecolor{cefd}{RGB}{28,110,72}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+
+\includepdf[pages={1,3,2,4},nup=2x2,frame=FALSE,fitpaper=FALSE,delta=0cm 0cm]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}
+
+%\includepdfmerge[pages={1,2,3,4,5},nup=3x2,frame=FALSE,fitpaper=TRUE,delta=0cm 0cm]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf,1-3,C:/Users/rouf1703/Downloads/affiche_colloque_cef_2018.pdf}
+
+\small\setstretch{0.0}
+\begin{multicols}{5}
+
+%Yo\textsubscript{th}
+
+<<eval=TRUE,echo=FALSE,include=FALSE,results=tex>>=
+
+d<-read.csv("C:/Users/rouf1703/Downloads/resumesCEF12-02-18.xlsx - resumesCEF12-02-18.csv",encoding="UTF-8",stringsAsFactors=FALSE)
+#d<-d[,c("bloc","heure","colonne","noaffiche","prenom","nom","typepres","titrepres","resumeprinc")]
+d$titrepres<-gsub("&","et",d$titrepres)
+d$titrepres<-gsub("''","'",d$titrepres)
+d$titrepres<-gsub("«|»","",d$titrepres)
+d$titrepres<-gsub("  "," ",d$titrepres)
+d$resumeprinc<-gsub("&","et",d$resumeprinc)
+d$resumeprinc<-gsub("''","'",d$resumeprinc)
+d$resumeprinc<-gsub("«|»","",d$resumeprinc)
+d$resumeprinc<-gsub("  "," ",d$resumeprinc)
+d$resumeprinc<-gsub("%","\\\\%",d$resumeprinc)
+
+# voir ?13C dans débits régionaux
+
+d$resumeprinc<-gsub("'_atm_'","\\\\textsubscript{atm}",d$resumeprinc)
+d$resumeprinc<-gsub("'_2_'","\\\\textsubscript{2}",d$resumeprinc)
+d$resumeprinc<-gsub("'\\^2\\^'","\\\\textsuperscript{2}",d$resumeprinc)
+d$resumeprinc<-gsub("'_3_'","\\\\textsubscript{3}",d$resumeprinc)
+d$resumeprinc<-gsub("'\\^3\\^'","\\\\textsuperscript{3}",d$resumeprinc)
+d$resumeprinc<-gsub("'\\^-1\\^'","\\\\textsuperscript{-1}",d$resumeprinc)
+d$resumeprinc<-gsub("m2","m\\\\textsuperscript{2}",d$resumeprinc)
+d$resumeprinc<-gsub("'\\^ième\\^'","\\\\textsuperscript{ième}",d$resumeprinc)
+d$resumeprinc<-gsub("\\^ième\\^","\\\\textsuperscript{ième}",d$resumeprinc)
+d$resumeprinc<-gsub("'D_BCI'","\\\\textit{D_BCI}",d$resumeprinc)
+d$resumeprinc<-gsub("\\$","\\\\$",d$resumeprinc)
+d$resumeprinc<-gsub("_","\\\\_",d$resumeprinc)
+d$resumeprinc<-gsub("\n"," ",d$resumeprinc)
+d$resumeprinc<-gsub("  "," ",d$resumeprinc)
+d$resumeprinc<-gsub("  "," ",d$resumeprinc)
+
+d$heure<-gsub("h",":",d$heure)
+
+d<-d[d$typepres%in%c("affiche","orale"),]
+d<-d[order(d$nom),]
+
+#d<-d[d$nom=="Beaudoin",]
+#d<-d[1:10,]
+
+#d$resumeprinc<-"RESUME"
+
+n<-intersect(paste0("auteur",2:10,"nom"),names(d))
+p<-intersect(paste0("auteur",2:10,"prenom"),names(d))
+
+d$np<-apply(d[,names(d)%in%c(n,p)],1,function(i){
+  x<-paste(unlist(i),collapse=", ") 
+  x<-gsub(", ,","",x)
+  gsub("^ *|(?<= ) | *$", "", x, perl = TRUE) # turn many spaces to one space
+})
+
+for(i in 1:nrow(d)){
+  #cat("\\fcolorbox{white}{white}{","\n")
+  cat("\n\\vspace{0.5cm}\n")
+  cat(paste0("\\noindent\\textbf{\\color{black}",paste(toupper(d$nom[i]),d$prenom[i],sep=", "),", ",d$np[i],"}\\\\"),"\n")
+  cat("\n\\vspace{-0.0cm}\n")
+  cat(paste0("\\noindent\\textbf{\\color{cefd}",d$titrepres[i],"}\\\\"),"\n")
+  cat("\n\\vspace{0.1cm}\n")
+  cat(d$resumeprinc[i],"\n")
+  #cat("}","\n")
+}
+
+@
+
+<<chunk,eval=FALSE,echo=FALSE,results=tex,include=FALSE>>=
+
+for(i in 1:30){
+  cat("\\textbf{This is a nice title}\\\\\n")
+  cat("\\kant[1-2]\\vspace{0.5cm}\n")
+}
+
+@
+
+
+<<chunk,eval=FALSE,echo=FALSE,results=tex,include=FALSE>>=
+
+for(i in 1:10){
+cat("\n\\vspace{0.5cm}")
+cat("\\textbf{Influence de caractéristiques d’habitat à l’échelle locale et du paysage sur l’effort reproducteur des amphibiens spécialistes des étangs vernaux}\n")
+cat("Au Québec, la législation encadrant les aménagements forestiers ne tient pas compte de l’intégrité des étangs vernaux. Pourtant, ces derniers peuvent jouer un rôle clé dans le maintien des populations d’amphibiens, un des groupes de vertébrés les plus menacés sur la planète. Notre objectif, était d’évaluer l’importance des variables susceptibles d’influencer la dynamique d’abondance de nos trois espèces cibles : la Grenouille des bois (Lithobates sylvaticus), la Salamandre maculée (Ambystoma maculatum) et la Salamandre à points bleus (Ambystoma laterale). Nous avons émis l’hypothèse que l’effort reproducteur sur les sites situés en forêt mature est supérieur à celui des sites en forêts récemment aménagées. Nous avons sélectionné 60 étangs vernaux dans le nord-est de la péninsule Gaspésienne, le long d’un gradient d’âge de peuplement. Au cours du printemps 2016 et 2017, les masses d’œufs dans chaque étang ont été dénombrées par au moins deux observateurs indépendants. L’habitat à l’échelle des étangs vernaux fut caractérisé par un ensemble de variables mesurées sur le terrain. Nous avons quantifié l’effet de ces variables sur l’abondance de chaque espèce à l’aide de modèles tenant compte de la probabilité de détection. Nos analyses montrent que l’ouverture de la canopée et la taille des étangs n’affectent pas l’effort de reproduction des espèces étudiées de notre aire d’étude. Contre toute attente, le volume de bois faiblement dégradé affecte positivement l’abondance chez la Salamandre maculée, alors que l’on observe le phénomène inverse pour le bois mort dégradé. Chez la Grenouille des bois, les masses d’œufs sont moins abondantes dans les étangs s’asséchant rapidement au cours de l’été. Conformément à notre hypothèse principale, l’effort reproducteur de la Salamandre à points bleus était plus faible dans les étangs localisés en régénération que ceux situés en forêt mature.\n")
+
+}
+
+@
+
+
+\end{multicols}
+
+%\large\setstretch{0.8}
+%\textbf{La communication scientifique... pour être vu et compris!}
+%Le scientifique cherche et pose des questions, la solution pour lui c’est de trouver d’autres questions toujours plus pointues. Le journaliste cherche des réponses, du concret, des explications simples, des solutions sans trop d’exceptions (Kugler, 1995) Cette citation semble dater déjà, mais elle conserve pourtant toute son actualité! En cette ère de surabondance de communications et de sollicitation, toute personne ou organisation désirant avoir un minimum de visibilité dans la sphère publique doit faire preuve de créativité et, surtout, savoir attirer l’attention et connecter avec son public. En tant que chercheur, partager le savoir scientifique est une nécessité, mais aussi une responsabilité, et cet exercice n’est pas toujours simple! Cet atelier propose d’explorer la communication scientifique sous l’angle des médias en portant une attention particulière à la mise en scène des connaissances et à la vulgarisation de façon à être vu, entendu et compris : Comment faire des relations médias? Comment rédiger un communiqué? Comment attirer l’attention des médias? Comment être compris de son auditoire? Comment mettre à profit la technologie et les médias sociaux? Des trucs simples et des exercices pratiques vous seront proposés afin de vous aider à mieux partager le fruit de vos recherches auprès de publics plus ou moins sensibilisés ou experts.\\
+
+
+
+\end{document}

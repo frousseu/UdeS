@@ -48,7 +48,7 @@
 \begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
@@ -165,7 +165,7 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 \begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
@@ -295,7 +295,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
@@ -367,7 +367,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \begin{tabular}{llll}
 \noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
 \noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.231}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
+\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
 \hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
 \end{tabular}
 \end{figure}
@@ -442,3 +442,7 @@ o<-lapply(o,function(i){
 
 
 \end{document}
+
+
+
+
