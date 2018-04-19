@@ -43,20 +43,17 @@
 \setlength{\fboxsep}{0pt}
 \setlength{\fboxrule}{0pt}
 
-\renewcommand{\tabcolsep}{0pt}
+
 \begin{figure}[h]
-\begin{tabular}{llll}
-\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
-\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
-\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
-\end{tabular}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{headerCEF2018}}
+\centering
 \end{figure}
-\renewcommand{\tabcolsep}{6pt}
+
+
 
 \renewcommand{\arraystretch}{1.1} % General space between rows (1 standard)            
 
-\vspace{-1.2em}
+\vspace{-1.0em}
 
 \noindent\begin{tabular}{m{0.8cm}m{9.025cm}m{9.025cm}}
 \rowcolor{cefd}
@@ -151,8 +148,13 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 \end{tabular} 
 
 
+%\begin{figure}[h]
+%\noindent\scalebox{1.25}{\includegraphics[trim={23.5cm 5.5cm 5cm 85.8cm},clip]{colloque2018}}
+%\centering
+%\end{figure}
+
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={23.5cm 5.5cm 5cm 85.8cm},clip]{colloque2018}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF}}
 \centering
 \end{figure}
 
@@ -160,18 +162,12 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 
 \pagebreak
 
-\renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{llll}
-\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
-\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
-\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
-\end{tabular}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{headerCEF2018}}
+\centering
 \end{figure}
-\renewcommand{\tabcolsep}{6pt}
 
-\vspace{-1.2em}
+\vspace{-1.0em}
 
 %\renewcommand{\arraystretch}{1} % this reduces the vertical spacing between rows
 %\footnotesize
@@ -281,7 +277,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={23.5cm 5.5cm 5cm 85.8cm},clip]{colloque2018}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF}}
 \centering
 \end{figure}
 
@@ -290,18 +286,12 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \pagebreak
 
-\renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{llll}
-\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
-\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
-\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
-\end{tabular}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{headerCEF2018}}
+\centering
 \end{figure}
-\renewcommand{\tabcolsep}{6pt}
 
-\vspace{-1.4em}
+\vspace{-1.0em}
 
 \noindent\begin{tabular}{m{0.8cm}m{3.5cm}m{14.5cm}}
 \rowcolor{cefd}
@@ -362,20 +352,16 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \pagebreak
 
-\renewcommand{\tabcolsep}{0pt}
+%\renewcommand{\tabcolsep}{0pt}
 \begin{figure}[h]
-\begin{tabular}{llll}
-\noindent\scalebox{0.6}{\includegraphics[trim={1.2cm 72cm 1.1cm 4.5cm},clip]{colloque2018}} &
-\noindent\scalebox{0.4195}{\includegraphics[trim={25.2cm 57cm 1.1cm 22cm},clip]{colloque2018}} &
-\noindent\scalebox{0.23068}{\includegraphics[trim={8.2cm 57cm 34cm 22cm},clip]{colloque2018}}
-\hspace{-1.71em}\fcolorbox{red}{red}{\noindent\scalebox{0.03}{\includegraphics[trim={26.0cm 63cm 34cm 23cm},clip]{colloque2018}}}
-\end{tabular}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{headerCEF2018}}
+\centering
 \end{figure}
-\renewcommand{\tabcolsep}{6pt}
+%\renewcommand{\tabcolsep}{6pt}
 
-\vspace{-1.4em}
+\vspace{-1.0em}
 
-\noindent\begin{tabular}{m{3cm}m{7.9cm}m{7.9cm}}
+\noindent\begin{tabular}{m{3cm}m{7.93cm}m{7.93cm}}
 \rowcolor{cefd}
 \multicolumn{3}{l}{\parbox{19cm}{\vspace{0.5em}\textbf{\color{white}ATELIERS, MERCREDI, 2 MAI} \itshape{\color{white}Pavillion Abitibi-Price}\vspace{0.5em}}} \\
 \arrayrulecolor{white}\hline
@@ -389,30 +375,30 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \multicolumn{1}{c}{\textbf{\color{y}SUJET}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}AM} \itshape{\color{y}08:00 à 12:00}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}PM} \itshape{\color{y}13:00 à 17:00}} \\
-\textbf{Intro R}\newline	& 
+\textbf{Intro R}\newline\textit{Local ABP-1111}	& 
 Introduction au langage et environnement R (partie 1)\newline	& 
 Introduction au langage et environnement R (partie 2)\newline\hspace*{\fill} \hfill  \textbf{Marc Mazerolle}\\\hline
-\textbf{Cartographie}\newline	& 
+\textbf{Cartographie}\newline\textit{Local GHK-1360}	& 
 Introduction à la cartographie avec QGIS (partie 1)\newline	& 
 Introduction à la cartographie avec QGIS (partie 2)\newline\hspace*{\fill} \hfill  \textbf{Pierre Racine}\\\hline
-\raggedright\textbf{Analyse son/image avec R}\newline	& 
+\raggedright\textbf{Analyse son/image avec R}\newline\textit{Local ABP-0225}	& 
 Introduction à bioacoustics, un package R dédié à la détection et l’extraction automatisée de signaux acoustiques\newline\hspace*{\fill} \hfill  \textbf{François Fabianek} et \textbf{Jean Marchal}	& 
 Introduction aux techniques de mesure d'anatomie du xylème et élaboration des données en R\newline\hspace*{\fill} \hfill  \textbf{Valentina Butto} et \textbf{Sergio Rossi}\\\hline
-\textbf{Télédétection}\newline\newline	& 
+\textbf{Télédétection}\newline\newline\textit{Local ABP-0112}	& 
 Introduction à la télédétection avec le capteur MODIS\newline\newline\hspace*{\fill} \hfill  \textbf{Jean-François Bourdon} & 
 Manipulation de données de lidar aéroporté avec R dans un contexte forestier\newline\hspace*{\fill} \hfill  \textbf{Jean-Romain Roussel}\\\hline
-\textbf{Communication}\newline\newline	& 
+\textbf{Communication}\newline\newline\textit{Local ABP-0160}	& 
 Scientific writing - How to better read and write journal articles\newline\hspace*{\fill} \hfill  \textbf{Emma Despland} & 
 La communication scientifique... pour être vu et compris!\newline\newline\hspace*{\fill} \hfill  \textbf{Nathalie Gagnon}\\\hline
-\textbf{Base de données}\newline\newline	& 
+\textbf{Base de données}\newline\newline\textit{Local ABP-1128}	& 
 Introduction aux bases de données avec Access\newline\newline\hspace*{\fill} \hfill  \textbf{Daniel Lesieur} & 
 \\\hline
-\textbf{R	et statistiques}\newline & 
+\textbf{R	avancé}\newline\textit{Local GHK-1350} & 
 Introduction à GitHub et à la création de packages avec RStudio	& GAM 101\newline\hspace*{\fill} \hfill  \textbf{François Rousseu}\\\hline
-\textbf{Inkscape et NetLogo}\newline\newline	& 
+\textbf{Inkscape et NetLogo}\newline\newline\textit{Local ABP-0115}	& 
 Introduction au dessins vectoriels pour la publication scientifique - Inkscape 101\newline\hspace*{\fill} \hfill  \textbf{Michaël Belluau} &
 Bottom-up simulation of forest disturbances using NetLogo\newline\newline\hspace*{\fill} \hfill  \textbf{Liliana Perez} et \textbf{Saeed Harati}\\\hline
-\textbf{SpaDES}\newline\newline	& 
+\textbf{SpaDES}\newline\newline\textit{Local ABP-0222}	& 
 SpaDES, not “just another model” Part 1: Introducing a modular simulation platform for non-programmers\newline	& 
 SpaDES, not “just another model” Part 2: Getting started with SpaDES in R\newline\hspace*{\fill} \hfill  \textbf{Mario van Telgen} et \textbf{Ceres Barros}\\\hline
 
