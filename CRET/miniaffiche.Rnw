@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage[lmargin=0cm,tmargin=0cm,rmargin=0cm,bmargin=0cm]{geometry}% http://ctan.org/pkg/geometry
+
+%\geometry{papersize={864mm,1116mm}}
+\geometry{papersize={40.5cm,52cm}}
+
+%\usepackage{pdfpages}% http://ctan.org/pkg/pdfpages
+\usepackage{graphicx}
+\graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
+
+\usepackage[utf8]{inputenc}
+\usepackage{setspace}
+
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+\definecolor{cefd}{RGB}{28,110,72}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+%\vspace{1em}
+%\fcolorbox{cefd}{cefd}{
+%\begin{minipage}[t][5cm]{0.98\linewidth} 
+%HUGE TITLE BRAH!
+%\end{minipage}
+%}
+
+\noindent\scalebox{1.25}{\includegraphics[page=1,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
+\\\pagebreak
+\noindent\scalebox{1.25}{\includegraphics[page=2,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
+
+
+
+
+
+\end{document}
