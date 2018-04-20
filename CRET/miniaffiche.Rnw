@@ -1,5 +1,5 @@
 \documentclass{article}
-\usepackage[lmargin=0cm,tmargin=0cm,rmargin=0cm,bmargin=0cm]{geometry}% http://ctan.org/pkg/geometry
+\usepackage[lmargin=0.0cm,tmargin=0.0cm,rmargin=0.0cm,bmargin=0.0cm]{geometry}% http://ctan.org/pkg/geometry
 
 %\geometry{papersize={864mm,1116mm}}
 \geometry{papersize={40.5cm,52cm}}
@@ -9,14 +9,14 @@
 \graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
 
 \usepackage[utf8]{inputenc}
-\usepackage{setspace}
+%\usepackage{setspace}
 
-\usepackage{xcolor}
-\usepackage{colortbl}
+%\usepackage{xcolor}
+%\usepackage{colortbl}
 
-\definecolor{cefd}{RGB}{28,110,72}
+%\definecolor{cefd}{RGB}{28,110,72}
 
-\renewcommand{\familydefault}{\sfdefault}
+%\renewcommand{\familydefault}{\sfdefault}
 
 \begin{document}
 \SweaveOpts{concordance=TRUE}
@@ -29,11 +29,7 @@
 %}
 
 \noindent\scalebox{1.25}{\includegraphics[page=1,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
-\\\pagebreak
+\pagebreak
 \noindent\scalebox{1.25}{\includegraphics[page=2,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF.pdf}}
-
-
-
-
 
 \end{document}
