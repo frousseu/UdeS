@@ -188,7 +188,7 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 %\footnotesize
 \small\setstretch{0.8}
 
-\renewcommand{\arraystretch}{1.11} % General space between rows (1 standard) 
+\renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
 
 \renewcommand{\tabcolsep}{6pt}
 
@@ -209,7 +209,7 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 \rowcolor{cefd}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}FEUX DE FORÊT} \itshape{\color{y}ADJ-4512}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}HYDROLOGIE FORESTIÈRE I} \itshape{\scriptsize\color{y}ADJ-2320}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}ÉCOPHYSIOLOGIE} \itshape{\color{y}ADJ-2326}} \\
  \rowcolor{cefd}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Pierre Drapeau}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Membres}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Sylvain Delagrange}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Pierre Drapeau}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Jeannine-Marie St-Jacques}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Sylvain Delagrange}}\\
  \rowcolor{cefd}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Benjamin Andrieux}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Vanessa Audet-Giroux}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Lou Monteil}}\\
 \rowcolor{white}
@@ -245,20 +245,20 @@ Probabilité d’occurrence d’un feu en forêt boréale Québécoise \newline\
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Mohamadou Alpha Gueye}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Julia Morarin}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}}\\
 \rowcolor{white}
 \multirow{1}{*}{10:20} & 
-Forêt boréale, bryophytes et résilience : le syndrome de la passoire et du dôme \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Marion Barbé} & L’hydrologie une question de survie pour les épinettes noires de l’Abitibi! \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Samuel Roy Proulx} & Modélisation à l’échelle du paysage de la vulnérabilité et du potentiel de croissance de l’érable à sucre à la sécheresse en fonction de sa réponse architecturale et écophysiologique au climat\hphantom{****}\textbf{Maxime D'Amours} \\
+Forêt boréale, bryophytes et résilience : le syndrome de la passoire et du dôme \newline\newline\hspace*{\fill} \hfill  \textbf{Marion Barbé} & L’hydrologie une question de survie pour les épinettes noires de l’Abitibi! \newline\newline\hspace*{\fill} \hfill  \textbf{Samuel Roy Proulx} & Modélisation des sources de changements de hauteur des écosystèmes forestiers tempérés aménagés et non-aménagés \newline\hspace*{\fill} \hfill  \textbf{Jean-Francois Senécal} \\
 \rowcolor{col4}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{10:40} & 
-Une analyse scientométrique sur l’espèce envahissante Frangula alnus: ce que l’on sait et ce que l'on ignore \newline\hspace*{\fill} \hfill  \textbf{Tiana Custodio} & Débits régionaux et températures maximales reconstitués à partir des valeurs isotopiques des cernes de croissance d’arbres au Labrador \hspace*{\fill} \hfill  \textbf{Lauriane Dinis} & Modélisation des sources de changements de hauteur des écosystèmes forestiers tempérés aménagés et non-aménagés \newline\hspace*{\fill} \hfill  \textbf{Jean-Francois Senecal} \\
+Une analyse scientométrique sur l’espèce envahissante Frangula alnus: ce que l’on sait et ce que l'on ignore \newline\hspace*{\fill} \hfill  \textbf{Tiana Custodio} & Débits régionaux et températures maximales reconstitués à partir des valeurs isotopiques des cernes de croissance d’arbres au Labrador \hspace*{\fill} \hfill  \textbf{Lauriane Dinis} & Analyse de la structure spatiale des arbres dans les plantations d'épinette blanche \newline\newline\hspace*{\fill} \hfill  \textbf{Emmanuel Duchateau}  \\
 \rowcolor{white}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{11:00} & 
-Influence des facteurs biophysiques sur la régénération naturelle après coupe partielle en foret boréale mixte \newline\hspace*{\fill} \hfill  \textbf{Freddy Nguema Allogo} & Modélisation hydrologique en milieu forestier avec bilan énergétique: le projet ÉVAP \newline\hspace*{\fill} \hfill  \textbf{Pierre-Erik Isabelle} & Analyse de la structure spatiale des arbres dans les plantations d'épinette blanche \newline\newline\hspace*{\fill} \hfill  \textbf{Emmanuel Duchateau} \\
+Influence des facteurs biophysiques sur la régénération naturelle après coupe partielle en foret boréale mixte \newline\hspace*{\fill} \hfill  \textbf{Freddy Nguema Allogo} & Modélisation hydrologique en milieu forestier avec bilan énergétique: le projet ÉVAP \newline\hspace*{\fill} \hfill  \textbf{Pierre-Erik Isabelle}  & Plant defense syndromes, host plant use and habitat selection in a neotropical forest edge butterfly \newline\hspace*{\fill} \hfill  \textbf{Emma Despland} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{11:20} & 
 Évaluation par modélisation de l'effet du niveau de récolte et du régime sylvicole sur la production du bois et la dynamique du carbone forestier en forêt décidue tempérée du Québec
- \hspace*{\fill} \hfill  \textbf{Romain Tregaro} &  \hspace*{\fill} \hfill  \textbf{} & Plant defense syndromes, host plant use and habitat selection in a neotropical forest edge butterfly \newline\newline\hspace*{\fill} \hfill  \textbf{Emma Despland} \\
+ \hspace*{\fill} \hfill  \textbf{Romain Tregaro} &  \hspace*{\fill} \hfill  \textbf{} & Modélisation à l’échelle du paysage de la vulnérabilité et du potentiel de croissance de l’érable à sucre à la sécheresse en fonction de sa réponse architecturale et écophysiologique au climat\hphantom{****}\textbf{Maxime D'Amours} \\
 %\arrayrulecolor{palegray}\hline 
  
  \rowcolor{y}
@@ -291,7 +291,7 @@ Influence des facteurs biophysiques sur la régénération naturelle après coup
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Bastien Vandendaele}}\\
 \rowcolor{white}
 \multirow{1}{*}{13:30} & 
-Les vieilles forêts boréales, toutes identiques? Une analyse de leur diversité structurelle et de leur dynamique dans l’Est du Canada \hspace*{\fill} \hfill  \textbf{Maxence Martin} & Contraintes structurelles et dysfonctionnements de la gouvernance forestière dans le Bassin du Congo, à travers la marginalisation des communautés villageoises \hspace*{\fill} \hfill  \textbf{Georges Boniface Nlend V} \\
+Les vieilles forêts boréales, toutes identiques? Une analyse de leur diversité structurelle et de leur dynamique dans l’Est du Canada \hspace*{\fill} \hfill  \textbf{Maxence Martin} & Le côté sombre de cinq plants agroforestiers du Sénégal : explorations de traits souterrains \newline\hspace*{\fill} \hfill  \textbf{Alison Munson} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{13:50} & 
