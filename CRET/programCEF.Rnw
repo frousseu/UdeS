@@ -98,7 +98,7 @@ de \\relevés polliniques à haute résolution et de relevés instrumentaux de d
 
 \rowcolor{y}
 \multicolumn{1}{c}{12:00} &
-\multicolumn{2}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Espace Jardin} -- \textnormal{AGA des membres} \itshape{ADJ-2320}} \\
+\multicolumn{2}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Espace Jardin} -- \textbf{AGA des membres} \itshape{ADJ-2320}} \\
 \arrayrulecolor{white}
 \hline
 \hline
@@ -249,7 +249,7 @@ Forêt boréale, bryophytes et résilience : le syndrome de la passoire et du d�
 \rowcolor{col4}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{10:40} & 
-Une analyse scientométrique sur l’espèce envahissante Frangula alnus: ce que l’on sait et ce que l'on ignore \newline\hspace*{\fill} \hfill  \textbf{Tiana Custodio} & Débits régionaux et températures maximales reconstitués à partir des valeurs isotopiques des cernes de croissance d’arbres au Labrador \hspace*{\fill} \hfill  \textbf{Lauriane Dinis} & Analyse de la structure spatiale des arbres dans les plantations d'épinette blanche \newline\newline\hspace*{\fill} \hfill  \textbf{Emmanuel Duchateau}  \\
+Une analyse scientométrique sur l’espèce envahissante \textit{Frangula alnus}: ce que l’on sait et ce que l'on ignore \newline\hspace*{\fill} \hfill  \textbf{Tiana Custodio} & Débits régionaux et températures maximales reconstitués à partir des valeurs isotopiques des cernes de croissance d’arbres au Labrador \hspace*{\fill} \hfill  \textbf{Lauriane Dinis} & Analyse de la structure spatiale des arbres dans les plantations d'épinette blanche \newline\newline\hspace*{\fill} \hfill  \textbf{Emmanuel Duchateau}  \\
 \rowcolor{white}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{11:00} & 
@@ -288,7 +288,7 @@ Influence des facteurs biophysiques sur la régénération naturelle après coup
  \rowcolor{cefd}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Robert Schneider}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Modéré par Alison Munson}}\\
  \rowcolor{cefd}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Bastien Vandendaele}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Annie Claude Bélisle}}\\
 \rowcolor{white}
 \multirow{1}{*}{13:30} & 
 Les vieilles forêts boréales, toutes identiques? Une analyse de leur diversité structurelle et de leur dynamique dans l’Est du Canada \hspace*{\fill} \hfill  \textbf{Maxence Martin} & Le côté sombre de cinq plants agroforestiers du Sénégal : explorations de traits souterrains \newline\hspace*{\fill} \hfill  \textbf{Alison Munson} \\
@@ -345,7 +345,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 
 \vspace{-1.0em}
 
-\renewcommand{\arraystretch}{1.21} % General space between rows (1 standard) 
+\renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
 
 \rowcolors{2}{white}{col4}
 \noindent\begin{tabular}{m{1.1cm}m{3.5cm}m{14.26cm}}
@@ -366,7 +366,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 02 &	\textbf{Batistin Bour} &	Apport du LiDAR dans l’évaluation de la croissance de la forêt boréale après perturbation majeure.\\\hline
 03 &	\textbf{Valentina Buttò} &	Production et période de formation du xylème de l’épinette noire le long d’un gradient latitudinal au Québec\\\hline
 04 &	\raggedright\textbf{Thais Campos de Oliveira} &	Rôle des transporteurs d'ammonium dans la fitness des champignons responsables de la Maladie Hollandaise de l'Orme\\\hline
-05 &	\textbf{Jérôme Chapuis} &	Génomique fonctionnelle de la virulence et la fitness chez Ophiostoma novo-ulmi\\\hline
+05 &	\textbf{Jérôme Chapuis} &	Génomique fonctionnelle de la virulence et la fitness chez \textit{Ophiostoma novo-ulmi}\\\hline
 06 &	\textbf{Delphine De Pierre} &	Détermination des effets de la tique d'hiver \textit{Dermacentor albipictus} sur la santé des orignaux : une approche expérimentale\\\hline
 07 &	\textbf{Emilie Drolet} &	Délimitation des zones de contraintes de drainage aux opérations forestières : comparaison entre deux versions du \textit{Topographic Wetness Index}\\\hline
 08 &	\textbf{Marine Duperat} &	Impacts du climat boréal et des éclaircies sur la réaction du Sapin Baumier \textit{Abies balsamea} face aux charges imposées par le vent\\\hline
@@ -393,6 +393,7 @@ NM/NE &	\textbf{Mathieu Carpentier} &	Identification d'arbres à partir d'images
 NM/NE &	\textbf{Nelson Thiffault} &	Managing plantation density through initial spacing and commercial thinning: Growth and yield results from a 60-year-old red pine experiment\\\hline
 NM/NE &	\textbf{Patricia Raymond} &	Options sylvicoles pour régénérer et conserver la structure irrégulière des sapinières à bouleau jaune\\\hline
 NM/NE &	\textbf{Rim Khlifa} &	Effets de l’augmentation de la température du sol et des dépôts d’azote sur la structure et la diversité des communautés bactériennes de la phyllosphère chez l’épinette noire\\\hline
+NM/NE &	\textbf{Samuel Gladu} & Aménagement forestier en zone Boréal mixte, impact sur \textit{coleoptera}:\textit{carabidae} après 17 ans\\\hline
 NM/NE &	\raggedright\textbf{Steve Roussel Kentsa Kouom} &	Cartographie participative des services écosystémiques des paysages autochtones\\\hline
 NM/NE &	\textbf{Tanya Handa} &	Canadian Repository of Invertebrate Traits and Trait-like Ecological Records – Traits des invertébrés du Canada (CRITTER)\\\hline
 NM/NE &	\textbf{Victor Danneyrolles} &	Utilisation des archives d’arpentage pour affiner les cibles de composition pour l’aménagement écosystémique des forêts tempérées du Québec\\\hline
