@@ -141,7 +141,7 @@ Est-ce que les plantations d’hybrides à croissance rapide uniformisent les co
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Léonie Côté}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Samuel Roy Proulx}} \\
 \rowcolor{white}
 \multirow{1}{*}{15:30} & 
-Fertilité des sols et statut nutritionnel de l’érable à sucre dans des peuplements fortement fragmentés par l’agriculture intensive : existe-t-il un effet de bordure? \hspace*{\fill} \hfill  \textbf{Eva Masson} & Le broutement par l'orignal modifie la composition floristique initiale suite aux coupes forestières \newline\hspace*{\fill} \hfill  \textbf{Laurent De Vriendt} \\
+Fertilité des sols et statut nutritionnel de l’érable à sucre dans des peuplements fortement fragmentés par l’agriculture intensive: existe-t-il un effet de bordure? \hspace*{\fill} \hfill  \textbf{Eva Masson} & Le broutement par l'orignal modifie la composition floristique initiale suite aux coupes forestières \newline\hspace*{\fill} \hfill  \textbf{Laurent De Vriendt} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{15:50} & 
@@ -149,7 +149,7 @@ Cartographie matricielle des propriétés primaires des sols pour le Québec mé
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{white}
 \multirow{1}{*}{16:10} & 
-Stocks de carbone organique du sol en pessière à mousses : compréhension mécanistique de leurs variations avec le climat et le temps depuis feu \hspace*{\fill} \hfill  \textbf{Benjamin Andrieux} & Influence de caractéristiques d’habitat à l’échelle locale et du paysage sur l’effort reproducteur des amphibiens spécialistes des étangs vernaux \hspace*{\fill} \hfill  \textbf{Robin Besançon} \\
+Stocks de carbone organique du sol en pessière à mousses: compréhension mécanistique de leurs variations avec le climat et le temps depuis feu \hspace*{\fill} \hfill  \textbf{Benjamin Andrieux} & Influence de caractéristiques d’habitat à l’échelle locale et du paysage sur l’effort reproducteur des amphibiens spécialistes des étangs vernaux \hspace*{\fill} \hfill  \textbf{Robin Besançon} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{16:30} & 
@@ -214,7 +214,7 @@ L’empreinte carbone du déblaiement mécanique en forêt boréale paludifiée 
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Benjamin Andrieux}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Vanessa Audet-Giroux}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Lou Monteil}}\\
 \rowcolor{white}
 \multirow{1}{*}{08:30} & 
-Régénération après-feu des écosystèmes dominés par l’épinette noire dans un contexte de changements globaux \newline\hspace*{\fill} \hfill  \textbf{Yan Boucher} & Mesure de la neige et bilans hydrologiques: d’un biais à l’autre \newline\newline\hspace*{\fill} \hfill  \textbf{Amandine Pierre} & Forêt québécoise du futur : l’impact d’un stress hydrique sur les semis de conifère \newline\newline\hspace*{\fill} \hfill  \textbf{Catherine Léger-Beaulieu} \\
+Régénération après-feu des écosystèmes dominés par l’épinette noire dans un contexte de changements globaux \newline\hspace*{\fill} \hfill  \textbf{Yan Boucher} & Mesure de la neige et bilans hydrologiques: d’un biais à l’autre \newline\newline\hspace*{\fill} \hfill  \textbf{Amandine Pierre} & Forêt québécoise du futur: l’impact d’un stress hydrique sur les semis de conifère \newline\newline\hspace*{\fill} \hfill  \textbf{Catherine Léger-Beaulieu} \\
 \rowcolor{col4}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{08:50} & 
@@ -245,7 +245,7 @@ Probabilité d’occurrence d’un feu en forêt boréale Québécoise \newline\
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Mohamadou Alpha Gueye}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Julia Morarin}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}}\\
 \rowcolor{white}
 \multirow{1}{*}{10:20} & 
-Forêt boréale, bryophytes et résilience : le syndrome de la passoire et du dôme \newline\newline\hspace*{\fill} \hfill  \textbf{Marion Barbé} & L’hydrologie une question de survie pour les épinettes noires de l’Abitibi! \newline\newline\hspace*{\fill} \hfill  \textbf{Samuel Roy Proulx} & Modélisation des sources de changements de hauteur des écosystèmes forestiers tempérés aménagés et non-aménagés \newline\hspace*{\fill} \hfill  \textbf{Jean-Francois Senécal} \\
+Forêt boréale, bryophytes et résilience: le syndrome de la passoire et du dôme \newline\newline\hspace*{\fill} \hfill  \textbf{Marion Barbé} & L’hydrologie une question de survie pour les épinettes noires de l’Abitibi! \newline\newline\hspace*{\fill} \hfill  \textbf{Samuel Roy Proulx} & Modélisation des sources de changements de hauteur des écosystèmes forestiers tempérés aménagés et non-aménagés \newline\hspace*{\fill} \hfill  \textbf{Jean-Francois Senécal} \\
 \rowcolor{col4}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{10:40} & 
@@ -253,7 +253,7 @@ Une analyse scientométrique sur l’espèce envahissante \textit{Frangula alnus
 \rowcolor{white}
 %\arrayrulecolor{palegray}\hline 
 \multirow{1}{*}{11:00} & 
-Influence des facteurs biophysiques sur la régénération naturelle après coupe partielle en foret boréale mixte \newline\hspace*{\fill} \hfill  \textbf{Freddy Nguema Allogo} & Modélisation hydrologique en milieu forestier avec bilan énergétique: le projet ÉVAP \newline\hspace*{\fill} \hfill  \textbf{Pierre-Erik Isabelle}  & Plant defense syndromes, host plant use and habitat selection in a neotropical forest edge butterfly \newline\hspace*{\fill} \hfill  \textbf{Emma Despland} \\
+Influence des facteurs biophysiques sur la régénération naturelle après coupe partielle en forêt boréale mixte \newline\hspace*{\fill} \hfill  \textbf{Freddy Nguema Allogo} & Modélisation hydrologique en milieu forestier avec bilan énergétique: le projet ÉVAP \newline\hspace*{\fill} \hfill  \textbf{Pierre-Erik Isabelle}  & Plant defense syndromes, host plant use and habitat selection in a neotropical forest edge butterfly \newline\hspace*{\fill} \hfill  \textbf{Emma Despland} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{11:20} & 
@@ -291,7 +291,7 @@ Influence des facteurs biophysiques sur la régénération naturelle après coup
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Laurie Dupont-Leduc}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{y}\scriptsize\textit{Tech. A.-V. Annie Claude Bélisle}}\\
 \rowcolor{white}
 \multirow{1}{*}{13:30} & 
-Les vieilles forêts boréales, toutes identiques? Une analyse de leur diversité structurelle et de leur dynamique dans l’Est du Canada \hspace*{\fill} \hfill  \textbf{Maxence Martin} & Le côté sombre de cinq plants agroforestiers du Sénégal : explorations de traits souterrains \newline\hspace*{\fill} \hfill  \textbf{Alison Munson} \\
+Les vieilles forêts boréales, toutes identiques? Une analyse de leur diversité structurelle et de leur dynamique dans l’Est du Canada \hspace*{\fill} \hfill  \textbf{Maxence Martin} & Le côté sombre de cinq plants agroforestiers du Sénégal: explorations de traits souterrains \newline\hspace*{\fill} \hfill  \textbf{Alison Munson} \\
 %\arrayrulecolor{palegray}\hline 
 \rowcolor{col4}
 \multirow{1}{*}{13:50} & 
@@ -363,12 +363,12 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}NOM}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{y}AFFICHE}} \\
 01 &	\textbf{Annie Claude Bélisle} &	Modélisation des impacts des changements environnementaux sur les paysages autochtones à partir des savoirs locaux et scientifiques\\\hline
-02 &	\textbf{Batistin Bour} &	Apport du LiDAR dans l’évaluation de la croissance de la forêt boréale après perturbation majeure.\\\hline
+02 &	\textbf{Batistin Bour} &	Apport du LiDAR dans l’évaluation de la croissance de la forêt boréale après perturbation majeure\\\hline
 03 &	\textbf{Valentina Buttò} &	Production et période de formation du xylème de l’épinette noire le long d’un gradient latitudinal au Québec\\\hline
 04 &	\raggedright\textbf{Thais Campos de Oliveira} &	Rôle des transporteurs d'ammonium dans la fitness des champignons responsables de la Maladie Hollandaise de l'Orme\\\hline
 05 &	\textbf{Jérôme Chapuis} &	Génomique fonctionnelle de la virulence et la fitness chez \textit{Ophiostoma novo-ulmi}\\\hline
-06 &	\textbf{Delphine De Pierre} &	Détermination des effets de la tique d'hiver \textit{Dermacentor albipictus} sur la santé des orignaux : une approche expérimentale\\\hline
-07 &	\textbf{Emilie Drolet} &	Délimitation des zones de contraintes de drainage aux opérations forestières : comparaison entre deux versions du \textit{Topographic Wetness Index}\\\hline
+06 &	\textbf{Delphine De Pierre} &	Détermination des effets de la tique d'hiver \textit{Dermacentor albipictus} sur la santé des orignaux: une approche expérimentale\\\hline
+07 &	\textbf{Emilie Drolet} &	Délimitation des zones de contraintes de drainage aux opérations forestières: comparaison entre deux versions du \textit{Topographic Wetness Index}\\\hline
 08 &	\textbf{Marine Duperat} &	Impacts du climat boréal et des éclaircies sur la réaction du Sapin Baumier \textit{Abies balsamea} face aux charges imposées par le vent\\\hline
 09 &	\textbf{Flavie Ferrer} &	Connaître la densité du bois, une aiguille dans une botte de cernes\\\hline
 10 &	\textbf{Carla Francisco} &	Modelling the impact of environmental stochasticity in woodland caribou populations\\\hline
@@ -376,7 +376,7 @@ Aménagement et intégrité forestière font-ils bon ménage: effet de la sylvic
 12 &	\textbf{David Grenier-Héon} &	Analyse des patrons de mortalité des arbres de la forêt boréale du québec dans le contexte des changements climatiques et du bilan de carbone\\\hline
 13 &	\textbf{Mathieu Landry} &	Taxonomic and functional variations of spruce budworm bacterial communities over time and space\\\hline
 14 &	\textbf{Christopher Madsen} &	How neighbourhood interactions between 6 tropical tree species affect the horizontal extent of their root systems\\\hline
-15 &	\textbf{Annie Montpetit} &	Vers une opérationnalisation de l’évaluation de la capacité d’adaptation des communautés humaines aux changements climatiques : l’exemple des communautés canadiennes dépendantes de la forêt\\\hline
+15 &	\textbf{Annie Montpetit} &	Vers une opérationnalisation de l’évaluation de la capacité d’adaptation des communautés humaines aux changements climatiques: l’exemple des communautés canadiennes dépendantes de la forêt\\\hline
 16 &	\textbf{Jeffrey Opoku-Nyame} &	Twelve-year impacts of partial and clear cut on epixylic bryophyte species in boreal black spruce –feathermoss forests\\\hline
 17 &	\textbf{Alexandre Pace} &	Des reconstitutions climatiques avec le cèdre blanc \textit{Thuya occidentalis} dans les montagnes Chic-chocs et McGerrigle, Parc national de la Gaspésie\\\hline
 18 &	\textbf{Charlotte Smetanka} &	Évaluation de la sévérité des feux dans la forêt boréale québécoise par une approche multi-échelle\\\hline
@@ -387,7 +387,7 @@ NM/NE &	\textbf{Clément Chion} &	Démarche participative et jeux sérieux en su
 NM/NE &	\textbf{Emilie Champagne} &	Étude de la résistance au broutement de plants forestiers dans un contexte de migration assistée en forêt mixte tempérée\\\hline
 NM/NE &	\textbf{Jean-Daniel Sylvain} &	Quantifier l'effet des changements globaux sur la diversité des communautés biologiques\\\hline
 NM/NE &	\textbf{Julien Beguin} &	Predicting soil properties in the Canadian boreal forest with limited data: Comparison of spatial and non-spatial statistical approaches\\\hline
-NM/NE &	\textbf{Lahcen Benomar} &	La migration assistée comme mesure proactive d’adaptation aux changements climatiques : cas de l’épinette blanche au Québec\\\hline
+NM/NE &	\textbf{Lahcen Benomar} &	La migration assistée comme mesure proactive d’adaptation aux changements climatiques: cas de l’épinette blanche au Québec\\\hline
 NM/NE &	\textbf{Martin Barrette} &	Évaluer les écarts entre la forêt aménagée et la forêt naturelle avec la naturalité pour soutenir l’aménagement écosystémique\\\hline
 NM/NE &	\textbf{Mathieu Carpentier} &	Identification d'arbres à partir d'images de l'écorce\\\hline
 NM/NE &	\textbf{Nelson Thiffault} &	Managing plantation density through initial spacing and commercial thinning: Growth and yield results from a 60-year-old red pine experiment\\\hline
@@ -458,8 +458,12 @@ SpaDES, not “just another model” Part 1: Introducing a modular simulation pl
 SpaDES, not “just another model” Part 2: Getting started with SpaDES in R\newline\hspace*{\fill} \hfill  \textbf{Mario van Telgen} et \textbf{Ceres Barros}\\\hline
 %\arrayrulecolor{cefd}\hline
 
-
 \end{tabular} 
+
+\begin{figure}[h]
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF}}
+\centering
+\end{figure}
 
 
 <<eval=FALSE,echo=FALSE,include=FALSE>>=
@@ -476,6 +480,7 @@ d$titrepres<-gsub("&","et",d$titrepres)
 d$titrepres<-gsub("''","'",d$titrepres)
 d$titrepres<-gsub("«|»","",d$titrepres)
 d$titrepres<-gsub("  "," ",d$titrepres)
+d$titrepres<-gsub(" :",":",d$titrepres)
 d$heure<-gsub("h",":",d$heure)
 
 a<-d[d$typepres=="affiche",]
