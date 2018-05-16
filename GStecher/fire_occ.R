@@ -10,80 +10,87 @@ library(rgeos)
 library(FRutils)
 library(RColorBrewer)
 library(brinla)
+library(visreg)
 
-load("~/UdeS/Consultation/GStetcher/Doc/glgm_non-LFY.RData")
-load("~/UdeS/Consultation/GStetcher/Doc/glgm_LFY.RData")
+#load("~/UdeS/Consultation/GStetcher/Doc/glgm_non-LFY.RData")
+#load("~/UdeS/Consultation/GStetcher/Doc/glgm_LFY.RData")
 
-d<-glm.sp
+load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
-newdat<-data.frame()
+d<-na.omit(llf.occur)
+d<-d[sample(1:nrow(d),1000),] # sample location to reduce computing time
+
+d$high_name<-as.factor(d$high_name)
 
 ds<-d
-coordinates(ds)<-~Ostkoordin+Norrkoordi
-proj4string(ds)<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
-proj4string(ds)<-"+init=epsg:3006"
+coordinates(ds)<-~Longitude+Latitude
+proj4string(ds)<-"+init=epsg:4326"
 
-plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
+prj<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
+ds<-spTransform(ds,CRS(prj))
 
-m<-glm(PA~VEGZONSNA+Populati_2+Road_dens+MDC+dom,data=d,family=binomial)
+#plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
+
+m <- glm (PA ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
+par(mfrow=c(3,3))
+visreg(m,scale="response")
+par(mfrow=c(1,1))
 
 coords <- coordinates(ds)
-v<-variog(coords=coords,data=resid(m),breaks=seq(0,250000,by=500))
-fitv<-variofit(v,ini.cov.pars=c(0.2,30000),cov.model="exponential",fix.nugget=FALSE,nugget=0.125,fix.kappa=FALSE,kappa=0.45)
-plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)") 
-lines(fitv)
-
-hist(d$Year)
+v<-variog(coords=coords,data=resid(m),breaks=seq(0,100000,by=500),max.dist=100000,bin.cloud=TRUE)
+#fitv<-variofit(v,ini.cov.pars=c(0.2,30000),cov.model="exponential",fix.nugget=FALSE,nugget=0.125,fix.kappa=FALSE,kappa=0.45)
+plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",type="b") 
+#lines(fitv)
 
 swe <- raster::getData("GADM", country = "SWE", level = 1)
 swe<-spTransform(swe,proj4string(ds))
-#plot(swe)
-#plot(ds,add=TRUE)
 
-prdomain <- inla.nonconvex.hull(coordinates(ds),convex=-0.02, resolution = c(100, 100))
-
-mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(100000,200000),offset=c(20000,50000),cutoff=15000,boundary=prdomain)
+#prdomain <- inla.nonconvex.hull(coordinates(ds),convex=-0.02, resolution = c(100, 100))
+mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(100000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
 plot(mesh,asp=1)
-points(ds,pch=16,cex=0.25,col="red")
+#points(ds,pch=16,cex=0.25,col="red")
 
 #spde<-inla.spde2.matern(mesh,alpha=2)
 spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
 
 #m<-inla(model,data=list(y=d$PA,intercept=rep(1,spde$n.spde),spatial=1:spde$n.spde),control.predictor=list(A=A,compute=TRUE),family="binomial")
 
-g<-makegrid(ds,n=3000)
+g<-makegrid(swe,n=1000) # makes sure pixels touching are included too
 g<-SpatialPoints(g,proj4string=CRS(proj4string(ds)))
 g<-SpatialPixels(g)
-gbuff<-gBuffer(gBuffer(gBuffer(ds,width=1000),width=5000),width=40000)
-o<-over(g,gbuff)
-g<-g[!is.na(o),]
+o<-over(g,swe)
+g<-g[apply(o,1,function(i){!all(is.na(i))}),]
 
-plot(gbuff)
+#plot(gbuff)
+plot(swe)
 plot(g,add=TRUE)
 plot(ds,add=TRUE)
-
 
 s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(ds))
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
+Ap2<-inla.spde.make.A(mesh=mesh,loc=matrix(c(394218,6190005),ncol=2)[rep(1,100),,drop=FALSE])
+v<-seq(0,5000,length.out=100)
 
-stack.est<-inla.stack(data=list(y=d$PA),A=list(A),effects=list(c(s.index,list(intercept=1))),tag="est")
-stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
-stack.pred<-inla.stack(data=list(y=NA),A=list(Ap),effects=list(c(s.index,list(intercept=1))),tag="pred")
+stack.est<-inla.stack(data=list(y=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=d$Pop_2017)),tag="est")
+#stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
+stack.pred<-inla.stack(data=list(y=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=rep(10,nrow(Ap)))),tag="pred")
+stack.pred2<-inla.stack(data=list(y=NA),A=list(Ap2,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=v)),tag="pred2")
 
-full.stack<-inla.stack(stack.est,stack.latent,stack.pred)
+full.stack<-inla.stack(stack.est,stack.pred,stack.pred2)
 
-model<-y~-1+intercept+f(spatial,model=spde)
+model<-y~-1+intercept+Pop_2017+f(spatial,model=spde)
 
-m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE))
+m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE))
 
 index.est<-inla.stack.index(full.stack,tag="est")$data
-index.latent<-inla.stack.index(full.stack,tag="latent")$data
+#index.latent<-inla.stack.index(full.stack,tag="latent")$data
 index.pred<-inla.stack.index(full.stack,tag="pred")$data
+index.pred2<-inla.stack.index(full.stack,tag="pred2")$data
 
-p<-m$summary.fitted.values[index.pred,"0.5quant"]
-p<-inla.link.invlogit(m$summary.linear.predictor[index.pred,"mean"])
+p<-m$summary.fitted.values[index.pred,"sd"]
+#p<-inla.link.invlogit(m$summary.linear.predictor[index.pred,"mean"])
 
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 
@@ -93,14 +100,24 @@ cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
 
 plot(gp,col=cols)
 points(ds,col=alpha(ifelse(d$PA==1,"red","black"),0.35),pch=16,cex=0.3)
+plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
+par(mfrow=c(1,1))
 
-image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
+par(mfrow=c(1,1),mar=c(4,4,3,3))
+pme<-m$summary.fitted.values[index.pred2,"0.5quant"]
+pup<-m$summary.fitted.values[index.pred2,"0.025quant"]
+plo<-m$summary.fitted.values[index.pred2,"0.975quant"]
+plot(v,pme,type="l",ylim=c(0,1))
+lines(v,pup,lty=3)
+lines(v,plo,lty=3)
+points(d$Pop_2017,jitter(d$PA,amount=0.025))
+#p<-inla.link.invlogit(m$summary.linear.predictor[index.pred2,"mean"])
+
+#image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
 
 projgrid <- inla.mesh.projector(mesh, dims=c(200,200))
-
 xmean <- inla.mesh.project(projgrid, m$summary.random$s$mean)
 image(xmean,asp=2)
-
 
 res<-inla.spde2.result(m,"spatial",spde)
 
