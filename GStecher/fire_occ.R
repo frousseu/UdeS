@@ -9,7 +9,7 @@ library(INLA)
 library(rgeos)
 library(FRutils)
 library(RColorBrewer)
-library(brinla)
+#library(brinla)
 library(visreg)
 
 #load("~/UdeS/Consultation/GStetcher/Doc/glgm_non-LFY.RData")
@@ -18,7 +18,7 @@ library(visreg)
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
 d<-na.omit(llf.occur)
-d<-d[sample(1:nrow(d),1000),] # sample location to reduce computing time
+d<-d[sample(1:nrow(d),2000),] # sample location to reduce computing time
 
 d$high_name<-as.factor(d$high_name)
 
@@ -70,48 +70,62 @@ s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(ds))
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
-Ap2<-inla.spde.make.A(mesh=mesh,loc=matrix(c(394218,6190005),ncol=2)[rep(1,100),,drop=FALSE])
-v<-seq(0,5000,length.out=100)
+n<-100
+Ap1<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,100),,drop=FALSE])
+#Ap2<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,100),,drop=FALSE])
+Pop_2017<-seq(0,5000,length.out=n)
+trees_age<-seq(0,140,length.out=n)
 
-stack.est<-inla.stack(data=list(y=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=d$Pop_2017)),tag="est")
+stack.est<-inla.stack(data=list(y=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=d$Pop_2017,trees_age=trees_age)),tag="est")
 #stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
-stack.pred<-inla.stack(data=list(y=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=rep(10,nrow(Ap)))),tag="pred")
-stack.pred2<-inla.stack(data=list(y=NA),A=list(Ap2,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=v)),tag="pred2")
+stack.pred<-inla.stack(data=list(y=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=rep(10,nrow(Ap)),trees_age=rep(40,nrow(Ap)))),tag="pred")
+stack.Pop_2017<-inla.stack(data=list(y=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=Pop_2017,trees_age=rep(mean(d$trees_age),n))),tag="Pop_2017")
+stack.trees_age<-inla.stack(data=list(y=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),list(trees_age=trees_age,Pop_2017=rep(median(d$Pop_2017),n))),tag="trees_age")
 
-full.stack<-inla.stack(stack.est,stack.pred,stack.pred2)
+full.stack<-inla.stack(stack.est,stack.pred,stack.Pop_2017,stack.trees_age)
 
-model<-y~-1+intercept+Pop_2017+f(spatial,model=spde)
+model<-y~-1+intercept+Pop_2017+trees_age+f(spatial,model=spde)
 
 m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE))
 
 index.est<-inla.stack.index(full.stack,tag="est")$data
 #index.latent<-inla.stack.index(full.stack,tag="latent")$data
 index.pred<-inla.stack.index(full.stack,tag="pred")$data
-index.pred2<-inla.stack.index(full.stack,tag="pred2")$data
+index.Pop_2017<-inla.stack.index(full.stack,tag="Pop_2017")$data
+index.trees_age<-inla.stack.index(full.stack,tag="trees_age")$data
 
-p<-m$summary.fitted.values[index.pred,"sd"]
-#p<-inla.link.invlogit(m$summary.linear.predictor[index.pred,"mean"])
 
+### map predictions
+p<-m$summary.fitted.values[index.pred,"mean"]
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
-
 brks <- seq(min(p),max(p),by=0.01)
 cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
 #plot(gp,breaks=brks,col=cols,at=pretty(brks,10))
-
 plot(gp,col=cols)
 points(ds,col=alpha(ifelse(d$PA==1,"red","black"),0.35),pch=16,cex=0.3)
 plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 par(mfrow=c(1,1))
 
-par(mfrow=c(1,1),mar=c(4,4,3,3))
-pme<-m$summary.fitted.values[index.pred2,"0.5quant"]
-pup<-m$summary.fitted.values[index.pred2,"0.025quant"]
-plo<-m$summary.fitted.values[index.pred2,"0.975quant"]
-plot(v,pme,type="l",ylim=c(0,1))
-lines(v,pup,lty=3)
-lines(v,plo,lty=3)
+
+### graphs predictions
+par(mfrow=c(1,2),mar=c(4,4,3,3))
+# Pop_2017
+pme<-m$summary.fitted.values[index.Pop_2017,"0.5quant"]
+pup<-m$summary.fitted.values[index.Pop_2017,"0.025quant"]
+plo<-m$summary.fitted.values[index.Pop_2017,"0.975quant"]
+plot(Pop_2017,pme,type="l",ylim=c(0,1))
+lines(Pop_2017,pup,lty=3)
+lines(Pop_2017,plo,lty=3)
 points(d$Pop_2017,jitter(d$PA,amount=0.025))
-#p<-inla.link.invlogit(m$summary.linear.predictor[index.pred2,"mean"])
+# trees_age
+pme<-m$summary.fitted.values[index.trees_age,"0.5quant"]
+pup<-m$summary.fitted.values[index.trees_age,"0.025quant"]
+plo<-m$summary.fitted.values[index.trees_age,"0.975quant"]
+plot(trees_age,pme,type="l",ylim=c(0,1))
+lines(trees_age,pup,lty=3)
+lines(trees_age,plo,lty=3)
+points(d$trees_age,jitter(d$PA,amount=0.025))
+
 
 #image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
 
