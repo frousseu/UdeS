@@ -12,15 +12,13 @@ library(RColorBrewer)
 #library(brinla)
 library(visreg)
 
-#load("~/UdeS/Consultation/GStetcher/Doc/glgm_non-LFY.RData")
-#load("~/UdeS/Consultation/GStetcher/Doc/glgm_LFY.RData")
-
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
 d<-na.omit(llf.occur)
 d<-d[sample(1:nrow(d),2000),] # sample location to reduce computing time
 
 d$high_name<-as.factor(d$high_name)
+d$logPop_2017<-log(d$Pop_2017+0.2)
 
 ds<-d
 coordinates(ds)<-~Longitude+Latitude
@@ -31,8 +29,9 @@ ds<-spTransform(ds,CRS(prj))
 
 #plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
 
-m <- glm (PA ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
-par(mfrow=c(3,3))
+m <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
+m <- glm (PA ~ logPop_2017 + trees_age, family = binomial(link = "logit"), data = na.omit(d))
+par(mfrow=c(3,3),mar=c(4,4,3,3))
 visreg(m,scale="response")
 par(mfrow=c(1,1))
 
@@ -42,13 +41,12 @@ v<-variog(coords=coords,data=resid(m),breaks=seq(0,100000,by=500),max.dist=10000
 plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",type="b") 
 #lines(fitv)
 
-swe <- raster::getData("GADM", country = "SWE", level = 1)
+swe <- raster::getData("GADM", country = "SWE", level = 0)
 swe<-spTransform(swe,proj4string(ds))
 
 #prdomain <- inla.nonconvex.hull(coordinates(ds),convex=-0.02, resolution = c(100, 100))
 mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(100000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
 plot(mesh,asp=1)
-#points(ds,pch=16,cex=0.25,col="red")
 
 #spde<-inla.spde2.matern(mesh,alpha=2)
 spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
@@ -58,73 +56,75 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
 g<-makegrid(swe,n=1000) # makes sure pixels touching are included too
 g<-SpatialPoints(g,proj4string=CRS(proj4string(ds)))
 g<-SpatialPixels(g)
-o<-over(g,swe)
+o<-over(as(g,"SpatialPolygons"),swe)
 g<-g[apply(o,1,function(i){!all(is.na(i))}),]
 
-#plot(gbuff)
-plot(swe)
-plot(g,add=TRUE)
-plot(ds,add=TRUE)
-
 s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
+
+model<-PA~-1+VEGZONSNA+intercept+logPop_2017+trees_age+Road_dens+WtrUrb_km+f(spatial,model=spde)
 
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(ds))
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-100
-Ap1<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,100),,drop=FALSE])
-#Ap2<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,100),,drop=FALSE])
-Pop_2017<-seq(0,5000,length.out=n)
-trees_age<-seq(0,140,length.out=n)
+Ap1<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE])
 
-stack.est<-inla.stack(data=list(y=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=d$Pop_2017,trees_age=trees_age)),tag="est")
+v<-setdiff(all.vars(model),c("PA","intercept","spatial","spde"))
+lp<-newdata(x=d[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
+lpmed<-lapply(newdata(x=d[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
+
+
+stack.est<-inla.stack(data=list(PA=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(d[,v,drop=FALSE])),tag="est")
 #stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
-stack.pred<-inla.stack(data=list(y=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=rep(10,nrow(Ap)),trees_age=rep(40,nrow(Ap)))),tag="pred")
-stack.Pop_2017<-inla.stack(data=list(y=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),list(Pop_2017=Pop_2017,trees_age=rep(mean(d$trees_age),n))),tag="Pop_2017")
-stack.trees_age<-inla.stack(data=list(y=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),list(trees_age=trees_age,Pop_2017=rep(median(d$Pop_2017),n))),tag="trees_age")
+stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
+#stack.map<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="map")
 
-full.stack<-inla.stack(stack.est,stack.pred,stack.Pop_2017,stack.trees_age)
+full.stack<-inla.stack(stack.est,stack.map)
 
-model<-y~-1+intercept+Pop_2017+trees_age+f(spatial,model=spde)
+for(i in seq_along(v)){
+  stack<-inla.stack(data=list(PA=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
+  full.stack<-inla.stack(full.stack,stack)
+}
+
+index.est<-inla.stack.index(full.stack,tag="est")$data
+index.map<-inla.stack.index(full.stack,tag="map")$data
+index<-list(est=index.est,map=index.map)
+for(i in seq_along(v)){
+  index<-c(index,list(inla.stack.index(full.stack,tag=v[i])$data))
+}  
+names(index)[3:length(index)]<-v
 
 m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE))
 
-index.est<-inla.stack.index(full.stack,tag="est")$data
-#index.latent<-inla.stack.index(full.stack,tag="latent")$data
-index.pred<-inla.stack.index(full.stack,tag="pred")$data
-index.Pop_2017<-inla.stack.index(full.stack,tag="Pop_2017")$data
-index.trees_age<-inla.stack.index(full.stack,tag="trees_age")$data
-
-
 ### map predictions
-p<-m$summary.fitted.values[index.pred,"mean"]
+par(mfrow=c(1,2),oma=c(0,5,0,5))
+plot(swe,border=gray(0,0.25),lwd=0.01)
+points(ds,col=alpha(ifelse(d$PA==1,"red","blue"),0.4),pch=ifelse(d$PA==1,16,16),cex=ifelse(d$PA==1,0.15,0.15))
+p<-m$summary.fitted.values[index[["map"]],"mean"]
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 brks <- seq(min(p),max(p),by=0.01)
-cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
+#cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
+cols<-colo.scale(300,rev(brewer.pal(11,"RdYlGn")))
 #plot(gp,breaks=brks,col=cols,at=pretty(brks,10))
-plot(gp,col=cols)
-points(ds,col=alpha(ifelse(d$PA==1,"red","black"),0.35),pch=16,cex=0.3)
+plot(swe)
+plot(raster(gp),col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(0:1,n=10), labels=pretty(0:1,n=10)),
+     legend.args=list(text='Probability of use', side=4, font=2, line=2.3))
 plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 par(mfrow=c(1,1))
 
 
 ### graphs predictions
-par(mfrow=c(1,2),mar=c(4,4,3,3))
-# Pop_2017
-pme<-m$summary.fitted.values[index.Pop_2017,"0.5quant"]
-pup<-m$summary.fitted.values[index.Pop_2017,"0.025quant"]
-plo<-m$summary.fitted.values[index.Pop_2017,"0.975quant"]
-plot(Pop_2017,pme,type="l",ylim=c(0,1))
-lines(Pop_2017,pup,lty=3)
-lines(Pop_2017,plo,lty=3)
-points(d$Pop_2017,jitter(d$PA,amount=0.025))
-# trees_age
-pme<-m$summary.fitted.values[index.trees_age,"0.5quant"]
-pup<-m$summary.fitted.values[index.trees_age,"0.025quant"]
-plo<-m$summary.fitted.values[index.trees_age,"0.975quant"]
-plot(trees_age,pme,type="l",ylim=c(0,1))
-lines(trees_age,pup,lty=3)
-lines(trees_age,plo,lty=3)
-points(d$trees_age,jitter(d$PA,amount=0.025))
+par(mfrow=c(2,3),mar=c(4,4,3,3),oma=c(0,10,0,0))
+for(i in seq_along(v)){
+  p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
+  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="")
+  lines(lp[[v[i]]][[1]],p[,1],lty=3)
+  lines(lp[[v[i]]][[1]],p[,3],lty=3)
+  points(d[,v[i]],jitter(d$PA,amount=0.035),pch=16,col=gray(0,0.2))
+}
+mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
+
+
+
 
 
 #image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
