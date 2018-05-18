@@ -66,7 +66,7 @@ model<-PA~-1+VEGZONSNA+intercept+logPop_2017+trees_age+Road_dens+WtrUrb_km+f(spa
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(ds))
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-100
-Ap1<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE])
+Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE])
 
 v<-setdiff(all.vars(model),c("PA","intercept","spatial","spde"))
 lp<-newdata(x=d[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
@@ -81,7 +81,13 @@ stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(
 full.stack<-inla.stack(stack.est,stack.map)
 
 for(i in seq_along(v)){
-  stack<-inla.stack(data=list(PA=NA),A=list(Ap1,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
+  le<-length(lp[[v[i]]][[1]])
+  if(le!=n){
+    AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,le),,drop=FALSE])
+  }else{
+    AA<-Apn
+  }
+  stack<-inla.stack(data=list(PA=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
   full.stack<-inla.stack(full.stack,stack)
 }
 
