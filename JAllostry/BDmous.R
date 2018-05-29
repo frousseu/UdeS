@@ -262,12 +262,13 @@ plot(x)
 ################################################
 ### space-time simple from spde tutorial
 
-xs<-ds[ds$year=="2015",]
+xs<-ds[ds$year=="2014",]
 xs$sp<-log(xs$A29+1)
+#xs$sp<-xs$A29
 xs<-xs[order(xs$Annee,xs$Week),]
 
 prdomain <- inla.nonconvex.hull(coordinates(xs),convex=-0.05, resolution = c(100, 100))
-prmesh1<-inla.mesh.2d(loc=coordinates(xs),max.edge=c(5000,40000),offset=c(20000,10000),cutoff=5000,boundary=prdomain)
+prmesh1<-inla.mesh.2d(loc=coordinates(xs),max.edge=c(3000,40000),offset=c(20000,10000),cutoff=3000,boundary=prdomain)
 plot(prmesh1,asp=1)
 
 ## ----spde----------------------------------------------------------------
@@ -299,19 +300,20 @@ formulae <- y ~ 0 + w +
   f(i, model=spde, group=i.group, 
     control.group=list(model='ar1', hyper=h.spec)) 
 prec.prior <- list(prior='pc.prec', param=c(4, 0.01))
-res <- inla(formulae,  data=inla.stack.data(sdat), 
-            control.predictor=list(compute=TRUE, A=inla.stack.A(sdat)), 
+m <- inla(formulae,  data=inla.stack.data(sdat), 
+            control.predictor=list(compute=TRUE, A=inla.stack.A(sdat),link=1), 
             control.family=list(hyper=list(theta=prec.prior)), 
-            control.fixed=list(expand.factor.strategy='inla'))
+            control.fixed=list(expand.factor.strategy='inla'),
+            family="gaussian")
 
 ## ----sbeta---------------------------------------------------------------
-round(cbind(observed=tapply(dat$y, dat$w, mean), res$summary.fixed), 4) 
+round(cbind(observed=tapply(dat$y, dat$w, mean), m$summary.fixed), 4) 
 
 ## ----echo=FALSE,fig.width=5.5,fig.height=5.5-----------------------------
 par(mfrow=c(2,2), mar=c(3,3,1,0.1), mgp=2:0)
 for (j in 1:4) {
-  plot(res$marginals.hyper[[j]], type='l', 
-       xlab=names(res$marginals.hyper)[j], ylab='Density')
+  plot(m$marginals.hyper[[j]], type='l', 
+       xlab=names(m$marginals.hyper)[j], ylab='Density')
   abline(v=c(1/sd.y^2, sqrt(8)/params[1], 
              params[2]^0.5, rho)[j], col=2)
 }
@@ -320,7 +322,7 @@ for (j in 1:4) {
 str(idat <- inla.stack.index(sdat, 'stdata')$data) 
 
 ## ----meanrf--------------------------------------------------------------
-cor(xs$sp, res$summary.linear.predictor$mean[idat])
+cor(xs$sp, m$summary.linear.predictor$mean[idat])
 
 ## ----projgrid------------------------------------------------------------
 coords<-coordinates(xs)
@@ -332,11 +334,15 @@ projgrid <- inla.mesh.projector(prmesh1, xlim=range(coords[,1]),ylim=range(coord
 ## ----projpmean-----------------------------------------------------------
 xmean <- list()
 for (j in 1:k){
-  xmean[[j]] <- inla.mesh.project(projgrid,res$summary.random$i$mean[iset$i.group==j])
+  xmean[[j]] <- inla.mesh.project(projgrid,m$summary.random$i$mean[iset$i.group==j])
 }
 
 ## ----inout---------------------------------------------------------------
 b<-gBuffer(gConvexHull(SpatialPoints(prdomain$loc,p=CRS(proj4string(ds)))),width=100,byid=FALSE)
+a<-concaveman(coordinates(xs),2)
+a<-gBuffer(spPolygons(a,crs=CRS(proj4string(xs))),width=5000)
+#plot(a)
+#plot(xs,add=TRUE)
 o <- over(SpatialPoints(projgrid$lattice$loc,p=CRS(proj4string(ds))),b)
 
 ## ----setNAs---------------------------------------------------------------
@@ -355,9 +361,12 @@ cols<-colo.scale(200,rev(brewer.pal(11,"RdYlBu")))
 
 xxs<-split(xs,xs$Week)
 levelplot(r,col.regions=cols,cuts=199)+
-  layer(sp.points(xxs[[panel.number()]],col=gray(0,0.1),pch=1,cex=xxs[[panel.number()]]$sp/3))
+  layer(sp.points(xxs[[panel.number()]],col=gray(0,0.1),pch=1,cex=identity(xxs[[panel.number()]]$sp)/3))
   #+#layer(sp.polygons(xxs))
 
+#plot(m$summary.fitted.values$mean[1:nrow(xs)],xs$sp)
+
+#levelplot(exp(r)-1,zscaleLog=10)
 
 ####################################
 ### test color raster
@@ -384,9 +393,12 @@ levelplot(r)
 ### test color raster
 ####################################
 
-a<-ashape(coordinates(xs),alpha=1)
 
+     
 
+x<-rnbinom(n=100000,size=0.61,mu=5)
+mean(x)
+hist(x)
 
 
 
