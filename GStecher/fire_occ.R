@@ -15,7 +15,7 @@ library(visreg)
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
 d<-na.omit(llf.occur)
-d<-d[sample(1:nrow(d),2000),] # sample location to reduce computing time
+d<-d[sample(1:nrow(d),5000),] # sample location to reduce computing time
 
 d$high_name<-as.factor(d$high_name)
 d$logPop_2017<-log(d$Pop_2017+0.2)
@@ -29,14 +29,14 @@ ds<-spTransform(ds,CRS(prj))
 
 #plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
 
-m <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
-m <- glm (PA ~ logPop_2017 + trees_age, family = binomial(link = "logit"), data = na.omit(d))
+m1 <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
+m1 <- glm (PA ~ -1+VEGZONSNA+logPop_2017+trees_age+Road_dens+WtrUrb_km, family = binomial(link = "logit"), data = na.omit(d))
 par(mfrow=c(3,3),mar=c(4,4,3,3))
-visreg(m,scale="response")
+visreg(m1,scale="response")
 par(mfrow=c(1,1))
 
 coords <- coordinates(ds)
-v<-variog(coords=coords,data=resid(m),breaks=seq(0,100000,by=500),max.dist=100000,bin.cloud=TRUE)
+v<-variog(coords=coords,data=resid(m1),breaks=seq(0,100000,by=500),max.dist=100000,bin.cloud=TRUE)
 #fitv<-variofit(v,ini.cov.pars=c(0.2,30000),cov.model="exponential",fix.nugget=FALSE,nugget=0.125,fix.kappa=FALSE,kappa=0.45)
 plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",type="b") 
 #lines(fitv)
@@ -45,7 +45,7 @@ swe <- raster::getData("GADM", country = "SWE", level = 0)
 swe<-spTransform(swe,proj4string(ds))
 
 #prdomain <- inla.nonconvex.hull(coordinates(ds),convex=-0.02, resolution = c(100, 100))
-mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(100000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
+mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(20000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
 plot(mesh,asp=1)
 
 #spde<-inla.spde2.matern(mesh,alpha=2)
@@ -53,7 +53,7 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
 
 #m<-inla(model,data=list(y=d$PA,intercept=rep(1,spde$n.spde),spatial=1:spde$n.spde),control.predictor=list(A=A,compute=TRUE),family="binomial")
 
-g<-makegrid(swe,n=1000) # makes sure pixels touching are included too
+g<-makegrid(swe,n=10000) # makes sure pixels touching are included too
 g<-SpatialPoints(g,proj4string=CRS(proj4string(ds)))
 g<-SpatialPixels(g)
 o<-over(as(g,"SpatialPolygons"),swe)
@@ -83,7 +83,7 @@ full.stack<-inla.stack(stack.est,stack.map)
 for(i in seq_along(v)){
   le<-length(lp[[v[i]]][[1]])
   if(le!=n){
-    AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,le),,drop=FALSE])
+    AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,le),,drop=FALSE])
   }else{
     AA<-Apn
   }
@@ -122,10 +122,14 @@ par(mfrow=c(1,1))
 par(mfrow=c(2,3),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
-  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="")
-  lines(lp[[v[i]]][[1]],p[,1],lty=3)
-  lines(lp[[v[i]]][[1]],p[,3],lty=3)
-  points(d[,v[i]],jitter(d$PA,amount=0.035),pch=16,col=gray(0,0.2))
+  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1)
+  if(nrow(p)==n){
+    lines(lp[[v[i]]][[1]],p[,1],lty=3)
+    lines(lp[[v[i]]][[1]],p[,3],lty=3)
+  }else{
+    segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
+  }
+  points(d[,v[i]],jitter(d$PA,amount=0.035),pch=16,col=gray(0,0.15))
 }
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
