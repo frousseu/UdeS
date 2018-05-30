@@ -920,6 +920,8 @@ lapply(ml,function(i){lapply(i,vif2,data=d)})
 summary(m[[16]][[2]]$inla)
 plot(d$P_indFor_g_2000,d$P_indFor_g)
 
+autoplot(m[[16]][[2]]$inla)
+
 
 ######################################################################
 ### prediction rasters stacks
@@ -1189,32 +1191,38 @@ p<-stack(calc(m[[13]][[1]]$raster$predict.0.025quant,inla.link.invlogit),
          calc(m[[13]][[1]]$raster$predict.mean,inla.link.invlogit),
          calc(m[[13]][[1]]$raster$predict.0.975quant,inla.link.invlogit))
 
+p<-stack(m[[16]][[2]]$raster$predict.sd)
+p<-stack(calc(m[[16]][[2]]$raster$predict.mean,inla.link.invlogit))
+
 levelplot(p,col.regions=terrain.colors(100),cuts=99)
+plot(p)
+#locator()
+
+par(mfrow=c(2,3),oma=c(0,4,0,0),mar=c(3,2,1,1))
+mtext("Probability of Attack",outer=TRUE,side=2,line=1.5)
 
 ds2<-ds@data
 ds2$x<-coordinates(ds)[,1]
 ds2$y<-coordinates(ds)[,2]
 
-#mform<-ml[[16]][[2]]
-mform<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
-nvar<-"Branch_p"
-xvar<-seq(min(ds2[,nvar]),max(ds2[,nvar]),length.out=50)
-allvars<-all.vars(mform)
-vars<-allvars[!allvars%in%c("Cat_Typ","Attack",nvar)]
-newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars,drop=FALSE])))))
-newdat<-newdat[rep(1,length(xvar)),]
-newdat[,nvar]<-xvar
+mform<-ml[[16]][[2]]
+#mform<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
+nvar<-"Cat_Typ"
+#xvar<-seq(min(ds2[,nvar]),max(ds2[,nvar]),length.out=50)
+vars<-all.vars(mform)
+vars<-vars[!vars%in%c("Attack")]
+#newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars,drop=FALSE])))))
+#newdat<-newdat[rep(1,length(xvar)),]
+#newdat[,nvar]<-xvar
 
-newdat$x<-233173.6
-newdat$y<-2037153
+newdat<-newdata(ds2[,vars],v=nvar,n=50,list=FALSE)
+names(newdat)<-gsub(paste0(nvar,"."),"",names(newdat))
+newdat<-as.data.frame(newdat)
+#newdat$Attack<-NA
+xvar<-newdat[,1]
 
-#plot(r)
-#plot(ds,add=TRUE)
-#points(newdat$x[1],newdat$y[2],pch=16,cex=5,col="yellow")
-
-### Explore variogram from glm residuals from model3
-
-#plot(calc(fit$raster$predict.mean-fit$raster$random.mean,fun=inla.link.invlogit))
+newdat$x<-268400
+newdat$y<-2045871
 
 ds2<-rbind.fill(ds2,newdat)
 coordinates(ds2)<-~x+y
@@ -1229,22 +1237,29 @@ fit<-glgm(mform,
           buffer=10000,
           shape=1,
           priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
-          control.predictor=list(compute=TRUE,link=1)
+          control.predictor=list(compute=TRUE,link=1),
+          num.threads=1
 )
 
 #summary(fit$inla)
-p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
+#p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
 p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
-plot(xvar,p$mean,ylim=0:1,type="l",xlab=nvar,ylab="Probability of attack")
-lines(xvar,p$"0.025quant",lty=2)
-lines(xvar,p$"0.975quant",lty=2)
+plot(xvar,p$mean,ylim=0:1,type="l",lwd=2,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
+shade<-na.omit(cbind(x=c(xvar,rev(xvar),xvar[1]),y=c(p$"0.025quant",rev(p$"0.975quant"),p$"0.025quant"[1])))
+polygon(shade,col=gray(0.5,0.5),border=NA)
+axis(2,las=2)
 
-glm1<-glm(mform,data=d,family="binomial")
-summary(glm1)
-visreg(glm1,scale="response")
+
+
+#glm1<-glm(mform,data=d,family="binomial")
+#summary(glm1)
+#visreg(glm1,scale="response")
 
 ### posteriors param
 autoplot(fit$inla,which=1)
+
+### parameters
+m[[16]][[2]]$parameters$summary
 
 
 ######################################################################
