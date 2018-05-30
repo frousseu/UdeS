@@ -41,7 +41,7 @@ newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
   names(ans)<-v
   
   if(length(v)==1L){
-    unlist(ans)
+    unlist(ans,recursive=FALSE)
   }else{
     ans
   }
