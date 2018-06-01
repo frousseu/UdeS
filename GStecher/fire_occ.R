@@ -14,47 +14,47 @@ library(visreg)
 
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
-d<-na.omit(llf.occur)
-d<-d[sample(1:nrow(d),5000),] # sample location to reduce computing time
+occ<-na.omit(llf.occur)
+occ<-occ[sample(1:nrow(occ),5000),] # sample location to reduce computing time
 
-d$high_name<-as.factor(d$high_name)
-d$logPop_2017<-log(d$Pop_2017+0.2)
+occ$high_name<-as.factor(occ$high_name)
+occ$logPop_2017<-log(occ$Pop_2017+0.2)
 
-ds<-d
-coordinates(ds)<-~Longitude+Latitude
-proj4string(ds)<-"+init=epsg:4326"
+occs<-occ
+coordinates(occs)<-~Longitude+Latitude
+proj4string(occs)<-"+init=epsg:4326"
 
 prj<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
-ds<-spTransform(ds,CRS(prj))
+occs<-spTransform(occs,CRS(prj))
 
-#plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
+#plot(occs,col=alpha(ifelse(occs$PA==1,"red","blue"),0.25),pch=16)
 
-m1 <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(d))
-m1 <- glm (PA ~ -1+VEGZONSNA+logPop_2017+trees_age+Road_dens+WtrUrb_km, family = binomial(link = "logit"), data = na.omit(d))
+m1 <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(occ))
+m1 <- glm (PA ~ -1+VEGZONSNA+logPop_2017+trees_age+Road_dens+WtrUrb_km, family = binomial(link = "logit"), data = na.omit(occ))
 par(mfrow=c(3,3),mar=c(4,4,3,3))
 visreg(m1,scale="response")
 par(mfrow=c(1,1))
 
-coords <- coordinates(ds)
+coords <- coordinates(occs)
 v<-variog(coords=coords,data=resid(m1),breaks=seq(0,100000,by=500),max.dist=100000,bin.cloud=TRUE)
 #fitv<-variofit(v,ini.cov.pars=c(0.2,30000),cov.model="exponential",fix.nugget=FALSE,nugget=0.125,fix.kappa=FALSE,kappa=0.45)
 plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",type="b") 
 #lines(fitv)
 
 swe <- raster::getData("GADM", country = "SWE", level = 0)
-swe<-spTransform(swe,proj4string(ds))
+swe<-spTransform(swe,proj4string(occs))
 
-#prdomain <- inla.nonconvex.hull(coordinates(ds),convex=-0.02, resolution = c(100, 100))
-mesh<-inla.mesh.2d(loc=coordinates(ds),max.edge=c(20000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
+#prdomain <- inla.nonconvex.hull(coordinates(occs),convex=-0.02, resolution = c(100, 100))
+mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(20000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
 plot(mesh,asp=1)
 
 #spde<-inla.spde2.matern(mesh,alpha=2)
 spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
 
-#m<-inla(model,data=list(y=d$PA,intercept=rep(1,spde$n.spde),spatial=1:spde$n.spde),control.predictor=list(A=A,compute=TRUE),family="binomial")
+#m<-inla(model,data=list(y=occ$PA,intercept=rep(1,spde$n.spde),spatial=1:spde$n.spde),control.predictor=list(A=A,compute=TRUE),family="binomial")
 
 g<-makegrid(swe,n=10000) # makes sure pixels touching are included too
-g<-SpatialPoints(g,proj4string=CRS(proj4string(ds)))
+g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 g<-SpatialPixels(g)
 o<-over(as(g,"SpatialPolygons"),swe)
 g<-g[apply(o,1,function(i){!all(is.na(i))}),]
@@ -63,17 +63,17 @@ s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 
 model<-PA~-1+VEGZONSNA+intercept+logPop_2017+trees_age+Road_dens+WtrUrb_km+f(spatial,model=spde)
 
-A<-inla.spde.make.A(mesh=mesh,loc=coordinates(ds))
+A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-100
 Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE])
 
 v<-setdiff(all.vars(model),c("PA","intercept","spatial","spde"))
-lp<-newdata(x=d[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
-lpmed<-lapply(newdata(x=d[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
+lp<-newdata(x=occ[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
+lpmed<-lapply(newdata(x=occ[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
 
 
-stack.est<-inla.stack(data=list(PA=d$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(d[,v,drop=FALSE])),tag="est")
+stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
 #stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
 stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
 #stack.map<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="map")
@@ -101,23 +101,52 @@ names(index)[3:length(index)]<-v
 
 m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE))
 
-### map predictions
-par(mfrow=c(1,2),oma=c(0,5,0,5))
+
+###########################################
+### raw predictions on probability of usage
+par(mfrow=c(1,4),oma=c(0,5,0,5))
 plot(swe,border=gray(0,0.25),lwd=0.01)
-points(ds,col=alpha(ifelse(d$PA==1,"red","blue"),0.4),pch=ifelse(d$PA==1,16,16),cex=ifelse(d$PA==1,0.15,0.15))
+points(occs,col=alpha(ifelse(occ$PA==1,"red","blue"),0.4),pch=ifelse(occ$PA==1,16,16),cex=ifelse(occ$PA==1,0.15,0.15))
 p<-m$summary.fitted.values[index[["map"]],"mean"]
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
+rgp<-raster(gp)
 brks <- seq(min(p),max(p),by=0.01)
 #cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
 cols<-colo.scale(300,rev(brewer.pal(11,"RdYlGn")))
 #plot(gp,breaks=brks,col=cols,at=pretty(brks,10))
 plot(swe)
-plot(raster(gp),col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(0:1,n=10), labels=pretty(0:1,n=10)),
+plot(rgp,col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(brks,n=10), labels=pretty(brks,n=10)),
      legend.args=list(text='Probability of use', side=4, font=2, line=2.3))
 plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
-par(mfrow=c(1,1))
+###############################
+### prediction on relative risk
+p<-m$summary.fitted.values[index[["map"]],"mean"]
+p<-p/(sum(occ$PA)/nrow(occ))
+gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
+rgp<-raster(gp)
+brks <- seq(min(p),max(p),by=0.01)
+#cols<-colo.scale(length(brks)-1,rev(brewer.pal(11,"RdYlGn")))
+cols<-colo.scale(brks-1,rev(brewer.pal(11,"RdBu")))
+#plot(gp,breaks=brks,col=cols,at=pretty(brks,10))
+plot(swe)
+plot(rgp,col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(brks,n=10), labels=pretty(brks,n=10)),
+     legend.args=list(text='Relative risk', side=4, font=2, line=2.3))
+plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
+#par(mfrow=c(1,1))
+##################################
+### sd
+p<-m$summary.fitted.values[index[["map"]],"sd"]
+gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
+rgp<-raster(gp)
+brks <- seq(min(p),max(p),by=0.01)
+cols<-colo.scale(300,rev(brewer.pal(11,"RdYlGn")))
+plot(swe)
+plot(rgp,col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(brks,n=10), labels=pretty(brks,n=10)),
+     legend.args=list(text='Sd of probability of use', side=4, font=2, line=2.3))
+plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 
 
+#####################################
 ### graphs predictions
 par(mfrow=c(2,3),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
@@ -129,7 +158,7 @@ for(i in seq_along(v)){
   }else{
     segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
   }
-  points(d[,v[i]],jitter(d$PA,amount=0.035),pch=16,col=gray(0,0.15))
+  points(occ[,v[i]],jitter(occ$PA,amount=0.035),pch=16,col=gray(0,0.15))
 }
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
@@ -166,7 +195,7 @@ legend("topright", lty=2:1, legend=c("prior","posterior"))
 ### glgm
 
 fit<-glgm(PA~VEGZONSNA+Populati_2+Road_dens+MDC+dom,
-          data=ds,
+          data=occs,
           grid=20,
           covariates=NULL, 
           family="binomial", 
@@ -208,7 +237,7 @@ legend("topright", lty=2:1, legend=c("prior","posterior"))
 
 # is it better to do a lgcp for a point process
 
-ds2<-ds[ds$PA==1,]
+ds2<-occs[occs$PA==1,]
 
 covList<-with(ds2@data,list(Populati_2=log(Populati_2),Road_dens=log(Road_dens),MDC=log(MDC)))
 
@@ -274,7 +303,7 @@ library(raster)
 library(spatstat)
 
 sweden <- raster:::getData("GADM", country = "SWE", level = 1)  
-sweden<-spTransform(sweden,CRS(proj4string(ds)))
+sweden<-spTransform(sweden,CRS(proj4string(occs)))
 
 plot(sweden)
 plot(ds2,add=TRUE)

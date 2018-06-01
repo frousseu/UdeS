@@ -15,31 +15,31 @@ library(quantreg)
 
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_size.RData")
 
-d<-llf.size
+size<-llf.size
 
-ds<-d
-coordinates(ds)<-~Longitude+Latitude
-proj4string(ds)<-"+init=epsg:4326"
+sizes<-size
+coordinates(sizes)<-~Longitude+Latitude
+proj4string(sizes)<-"+init=epsg:4326"
 
 prj<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
-ds<-spTransform(ds,CRS(prj))
+sizes<-spTransform(sizes,CRS(prj))
 
 #plot(ds,col=alpha(ifelse(ds$PA==1,"red","blue"),0.25),pch=16)
 
-d$high_name<-as.factor(d$high_name)
-d$logArea<-log(d$Area)
+size$high_name<-as.factor(size$high_name)
+size$logArea<-log(size$Area)
 
-m <- glm (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = gaussian(link = "identity"), data = d)
-m <- rq (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = d, tau=0.95)
+m <- glm (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = gaussian(link = "identity"), data = size)
+m <- rq (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, tau=0.95)
 #m <- glm (Area ~ 1, family = gaussian(link = "log"), data = d)
-ds$resid<-resid(m)
+sizes$resid<-resid(m)
 
 
 par(mfrow=c(3,3))
-visreg(m,trans=exp)
+visreg(m)
 par(mfrow=c(1,1))
 
-coords <- coordinates(ds)
+coords <- coordinates(sizes)
 v<-variog(coords=coords,data=resid(m),breaks=seq(0,200000,by=1000),max.dist=200000)
 #v<-variog(coords=coords,data=resid(m))
 #v<-variogram(resid~1,data=ds)
@@ -47,4 +47,4 @@ plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",ty
 
 
 swe <- raster::getData("GADM", country = "SWE", level = 1)
-swe<-spTransform(swe,proj4string(ds))
+swe<-spTransform(swe,proj4string(sizes))
