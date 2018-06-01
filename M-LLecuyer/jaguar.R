@@ -163,7 +163,7 @@ ds@data<-cbind(ds@data,obs)
 ###################################################################################
 
 pop<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",layer="poblacion")
-pop<-read.shp("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/poblacion")
+#pop<-read.shp("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/poblacion")
 
 ### for the obs
 
@@ -201,7 +201,11 @@ roads<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc",la
 
 ### for the obs
 
-di<-gDistance(ds,gLineMerge(roads),byid=TRUE)[1,]
+froad<-function(x){
+  log(x)  
+}
+
+di<-froad(gDistance(ds,gLineMerge(roads),byid=TRUE)[1,])
 
 d$Dist_Road<-di
 ds$Dist_Road<-di
@@ -236,8 +240,8 @@ ans1<-apply(dis1,2,min)
 ans2<-apply(dis2,2,min)
 
 # écrire les valeurs dans les raster
-ras1[]<-ans1
-ras2[]<-ans2
+ras1[]<-froad(ans1)
+ras2[]<-froad(ans2)
 
 # stacker les raster
 rroad<-stack(ras1,ras2)
@@ -845,6 +849,7 @@ sapply(F,vif2,data=d)
 vars<-unique(unlist(lapply(ml,function(i){lapply(i,function(j){all.vars(i[[3]])})})))
 rf<-randomForest(as.factor(Attack)~.,data=d[,c("X","Y",vars)],ntree=10000)
 varImpPlot(rf)
+#visreg(rf,"Dist_Road")
 
 ### LASSo
 X<-as.matrix(d[,setdiff(vars,c("Attack","Cat_Typ"))])
@@ -856,12 +861,13 @@ X<-apply(X,2,scale)
 Y=d$Attack
 lasso<-glmnet(X,Y,family="binomial",alpha=1,maxit=10^6)
 lassocv<-cv.glmnet(X,Y,family="binomial",alpha=1,maxit=10^6)
-coef(lassocv, s = "lambda.min",alpha=1)
+coef(lassocv,alpha=1)
+#coef(lassocv, s = "lambda.min",alpha=1)
 
 
 ####################################
 ### glgm
-registerDoParallel(6) 
+registerDoParallel(8) 
 getDoParWorkers()
 
 #ds$Attack[nrow(ds)]<-NA
@@ -889,7 +895,6 @@ ml2<-lapply(cvar,function(i){
 
 
 m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
-#m<-for(i in 1:length(ml)){
      lapply(ml[[i]],function(j){
        glgm(j, 
          data=ds,
@@ -899,6 +904,7 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
          buffer=10000,
          shape=1,
          priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
+         #prior=list(sd=c(lower=0.4,upper=4),range=c(lower=2000,upper=50000)), # not sure about legacy priors (priorCI) or new priors
          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),
          num.threads=1 # to try and get more stable results, since foreach is already parallel
        )
@@ -917,7 +923,7 @@ aic<-lapply(seq_along(aic),function(i){
 
 lapply(ml,function(i){lapply(i,vif2,data=d)})
 
-summary(m[[16]][[2]]$inla)
+summary(m[[13]][[5]]$inla)
 plot(d$P_indFor_g_2000,d$P_indFor_g)
 
 autoplot(m[[16]][[2]]$inla)
@@ -1236,7 +1242,7 @@ fit<-glgm(mform,
           family="binomial", 
           buffer=10000,
           shape=1,
-          priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
+          prior=list(sd=c(lower=0.4,upper=4),range=c(lower=2000,upper=50000)),
           control.predictor=list(compute=TRUE,link=1),
           num.threads=1
 )
