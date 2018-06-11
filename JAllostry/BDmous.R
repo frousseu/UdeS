@@ -19,17 +19,20 @@ library(data.table)
 library(plyr)
 library(alphahull)
 library(concaveman)
+library(mapview)
 
 d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/BD.xlsx"))
+d$Long<-d$LongdecSatScan
+d$Lat<-d$LatdecSatScan
 d$Long<-d$Long+0.3
-d$Lat<-d$Lat-0.27
-
+d$Lat<-d$Lat-0.2
+d$Site<-ifelse(nchar(d$Site)==6,sapply(strsplit(d$Site,"(?<=.{3})", perl = TRUE),paste,collapse=" "),d$Site)
+#unique(d$Site)
 
 #d$date<-as.Date(d$Day)
 d$year<-d$Annee
 #d$jul<-as.integer(format(d$date,"%j"))
-d$Long<-d$LongdecSatScan
-d$Lat<-d$LatdecSatScan
+
 
 d<-d[order(d$Site,d$Annee_Week),]
 
@@ -41,6 +44,85 @@ proj4string(ds)<-"+init=epsg:4326"
 
 prj<-"+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
 ds<-spTransform(ds,CRS(prj))
+
+#mapview(ds,zcol="Site")
+
+l<-list.files("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/lcc2000",pattern=".shp",full.names=TRUE)
+s<-lapply(l,st_read)
+s<-do.call("rbind",s)
+s<-st_transform(s,crs=26918)
+
+#https://open.canada.ca/data/en/dataset/97126362-5a85-4fe0-9dc2-915464cfdbb7#
+cla<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/lcc2000class.xlsx"))
+
+clan<-sapply(strsplit(cla[,1],"-"),"[",1)
+cla<-strsplit(cla[,1],"-") %>% 
+  sapply("[",-1) %>% 
+  sapply(paste0,collapse="") %>% 
+  sapply(function(i){gsub('[[:digit:]]+', '', i)}) %>% 
+  sapply(function(i){gsub("  "," ",i)}) %>% 
+  sapply(function(i){gsub("  ","",i)}) %>% 
+  unname
+
+
+cla[grep("Conifé|Mixte|Feuillu|Forêt",cla)]<-"Natural"
+cla[grep("Cultures|Prairies|agricoles",cla)]<-"Agriculture"
+cla[grep("humide",cla)]<-"Wet"
+cla[grep("Arbustes|arbustes|herbacées",cla)]<-"Natural"
+cla[grep("découvert|Stérile|Bryo",cla)]<-"Exposed"
+cla[grep("développées",cla)]<-"Urban"
+cla[grep("Ombre",cla)]<-NA
+
+s$cover<-factor(cla[match(s$COVTYPE,clan)])
+
+r<-raster(nrow=2000,ncol=3000,ext=extent(s))
+
+rx<-fasterize(s,r,field="cover",fun="max")
+rn<-fasterize(s,r,field="cover",fun="min")
+
+r<-ratify(rx)
+
+levels(s$cover)
+hn<-levels(r)[[1]][,1]
+cols<-c("lightgoldenrod","skyblue","grey30","forestgreen","grey60","brown")
+par(mar=c(0,0,0,0))
+plot(r,legend=FALSE,col=cols)
+legend("bottomright",legend=levels(s$cover),fill=cols,bty="n",border=NA,cex=2)
+points(ds,col="red",pch=16,cex=0.8)
+
+
+v<-velox(r)
+b<-1000
+g<-st_buffer(st_as_sf(ds),dist=b)
+l<-v$extract(g)
+
+
+l<-lapply(l,function(i){
+  x<-i[,1]
+  x<-x[!is.na(x)]
+  sum(x==4L)/length(x)
+})
+
+ds$natural<-unlist(l)
+
+
+grid<-st_make_grid(r,cellsize=c(1000,1000),what="centers")
+pr<-raster(SpatialGrid((points2grid(as_Spatial(grid)))))
+g<-st_buffer(st_as_sf(xyFromCell(pr,1:ncell(pr),spatial=TRUE)),dist=b)
+l<-v$extract(g)
+
+l<-lapply(l,function(i){
+  x<-i[,1]
+  x<-x[!is.na(x)]
+  sum(x==4L)/length(x)
+})
+pr<-setValues(pr,unlist(l))
+plot(pr,col=rev(viridis(100)))
+
+#tmap_mode("view")
+#tm_shape(ds) +
+#  tm_dots() +
+#  tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
 
 plot(ds)
 l<-locator()
@@ -56,9 +138,18 @@ ds<-ds[!is.na(o),]
 
 can<-raster::getData("GADM", country = "CAN", level = 2)
 que<-can[can$NAME_1=="Québec",]
-que<-spTransform(que,proj4string(ds))
-plot(ds)
-plot(que,add=TRUE)
+
+# "http://forobs.jrc.ec.europa.eu/products/glc2000/legend/GLC2000_Lccs_110604_export.xls"
+#lcc<-as.data.frame(read_xls("C:/Users/rouf1703/Downloads/GLC2000_Lccs_110604_export.xls"))
+#cov<-raster("C:/Users/rouf1703/Downloads/CAN_cov/CAN_cov.grd")
+#cov<-crop(cov,extent(-76,-70,45,49))
+#cov<-crop(cov,xs2)
+#que<-spTransform(que,proj4string(ds))
+#cov<-projectRaster(cov,crs=CRS(proj4string(ds)))
+#mapview(cov)+mapview(ds[1:1000,])
+#plot(ds)
+#plot(que,add=TRUE)
+#plot(cov,add=TRUE)
 
 
 
@@ -268,7 +359,7 @@ xs$sp<-log(xs$A29+1)
 xs<-xs[order(xs$Annee,xs$Week),]
 
 prdomain <- inla.nonconvex.hull(coordinates(xs),convex=-0.05, resolution = c(100, 100))
-prmesh1<-inla.mesh.2d(loc=coordinates(xs),max.edge=c(3000,40000),offset=c(20000,10000),cutoff=3000,boundary=prdomain)
+prmesh1<-inla.mesh.2d(loc=coordinates(xs),max.edge=c(4000,40000),offset=c(20000,10000),cutoff=4000,boundary=prdomain)
 plot(prmesh1,asp=1)
 
 ## ----spde----------------------------------------------------------------
@@ -390,15 +481,102 @@ levelplot(r)
 
 
 ####################################
-### test color raster
+### nbinom
 ####################################
 
-
-     
-
-x<-rnbinom(n=100000,size=0.61,mu=5)
+x<-rnbinom(n=100000,size=0.01,mu=10)
 mean(x)
 hist(x)
+
+####################################
+### glmmTMB
+####################################
+
+xs<-ds[ds$year=="2014" & ds$Week==31,]
+
+#l<-locator()
+#h<-gConvexHull(SpatialPoints(cbind(l$x,l$y),proj4string=CRS(proj4string(xs))))
+#plot(h,add=TRUE)
+
+xs$x<-coordinates(xs)[,1]
+xs$y<-coordinates(xs)[,2]
+xs$sp<-log(xs$A29+1)
+xs$sp<-xs$A29
+#xs$sp<-xs$A29
+xs<-xs[order(xs$Annee,xs$Week),]
+
+#plot(xs)
+points(xs,cex=log(xs$sp+1)/2)
+
+
+ctrl <- list(nthreads=8)
+fit<-gam(sp~s(x,y,k=40,bs="ds",m=c(1,0.5))+natural,data=xs@data,family=ziP,control=ctrl,method="REML")
+#fit<-gam(sp~te(x,y),data=xs@data,family=nb,control=ctrl)
+
+v<-18:43
+#r<-raster(nrow=100,ncol=200,ext=extent(gBuffer(bbox2pol(xs),width=5000)))
+ce<-xyFromCell(pr,1:ncell(pr),spatial=TRUE)
+proj4string(ce)<-proj4string(xs)
+p<-predict(fit,newdata=data.frame(Week=30,x=coordinates(ce)[,1],y=coordinates(ce)[,2],natural=values(pr),year=2014),type="response",se.fit=TRUE)$fit
+#plot(ds$Week,ds$sp)
+pr<-setValues(pr,as.vector(p))
+#r[is.na(over(ce,h))]<-NA
+plot(crop(pr,extent(gBuffer(bbox2pol(xs),width=10000))),col=rev(viridis_pal(option="viridis")(100)))
+points(xs,cex=log(xs$sp+1))
+text(xs,cex=0.6,label=xs$sp,col="tomato4")
+#plot(h,add=TRUE)
+
+t<-raster::getData('worldclim', var='tmin', res=0.5, lon=-70, lat=45)
+xs2<-spTransform(xs,CRS=CRS(proj4string(t)))
+t<-crop(t,xs2)
+plot(subset(t,1))
+plot(xs2,add=TRUE)
+
+
+
+
+
+tmap_mode("view")
+tm_shape(cov) +
+  tm_raster(palette = rev(terrain.colors(100)),n=12) +
+  tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
+
+x<-as.data.table(ds@data)
+x<-x[,lapply(.SD,sum),by=Annee,.SDcols=paste0("A",1:29)][order(Annee)]
+x
+
+
+############################
+### se.fit pattern
+n<-100
+x<-c(rnorm(n,0.5,0.1),rnorm(n,-0.5,0.1))
+y<-c(rnorm(n,0.5,0.1),rnorm(n,0.5,0.1))
+sp<-x+rnorm(n+n,0,0.2)+10
+#fit<-gam(sp~s(x,y,k=50,bs="ds",m=c(1,0.5)),data=data.frame(x,y,sp))
+fit<-gam(sp~s(x,y,k=50),data=data.frame(x,y,sp))
+r<-raster(nrow=200,ncol=200,ext=extent(-1,1,0,1))
+ce<-xyFromCell(r,1:ncell(r),spatial=TRUE)
+p<-predict(fit,newdata=data.frame(x=coordinates(ce)[,1],y=coordinates(ce)[,2]),se.fit=TRUE)$se.fit
+#plot(ds$Week,ds$sp)
+r<-setValues(r,as.vector(p))
+#r[is.na(over(ce,h))]<-NA
+plot(r,col=rev(viridis_pal(option="viridis")(100)))
+points(x,y,cex=10*(max(sp)-sp)/max(sp))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
