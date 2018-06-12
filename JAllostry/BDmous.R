@@ -20,6 +20,14 @@ library(plyr)
 library(alphahull)
 library(concaveman)
 library(mapview)
+library(fasterize)
+library(sf)
+library(velox)
+library(glmmTMB)
+library(viridis)
+library(foreach)
+library(doParallel)
+
 
 d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/JAllostry/Doc/BD.xlsx"))
 d$Long<-d$LongdecSatScan
@@ -106,7 +114,7 @@ l<-lapply(l,function(i){
 ds$natural<-unlist(l)
 
 
-grid<-st_make_grid(r,cellsize=c(1000,1000),what="centers")
+grid<-st_make_grid(r,cellsize=c(500,500),what="centers")
 pr<-raster(SpatialGrid((points2grid(as_Spatial(grid)))))
 g<-st_buffer(st_as_sf(xyFromCell(pr,1:ncell(pr),spatial=TRUE)),dist=b)
 l<-v$extract(g)
@@ -126,9 +134,9 @@ plot(pr,col=rev(viridis(100)))
 
 plot(ds)
 l<-locator()
-s<-gConvexHull(SpatialPoints(cbind(l$x,l$y),proj4string=CRS(proj4string(ds))))
-plot(s,add=TRUE)
-o<-over(ds,s)
+h<-gConvexHull(SpatialPoints(cbind(l$x,l$y),proj4string=CRS(proj4string(ds))))
+plot(h,add=TRUE)
+o<-over(ds,h)
 d<-d[!is.na(o),]
 ds<-ds[!is.na(o),]
 
@@ -138,6 +146,8 @@ ds<-ds[!is.na(o),]
 
 can<-raster::getData("GADM", country = "CAN", level = 2)
 que<-can[can$NAME_1=="Québec",]
+
+rm(rx,rn,s,can);gc();gc()
 
 # "http://forobs.jrc.ec.europa.eu/products/glc2000/legend/GLC2000_Lccs_110604_export.xls"
 #lcc<-as.data.frame(read_xls("C:/Users/rouf1703/Downloads/GLC2000_Lccs_110604_export.xls"))
@@ -489,42 +499,80 @@ mean(x)
 hist(x)
 
 ####################################
+### gam
+####################################
+
+xs<-ds[ds$year=="2005" & ds$Week==29,]
+xs$x<-coordinates(xs)[,1]
+xs$y<-coordinates(xs)[,2]
+#xs$sp<-log(xs$A9+1)
+xs$sp<-xs$A23
+xs<-xs[order(xs$Annee,xs$Week),]
+
+points(xs,cex=log(xs$sp+1)/2)
+
+#registerDoParallel(6)
+#getDoParWorkers() 
+
+ran<-seq(1000,50000,by=1000)
+REML<-foreach(i=seq_along(ran),.packages="mgcv") %dopar% {
+  fit<-gam(sp~natural+s(x,y,bs="gp",k=40,m=c(2,ran[i])),data=xs@data,family=tw,method="REML")
+  fit$gcv.ubre
+}
+plot(ran,unlist(REML),type="l")
+rho<-ran[which.min(unlist(REML))]
+#rho<-9000
+
+fit<-gam(sp~natural+s(x,y,bs="gp",k=40,m=c(2,rho)),data=xs@data,family=tw,method="REML")
+#ctrl<-list(nthreads=6)
+#fit<-gam(sp~1+s(x,y,bs="ds",k=40,m=c(1,0.5)),data=xs@data,family=tw,method="REML")
+
+pred<-crop(pr,extent(gBuffer(bbox2pol(ds),width=2000)))
+ce<-xyFromCell(pred,1:ncell(pred),spatial=TRUE)
+proj4string(ce)<-proj4string(xs)
+p<-predict(fit,newdata=data.frame(Week=27,x=coordinates(ce)[,1],y=coordinates(ce)[,2],natural=values(pred),year=2014),type="response",se.fit=TRUE)$fit
+pred<-setValues(pred,as.vector(p))
+plot(pred,col=rev(viridis_pal(option="viridis")(100)))
+points(xs,cex=log(xs$sp+1),col=gray(0,0.15),xpd=TRUE)
+points(ds[!duplicated(ds$Site),],cex=0.35,pch=3,col=gray(0,0.15))
+#text(xs,cex=0.6,label=xs$sp,col="tomato4")
+
+
+
+####################################
 ### glmmTMB
 ####################################
 
-xs<-ds[ds$year=="2014" & ds$Week==31,]
-
-#l<-locator()
-#h<-gConvexHull(SpatialPoints(cbind(l$x,l$y),proj4string=CRS(proj4string(xs))))
-#plot(h,add=TRUE)
-
+xs<-ds[ds$year=="2016" & ds$Week==30,]
 xs$x<-coordinates(xs)[,1]
 xs$y<-coordinates(xs)[,2]
-xs$sp<-log(xs$A29+1)
-xs$sp<-xs$A29
+xs$sp<-log(xs$A29+1)#
 #xs$sp<-xs$A29
 xs<-xs[order(xs$Annee,xs$Week),]
 
-#plot(xs)
 points(xs,cex=log(xs$sp+1)/2)
 
+xs$pos <- numFactor(coordinates(xs)[,1:2])
+xs$group <- factor(rep(1, nrow(xs)))
 
-ctrl <- list(nthreads=8)
-fit<-gam(sp~s(x,y,k=40,bs="ds",m=c(1,0.5))+natural,data=xs@data,family=ziP,control=ctrl,method="REML")
-#fit<-gam(sp~te(x,y),data=xs@data,family=nb,control=ctrl)
+fit<-glmmTMB(sp~1+exp(pos+0|group),data=xs@data)
+visreg(fit,scale="response")
 
-v<-18:43
-#r<-raster(nrow=100,ncol=200,ext=extent(gBuffer(bbox2pol(xs),width=5000)))
-ce<-xyFromCell(pr,1:ncell(pr),spatial=TRUE)
+
+pred<-crop(pr,extent(gBuffer(bbox2pol(xs),width=10000)))
+pred<-aggregate(pred,5)
+ce<-xyFromCell(pred,1:ncell(pred),spatial=TRUE)
 proj4string(ce)<-proj4string(xs)
-p<-predict(fit,newdata=data.frame(Week=30,x=coordinates(ce)[,1],y=coordinates(ce)[,2],natural=values(pr),year=2014),type="response",se.fit=TRUE)$fit
-#plot(ds$Week,ds$sp)
-pr<-setValues(pr,as.vector(p))
-#r[is.na(over(ce,h))]<-NA
-plot(crop(pr,extent(gBuffer(bbox2pol(xs),width=10000))),col=rev(viridis_pal(option="viridis")(100)))
+p<-predict(fit,newdata=data.frame(pos=numFactor(coordinates(ce)[,1:2]),natural=values(pred),group=factor(rep(1,ncell(pred)))),type="response", allow.new.levels=TRUE)
+pred<-setValues(pred,as.vector(p))
+plot(pred,col=rev(viridis_pal(option="viridis")(100)))
 points(xs,cex=log(xs$sp+1))
 text(xs,cex=0.6,label=xs$sp,col="tomato4")
-#plot(h,add=TRUE)
+
+
+####################################
+### climate
+####################################
 
 t<-raster::getData('worldclim', var='tmin', res=0.5, lon=-70, lat=45)
 xs2<-spTransform(xs,CRS=CRS(proj4string(t)))
@@ -534,26 +582,31 @@ plot(xs2,add=TRUE)
 
 
 
+#tmap_mode("view")
+#tm_shape(cov) +
+#  tm_raster(palette = rev(terrain.colors(100)),n=12) +
+#  tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
 
 
-tmap_mode("view")
-tm_shape(cov) +
-  tm_raster(palette = rev(terrain.colors(100)),n=12) +
-  tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
+#######################################
+### species counts
+#######################################
 
 x<-as.data.table(ds@data)
 x<-x[,lapply(.SD,sum),by=Annee,.SDcols=paste0("A",1:29)][order(Annee)]
 x
 
 
-############################
+#######################################
 ### se.fit pattern
+#######################################
+
 n<-100
 x<-c(rnorm(n,0.5,0.1),rnorm(n,-0.5,0.1))
 y<-c(rnorm(n,0.5,0.1),rnorm(n,0.5,0.1))
 sp<-x+rnorm(n+n,0,0.2)+10
-#fit<-gam(sp~s(x,y,k=50,bs="ds",m=c(1,0.5)),data=data.frame(x,y,sp))
-fit<-gam(sp~s(x,y,k=50),data=data.frame(x,y,sp))
+fit<-gam(sp~s(x,y,k=50,bs="ds",m=c(1,0.5)),data=data.frame(x,y,sp))
+#fit<-gam(sp~s(x,y,k=50),data=data.frame(x,y,sp))
 r<-raster(nrow=200,ncol=200,ext=extent(-1,1,0,1))
 ce<-xyFromCell(r,1:ncell(r),spatial=TRUE)
 p<-predict(fit,newdata=data.frame(x=coordinates(ce)[,1],y=coordinates(ce)[,2]),se.fit=TRUE)$se.fit
@@ -565,7 +618,34 @@ points(x,y,cex=10*(max(sp)-sp)/max(sp))
 
 
 
+#######################################
+### se.fit pattern2
+#######################################
 
+n<-500
+x<-c(rnorm(n,0.5,0.1))
+y<-c(rnorm(n,0.5,0.1))
+sp<-2*x+rnorm(n,0,0.2)+10
+
+m1<-gam(sp~s(x,y,k=50),data=data.frame(x,y,sp))
+m2<-gam(sp~s(x,y,k=50,bs="ds",m=c(1,0.5)),data=data.frame(x,y,sp))
+
+
+
+r<-raster(nrow=200,ncol=200,ext=extent(cbind(x,y)))
+ce<-xyFromCell(r,1:ncell(r),spatial=TRUE)
+
+par(mfrow=c(1,2))
+
+p1<-predict(m1,newdata=data.frame(x=coordinates(ce)[,1],y=coordinates(ce)[,2]),se.fit=TRUE)$se.fit
+r1<-setValues(r,as.vector(p1))
+plot(r1,col=rev(viridis_pal(option="viridis")(100)))
+points(x,y,cex=10*(max(sp)-sp)/max(sp))
+
+p2<-predict(m2,newdata=data.frame(x=coordinates(ce)[,1],y=coordinates(ce)[,2]),se.fit=TRUE)$se.fit
+r2<-setValues(r,as.vector(p2))
+plot(r2,col=rev(viridis_pal(option="viridis")(100)))
+points(x,y,cex=10*(max(sp)-sp)/max(sp))
 
 
 
