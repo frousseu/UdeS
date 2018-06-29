@@ -71,6 +71,16 @@ d[]<-lapply(d,function(i){
   }
 })
 
+# hack to add a point that will be deleted by the glgm bug
+# hack to add a tiny value so that the point is not deleted by the glgm bug
+d<-d[order(d$X),]
+d$X[1]<-d$X[1]+0.0000001
+#d<-d[c(1,1:nrow(d)),]
+#d$X[1]<-min(d$X)-0.1
+#d$P_matFor_p[1]<-47
+#d$Y[1]<-max(d$Y)+0.001
+
+
 source("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/GitHub/vif.R")
 
 vif2<-function(formula,data){
@@ -103,6 +113,9 @@ d$y<-d$Y
 d$Cat_Typ<-as.factor(d$Cat_Typ)
 plot(ds)
 
+
+#plot(r)
+#plot(ds,add=TRUE,cex=2,pch=16)
 
 #########################################
 ### import raster and build pred grid
@@ -315,7 +328,7 @@ VifLEp2=VifLEp[,-1] ##enlever l'intercept
 
 vif(VifLEp2)
 
-#drop sec forest
+# drop sec forest
 
 VifLEp3=VifLEp2[,-11]
 
@@ -849,7 +862,9 @@ sapply(F,vif2,data=d)
 vars<-unique(unlist(lapply(ml,function(i){lapply(i,function(j){all.vars(i[[3]])})})))
 rf<-randomForest(as.factor(Attack)~.,data=d[,c("X","Y",vars)],ntree=10000)
 varImpPlot(rf)
-#visreg(rf,"Dist_Road")
+#par(mfrow=c(4,7),mar=c(4,3,1,0))
+#visreg(rf)
+#par(mfrow=c(1,1))
 
 ### LASSo
 X<-as.matrix(d[,setdiff(vars,c("Attack","Cat_Typ"))])
@@ -867,7 +882,7 @@ coef(lassocv,alpha=1)
 
 ####################################
 ### glgm
-registerDoParallel(8) 
+registerDoParallel(6) 
 getDoParWorkers()
 
 #ds$Attack[nrow(ds)]<-NA
@@ -901,7 +916,7 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
          grid=20,
          covariates=NULL, 
          family="binomial", 
-         buffer=10000,
+         buffer=50000, #10000
          shape=1,
          priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
          #prior=list(sd=c(lower=0.4,upper=4),range=c(lower=2000,upper=50000)), # not sure about legacy priors (priorCI) or new priors
@@ -911,19 +926,24 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
      }) 
 }
 
-aic<-lapply(m,waictab)
+#m[[1]][[2]]$inla$model.matrix
+#m[[1]][[2]]$inla$model.matrix[,"P_matFor_p"]
+
+waic<-lapply(m,waictab)
 #aic<-lapply(m,function(i){i$inla$waic$waic})
 
-aic<-lapply(seq_along(aic),function(i){
+waic<-lapply(seq_along(aic),function(i){
   var<-gsub("Attack ~| ","",as.character(unlist(ml[[i]])))
   res<-cbind(aic[[i]],mod=names(ml[[i]]),var)
   res<-res[order(res$dwaic),]
   res
 })
 
+save(waic,file="C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
+
 lapply(ml,function(i){lapply(i,vif2,data=d)})
 
-summary(m[[13]][[5]]$inla)
+summary(m[[15]][[2]]$inla)
 plot(d$P_indFor_g_2000,d$P_indFor_g)
 
 autoplot(m[[16]][[2]]$inla)
@@ -1129,7 +1149,7 @@ fit<-glgm(mform,
             #grid=rpred,
             covariates=rvar, 
             family="binomial", 
-            buffer=10000,
+            buffer=50000,
             shape=1,
             priorCI=list(sd=c(0.4,4),range=c(2000,50000))
 )
@@ -1197,64 +1217,71 @@ p<-stack(calc(m[[13]][[1]]$raster$predict.0.025quant,inla.link.invlogit),
          calc(m[[13]][[1]]$raster$predict.mean,inla.link.invlogit),
          calc(m[[13]][[1]]$raster$predict.0.975quant,inla.link.invlogit))
 
-p<-stack(m[[16]][[2]]$raster$predict.sd)
-p<-stack(calc(m[[16]][[2]]$raster$predict.mean,inla.link.invlogit))
+p<-stack(m[[16]][[2]]$raster$random.sd)
+#p<-stack(calc(m[[16]][[2]]$raster$predict.mean,inla.link.invlogit))
 
 levelplot(p,col.regions=terrain.colors(100),cuts=99)
 plot(p)
-#locator()
+l<-locator()
 
-par(mfrow=c(2,3),oma=c(0,4,0,0),mar=c(3,2,1,1))
-mtext("Probability of Attack",outer=TRUE,side=2,line=1.5)
-
-ds2<-ds@data
-ds2$x<-coordinates(ds)[,1]
-ds2$y<-coordinates(ds)[,2]
 
 mform<-ml[[16]][[2]]
-#mform<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
-nvar<-"Cat_Typ"
-#xvar<-seq(min(ds2[,nvar]),max(ds2[,nvar]),length.out=50)
-vars<-all.vars(mform)
-vars<-vars[!vars%in%c("Attack")]
-#newdat<-with(ds2,data.frame(Cat_Typ="B",as.data.frame(as.list(colMeans(ds2[,vars,drop=FALSE])))))
-#newdat<-newdat[rep(1,length(xvar)),]
-#newdat[,nvar]<-xvar
+#mform<-as.formula(Attack~Cat_Typ+Branch_p+P_Agr_g+P_Past_g+index_pop8+Dist_Road)
+vars<-all.vars(mform[[3]])
 
-newdat<-newdata(ds2[,vars],v=nvar,n=50,list=FALSE)
-names(newdat)<-gsub(paste0(nvar,"."),"",names(newdat))
-newdat<-as.data.frame(newdat)
-#newdat$Attack<-NA
-xvar<-newdat[,1]
+par(mfrow=c(round(sqrt(length(vars)),0),ceiling(sqrt(length(vars)))),oma=c(0,3,0,0),mar=c(4,3,1,1))
 
-newdat$x<-268400
-newdat$y<-2045871
+for(j in seq_along(lvar)){
 
-ds2<-rbind.fill(ds2,newdat)
-coordinates(ds2)<-~x+y
-proj4string(ds2)<-proj4string(ds)
+  ds2<-ds@data
+  ds2$x<-coordinates(ds)[,1]
+  ds2$y<-coordinates(ds)[,2]
+
+  nvar<-vars[j]
+
+  newdat<-newdata(ds2[,vars],v=nvar,n=50,list=FALSE)
+  names(newdat)<-gsub(paste0(nvar,"."),"",names(newdat))
+  newdat<-as.data.frame(newdat)
+  xvar<-newdat[,1]
+
+  newdat$x<-l$x#253953
+  newdat$y<-l$y#2039372
+
+  ds2<-rbind.fill(ds2,newdat)
+  coordinates(ds2)<-~x+y
+  proj4string(ds2)<-proj4string(ds)
 
 
-fit<-glgm(mform, 
+  fit<-glgm(mform, # not very efficient, should run once with all values to predict
           data=ds2,
           grid=20,
           covariates=NULL, 
           family="binomial", 
-          buffer=10000,
+          buffer=50000,
           shape=1,
-          prior=list(sd=c(lower=0.4,upper=4),range=c(lower=2000,upper=50000)),
+          priorCI=list(sd=c(0.4,4),range=c(2000,50000)),
+          #prior=list(sd=c(0.4,4),range=c(2000,50000)),
           control.predictor=list(compute=TRUE,link=1),
           num.threads=1
-)
+  )
 
 #summary(fit$inla)
 #p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
-p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
-plot(xvar,p$mean,ylim=0:1,type="l",lwd=2,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
-shade<-na.omit(cbind(x=c(xvar,rev(xvar),xvar[1]),y=c(p$"0.025quant",rev(p$"0.975quant"),p$"0.025quant"[1])))
-polygon(shade,col=gray(0.5,0.5),border=NA)
-axis(2,las=2)
-
+  p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
+  if(nvar=="Cat_Typ"){
+    plot(xvar,p$mean,ylim=0:1,type="l",lwd=1,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
+    invisible(sapply(1:nrow(p),function(i){
+      w<-0.4
+      rect(i-w,p[i,"0.025quant"],i+w,p[i,"0.975quant"],lwd=1,col=gray(0.5,0.25),border=NA)
+    }))
+  }else{
+    plot(xvar,p$mean,ylim=0:1,type="l",lwd=3,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
+    shade<-na.omit(cbind(x=c(xvar,rev(xvar),xvar[1]),y=c(p$"0.025quant",rev(p$"0.975quant"),p$"0.025quant"[1])))
+    polygon(shade,col=gray(0.5,0.25),border=NA)
+  }
+  axis(2,las=2)
+}
+mtext("Probability of Attack",outer=TRUE,side=2,line=1.5)
 
 
 #glm1<-glm(mform,data=d,family="binomial")
