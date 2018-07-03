@@ -11,6 +11,7 @@ library(FRutils)
 library(RColorBrewer)
 #library(brinla)
 library(visreg)
+library(sf)
 
 toseq<-function(x,n=100){
   if(is.numeric(x)){
@@ -63,8 +64,12 @@ newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
 
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
 
-occ<-na.omit(llf.occur)
-occ<-occ[sample(1:nrow(occ),5000),] # sample location to reduce computing time
+occ<-llf.occur
+occ<-na.omit(occ)
+occ<-occ[sample(1:nrow(occ),10000),] # sample location to reduce computing time
+
+tab<-table(occ$PA,occ$VEGZONSNA)
+tab[2,]/(tab[1,]+tab[2,])
 
 occ$high_name<-as.factor(occ$high_name)
 occ$logPop_2017<-log(occ$Pop_2017+0.2)
@@ -78,11 +83,12 @@ occs<-spTransform(occs,CRS(prj))
 
 #plot(occs,col=alpha(ifelse(occs$PA==1,"red","blue"),0.25),pch=16)
 
-m1 <- glm (PA ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name, family = binomial(link = "logit"), data = na.omit(occ))
-m1 <- glm (PA ~ -1+VEGZONSNA+logPop_2017+trees_age+Road_dens+WtrUrb_km, family = binomial(link = "logit"), data = na.omit(occ))
+m1 <- glm (PA ~ -1 + VEGZONSNA * trees_age + WtrUrb_km + logPop_2017 + Road_dens + high_name, family = binomial(link = "logit"), data = na.omit(occ))
+#m1 <- glm (PA ~ -1+VEGZONSNA+logPop_2017+trees_age+Road_dens+WtrUrb_km, family = binomial(link = "logit"), data = na.omit(occ))
 par(mfrow=c(3,3),mar=c(4,4,3,3))
 visreg(m1,scale="response")
 par(mfrow=c(1,1))
+visreg(m1,"trees_age","VEGZONSNA",scale="response",overlay=FALSE)
 
 coords <- coordinates(occs)
 v<-variog(coords=coords,data=resid(m1),breaks=seq(0,100000,by=500),max.dist=100000,bin.cloud=TRUE)
@@ -102,30 +108,91 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
 
 #m<-inla(model,data=list(y=occ$PA,intercept=rep(1,spde$n.spde),spatial=1:spde$n.spde),control.predictor=list(A=A,compute=TRUE),family="binomial")
 
-g<-makegrid(swe,n=10000) # makes sure pixels touching are included too
+g<-makegrid(swe,n=20000) # makes sure pixels touching are included too
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
+#o<-over(as(g,"SpatialPolygons"),swe) # does not change much when the grid gets small
+o<-over(g,swe)
 g<-SpatialPixels(g)
-o<-over(as(g,"SpatialPolygons"),swe)
 g<-g[apply(o,1,function(i){!all(is.na(i))}),]
+#test<-st_intersects(st_as_sf(g),st_as_sf(swe))
 
 s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 
-model<-PA~-1+VEGZONSNA+intercept+logPop_2017+trees_age+Road_dens+WtrUrb_km+f(spatial,model=spde)
+#model<-PA~-1+VEGZONSNA+intercept+logPop_2017+trees_age+Road_dens+WtrUrb_km+f(spatial,model=spde)
+
+modell<-list(
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens * logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
+)
 
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
+
+###################################
+### model selection
+
+ml<-vector(mode="list",length=length(modell))
+
+for(i in seq_along(modell)){
+  
+  v<-setdiff(all.vars(modell[[i]]),c("PA","intercept","spatial","spde"))
+  
+  stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
+
+  ml[[i]]<-inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+  
+  print(paste(" ",i,"/",length(ml)," "))
+
+}
+
+dic<-sapply(ml,function(i){i$dic$dic})
+waic<-sapply(ml,function(i){i$waic$waic})
+
+sel<-data.frame(waic,model=sapply(modell,function(i){format(deparse(i,width.cutoff=400))}))
+sel<-sel[order(sel[,1]),]
+head(sel)
+
+####################################
+### predictions
+
+b<-which.min(waic)
+modell[[b]]
+bmodel<-modell[[b]]
+
+
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-100
 Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE])
 
-v<-setdiff(all.vars(model),c("PA","intercept","spatial","spde"))
+v<-setdiff(all.vars(bmodel),c("PA","intercept","spatial","spde"))
 lp<-newdata(x=occ[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
 lpmed<-lapply(newdata(x=occ[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
 
-
 stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
-#stack.latent<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="latent")
+
 stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
-#stack.map<-inla.stack(data=list(xi=NA),A=list(Ap),effects=list(s.index),tag="map")
 
 full.stack<-inla.stack(stack.est,stack.map)
 
@@ -148,7 +215,7 @@ for(i in seq_along(v)){
 }  
 names(index)[3:length(index)]<-v
 
-m<-inla(model,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE))
+m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"))
 
 
 ###########################################
@@ -197,7 +264,7 @@ plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 
 #####################################
 ### graphs predictions
-par(mfrow=c(2,3),mar=c(4,4,3,3),oma=c(0,10,0,0))
+par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
   plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1)
@@ -217,74 +284,22 @@ mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,l
 
 #image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
 
-projgrid <- inla.mesh.projector(mesh, dims=c(200,200))
-xmean <- inla.mesh.project(projgrid, m$summary.random$s$mean)
-image(xmean,asp=2)
+projgrid <- inla.mesh.projector(mesh, dims=c(500,500))
+xmean <- inla.mesh.project(projgrid, m$summary.random$spatial$mean)
+xsd <- inla.mesh.project(projgrid, m$summary.random$spatial$sd)
+image(xmean,asp=2,col=heat.colors(100))
 
 res<-inla.spde2.result(m,"spatial",spde)
 
 plot(res[["marginals.range.nominal"]][[1]], type = "l",main = "Nominal range, posterior density")
 
 
-par(mfrow=c(1,2))
-
-ma<-max(c(m$parameters$sd$prior[,2],m$parameters$sd$posterior[,2]))
-plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density',lty=2,xlim=c(0,5),ylim=c(0,ma))
-lines(m$parameters$sd$posterior,lty=1)
-legend("topright", lty=2:1, legend=c("prior","posterior"))
-
-ma<-max(c(m$parameters$range$prior[,2],m$parameters$range$posterior[,2]))
-plot(m$parameters$range$posterior,type="l",xlim = c(0,50*1000),xlab='range (m)', ylab='density',lty=1,ylim=c(0,ma))
-lines(m$parameters$range$prior,lty=2)
-legend("topright", lty=2:1, legend=c("prior","posterior"))
-
-
-
-#######################################
-### glgm
-
-fit<-glgm(PA~VEGZONSNA+Populati_2+Road_dens+MDC+dom,
-          data=occs,
-          grid=20,
-          covariates=NULL, 
-          family="binomial", 
-          buffer=10000,
-          shape=1,
-          priorCI=list(sd=c(0.1,4),range=c(5000,100000)),
-          control.compute=list(waic=TRUE,dic=TRUE,mlik=TRUE),#,config=TRUE),
-          #control.predictor=list(compute=TRUE,link=1)
-)
-
-summary(fit$inla)
-
-plot(fit$raster$predict.invlogit)
-
-#summary(inla.rerun(fit$inla))
-
-m<-fit
-
-par(mfrow=c(1,2))
-
-ma<-max(c(m$parameters$sd$prior[,2],m$parameters$sd$posterior[,2]))
-plot(m$parameters$sd$prior,type="l",xlab='standard deviation', ylab='density',lty=2,xlim=c(0,5),ylim=c(0,ma))
-lines(m$parameters$sd$posterior,lty=1)
-#lines(seq(0,10,by=0.1),dlgamma(seq(0,10,by=0.1),m$parameters$sd$params.intern$param[1],m$parameters$sd$params.intern$param[2]),col="blue")
-legend("topright", lty=2:1, legend=c("prior","posterior"))
-
-ma<-max(c(m$parameters$range$prior[,2],m$parameters$range$posterior[,2]))
-plot(m$parameters$range$posterior,type="l",xlim = c(0,500*1000),xlab='range (m)', ylab='density',lty=1,ylim=c(0,ma))
-lines(m$parameters$range$prior,lty=2)
-#lines(dgamma(seq(0,50000,by=10),m$parameters$range$params.intern[1],m$parameters$range$params.intern[2]),col="red")
-legend("topright", lty=2:1, legend=c("prior","posterior"))
 
 
 ################################
 ### lgcp
 
-
-
-
-# is it better to do a lgcp for a point process
+# it would be better to do a lgcp for a point process
 
 ds2<-occs[occs$PA==1,]
 
