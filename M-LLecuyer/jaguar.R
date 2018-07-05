@@ -932,10 +932,10 @@ m<-foreach(i=1:length(ml),.packages=c("raster","sp","geostatsp")) %dopar% {
 waic<-lapply(m,waictab)
 #aic<-lapply(m,function(i){i$inla$waic$waic})
 
-waic<-lapply(seq_along(aic),function(i){
+waic<-lapply(seq_along(waic),function(i){
   var<-gsub("Attack ~| ","",as.character(unlist(ml[[i]])))
-  res<-cbind(aic[[i]],mod=names(ml[[i]]),var)
-  res<-res[order(res$dwaic),]
+  res<-cbind(waic[[i]],mod=names(ml[[i]]),var)
+  res<-res[order(res$waic),]
   res
 })
 
@@ -1229,9 +1229,11 @@ mform<-ml[[16]][[2]]
 #mform<-as.formula(Attack~Cat_Typ+Branch_p+P_Agr_g+P_Past_g+index_pop8+Dist_Road)
 vars<-all.vars(mform[[3]])
 
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/Doc/pred_m16_2.png",height=5,width=8,res=400,units="cm",pointsize=6)
+
 par(mfrow=c(round(sqrt(length(vars)),0),ceiling(sqrt(length(vars)))),oma=c(0,3,0,0),mar=c(4,3,1,1))
 
-for(j in seq_along(lvar)){
+for(j in seq_along(vars)){
 
   ds2<-ds@data
   ds2$x<-coordinates(ds)[,1]
@@ -1269,13 +1271,13 @@ for(j in seq_along(lvar)){
 #p<-inla.link.invlogit(fit$inla$summary.linear.predictor[102:nrow(ds2),])
   p<-fit$inla$summary.fitted.values[102:nrow(ds2),]
   if(nvar=="Cat_Typ"){
-    plot(xvar,p$mean,ylim=0:1,type="l",lwd=1,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
+    plot(xvar,p$mean,ylim=0:1,type="l",lwd=0.5,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
     invisible(sapply(1:nrow(p),function(i){
       w<-0.4
       rect(i-w,p[i,"0.025quant"],i+w,p[i,"0.975quant"],lwd=1,col=gray(0.5,0.25),border=NA)
     }))
   }else{
-    plot(xvar,p$mean,ylim=0:1,type="l",lwd=3,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
+    plot(xvar,p$mean,ylim=0:1,type="l",lwd=1.5,xlab=gsub("_g","5",gsub("_p","_0.5",nvar)),ylab="",yaxt="n")
     shade<-na.omit(cbind(x=c(xvar,rev(xvar),xvar[1]),y=c(p$"0.025quant",rev(p$"0.975quant"),p$"0.025quant"[1])))
     polygon(shade,col=gray(0.5,0.25),border=NA)
   }
@@ -1283,6 +1285,7 @@ for(j in seq_along(lvar)){
 }
 mtext("Probability of Attack",outer=TRUE,side=2,line=1.5)
 
+dev.off()
 
 #glm1<-glm(mform,data=d,family="binomial")
 #summary(glm1)
