@@ -510,7 +510,7 @@ ml<-list()
 
 
 
-# Model determination and model selection 
+# Model determination and model selection
 
 ###Forêt actuelle
 
@@ -525,7 +525,7 @@ ml[[length(ml)+1]]<-SC1bis
 sapply(SC1bis,vif2,data=d)
 
 
-## echelle temporelle 
+## echelle temporelle
 
 TempSC1bis0<-Attack~Cat_Typ
 TempSC1bis1<-Attack~Cat_Typ+P_matFor_p_2000+P_indFor_p_2000
@@ -540,9 +540,9 @@ sapply(TempSC1bis,vif2,data=d)
 
 ####Temp
 Temp0<-Attack~Cat_Typ
-Temp1<-Attack~Cat_Typ+P_matFor_g+P_indFor_g
-Temp2<-Attack~Cat_Typ+P_matFor_g_2000+P_indFor_g_2000
-Temp3<-Attack~Cat_Typ+P_matFor_g_2000+P_indFor_g_2000+P_matFor_g+P_indFor_g
+Temp1<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg
+Temp2<-Attack~Cat_Typ+P_matFor_m_2000+P_indFor_m_2000
+Temp3<-Attack~Cat_Typ+P_matFor_m_2000+P_indFor_m_2000+P_matFor_tg+P_indFor_tg
 
 Temp<-list(Temp0=Temp0,Temp1=Temp1,Temp2=Temp2,Temp3=Temp3)
 ml[[length(ml)+1]]<-Temp
@@ -567,7 +567,7 @@ sapply(V2SC2bis,vif2,data=d)
 ###(SC3) Presence or absence of water (WatPA) in the pasture area favors attack on livestock##,
 ##(SC4) combined effect of the structural characteristics of the natural habitat are important to explain occurrence of attacks##
 
-##Structural characteristics (SC): jaguar attack is directly conditioned by the presence of natural habitat nearby; 
+##Structural characteristics (SC): jaguar attack is directly conditioned by the presence of natural habitat nearby;
 #previous studies have shown that the amount of forest and the presence of water have influenced the occurrence of attacks.##
 
 #VIF pour SC
@@ -578,13 +578,13 @@ VifLESC2=VifLESC[,-1] ##enlever l'intercept
 
 vif(VifLESC2)
 
-# Model determination and model selection 
+# Model determination and model selection
 
 V2SC0<-Attack~Cat_Typ
-V2SC1<-Attack~Cat_Typ+P_matFor_g+P_indFor_g+P_matFor_g_2000+P_indFor_g_2000
+V2SC1<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg+P_matFor_m_2000+P_indFor_m_2000
 V2SC2<-Attack~Cat_Typ+Perforation_tg
 V2SC3<-Attack~Cat_Typ+WatPA
-V2SC4<-Attack~Cat_Typ+P_matFor_g+P_indFor_g+WatPA+Perforation_tg+P_matFor_g_2000+P_indFor_g_2000
+V2SC4<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg+WatPA+Perforation_tg+P_matFor_m_2000+P_indFor_m_2000
 
 V2SC<-list(V2SC0=V2SC0,V2SC1=V2SC1,V2SC2=V2SC2, V2SC3=V2SC3,V2SC4=V2SC4)
 ml[[length(ml)+1]]<-V2SC
@@ -592,7 +592,7 @@ sapply(V2SC,vif2,data=d)
 
 ##Selection de V2SC4 meilleure que les autres###
 
-##Functional characteristics (FC): Landscape fragmentation can also influence jaguar movement and jaguar presence and in consequences, 
+##Functional characteristics (FC): Landscape fragmentation can also influence jaguar movement and jaguar presence and in consequences,
 ##potentially influence the occurrence of attacks##
 
 ###(FC4) Local aggregation of forest influence the presence of prey and can influence the occurrence of attacks##
@@ -630,7 +630,7 @@ VifLESC2tg2=VifLESC2tg[,-1] ##enlever l'intercept
 vif(VifLESC2tg2)
 
 
-# Model determination and model selection 
+# Model determination and model selection
 
 SC2bis0<-Attack~Cat_Typ
 SC2bis1<-Attack~Cat_Typ+Bridge_p+Branch_p
@@ -658,7 +658,7 @@ FC1bis<-list(FC1bis0=FC1bis0,FC1bis1=FC1bis1,FC1bis2=FC1bis2,FC1bis3=FC1bis3,FC1
 ml[[length(ml)+1]]<-FC1bis
 sapply(FC1bis,vif2,data=d)
 
-## Selection de Den__MinPS_g mais la différence n'est pas grande 
+## Selection de Den__MinPS_g mais la différence n'est pas grande
 
 # Model determination  and model selection FC
 
@@ -670,22 +670,22 @@ VifLEFC2=VifLEFC[,-1] ##enlever l'intercept
 
 vif(VifLEFC2)
 
-# Model determination and model selection 
+# Model determination and model selection
 
 V2FC0<-Attack~Cat_Typ
-V2FC1<-Attack~Cat_Typ+Den__MinPS_g
+V2FC1<-Attack~Cat_Typ+Den__MinPS_m
 V2FC2<-Attack~Cat_Typ+Dist_HabP
-V2FC3<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_tg+Branch_tg
-V2FC4<-Attack~Cat_Typ+Bridge_tg+Branch_tg
+V2FC3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p
+V2FC4<-Attack~Cat_Typ+Bridge_p+Branch_p
 
 V2FC<-list(V2FC0=V2FC0,V2FC1=V2FC1,V2FC2=V2FC2,V2FC3=V2FC3,V2FC4=V2FC4)
 ml[[length(ml)+1]]<-V2FC
 sapply(V2FC,vif2,data=d)
 
 
-### Selection de V2FC3 
+### Selection de V2FC3
 
-# Model determination  and model selection for the natural habitat hypothesis 
+# Model determination  and model selection for the natural habitat hypothesis
 
 #VIF for N
 
@@ -695,12 +695,12 @@ V2VifLEN2=V2VifLEN[,-1] ##enlever l'intercept
 
 vif(V2VifLEN2)
 
-##Model determination and model selection 
+##Model determination and model selection
 
 V2N0<-Attack~Cat_Typ
 V2N1<-V2SC1
 V2N2<-V2FC3
-V2N3<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_g+Branch_g+P_matFor_tg+P_indFor_g+WatPA+Perforation_tg+P_matFor_g_2000+P_indFor_g_2000 ## + SC + FC
+V2N3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_matFor_tg+P_indFor_g+WatPA+Perforation_tg+P_matFor_m_2000+P_indFor_m_2000 ## + SC + FC
 
 V2N<-list(V2N0=V2N0,V2N1=V2N1,V2N2=V2N2,V2N3=V2N3)
 ml[[length(ml)+1]]<-V2N
@@ -710,7 +710,7 @@ sapply(V2N,vif2,data=d)
 #Selection de N1 m^ême si N3 proche mais bien meilleure que 2
 
 ###Human population and activity (HPA): human activity has been shown to influence jaguar distribution
-##and the occurrence of attacks while human settlement has been shown to have a negative effect on jaguar 
+##and the occurrence of attacks while human settlement has been shown to have a negative effect on jaguar
 ##presence and the occurrence of attacks
 
 ##(HPA 1) The amount of land dedicated to agricultural (%Agr) activity influence the presence and movement of jaguar and decrease the occurrence of attacks
@@ -740,7 +740,7 @@ ml[[length(ml)+1]]<-HPA2bis
 sapply(HPA2bis,vif2,data=d)
 
 
-# selection de l'echelle p mais ecar moyen avec echelle tg 
+# selection de l'echelle p mais ecar moyen avec echelle tg
 
 ##(HPA3) Human presence index pop
 
@@ -803,7 +803,7 @@ ml[[length(ml)+1]]<-LP
 sapply(LP,vif2,data=d)
 
 
-## Selection de LP3 bien meilleure 
+## Selection de LP3 bien meilleure
 
 # Model determination and model selection for the human effect, H
 
@@ -829,7 +829,7 @@ sapply(H,vif2,data=d)
 
 ##Selection de H1 meilleure que les autre mais ecart moyen
 
-# Final model selection between nature and human effect model 
+# Final model selection between nature and human effect model
 
 
 ## VIF for general model
@@ -842,9 +842,9 @@ vif(VifLEF2)
 
 #Model determination
 F0<-Attack~Cat_Typ
-F1<-Attack~Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_p+Branch_p
+F1<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p
 F2<-Attack~Cat_Typ+Cat_Typ+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
-F3<-Attack~Cat_Typ+Cat_Typ+Den__MinPS_g+Dist_HabP+Bridge_tg+Branch_tg+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
+F3<-Attack~Cat_Typ+Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_Agr_g+P_Past_g+index_pop8+Dist_Road+Dens_Liv+Liv_Mgmt
 
 F<-list(F0=F0,F1=F1,F2=F2,F3=F3)
 ml[[length(ml)+1]]<-F
@@ -854,6 +854,7 @@ sapply(F,vif2,data=d)
 #############################
 ### run models
 #############################
+
 
 ########################
 ### exploration techniques
@@ -943,7 +944,8 @@ save(waic,file="C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RD
 
 lapply(ml,function(i){lapply(i,vif2,data=d)})
 
-summary(m[[15]][[2]]$inla)
+summary(m[[16]][[2]]$inla)
+m[[16]][[2]]$inla$summary.fixed
 plot(d$P_indFor_g_2000,d$P_indFor_g)
 
 autoplot(m[[16]][[2]]$inla)
