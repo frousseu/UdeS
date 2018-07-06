@@ -581,10 +581,10 @@ vif(VifLESC2)
 # Model determination and model selection
 
 V2SC0<-Attack~Cat_Typ
-V2SC1<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg+P_matFor_m_2000+P_indFor_m_2000
+V2SC1<-Attack~Cat_Typ+P_matFor_m_2000+P_indFor_m_2000
 V2SC2<-Attack~Cat_Typ+Perforation_tg
 V2SC3<-Attack~Cat_Typ+WatPA
-V2SC4<-Attack~Cat_Typ+P_matFor_tg+P_indFor_tg+WatPA+Perforation_tg+P_matFor_m_2000+P_indFor_m_2000
+V2SC4<-Attack~Cat_Typ+WatPA+Perforation_tg+P_matFor_m_2000+P_indFor_m_2000
 
 V2SC<-list(V2SC0=V2SC0,V2SC1=V2SC1,V2SC2=V2SC2, V2SC3=V2SC3,V2SC4=V2SC4)
 ml[[length(ml)+1]]<-V2SC
@@ -854,6 +854,7 @@ sapply(F,vif2,data=d)
 #############################
 ### run models
 #############################
+
 
 
 ########################
