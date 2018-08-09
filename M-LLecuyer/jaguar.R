@@ -700,7 +700,7 @@ vif(V2VifLEN2)
 V2N0<-Attack~Cat_Typ
 V2N1<-V2SC1
 V2N2<-V2FC3
-V2N3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_matFor_tg+P_indFor_g+WatPA+Perforation_tg+P_matFor_m_2000+P_indFor_m_2000 ## + SC + FC
+V2N3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_matFor_tg+P_indFor_g +P_matFor_m_2000+P_indFor_m_2000 ## + SC + FC
 
 V2N<-list(V2N0=V2N0,V2N1=V2N1,V2N2=V2N2,V2N3=V2N3)
 ml[[length(ml)+1]]<-V2N
@@ -857,12 +857,14 @@ sapply(F,vif2,data=d)
 
 
 
+
 ########################
 ### exploration techniques
 
 ### random Forest
 vars<-unique(unlist(lapply(ml,function(i){lapply(i,function(j){all.vars(i[[3]])})})))
 rf<-randomForest(as.factor(Attack)~.,data=d[,c("X","Y",vars)],ntree=10000)
+#rf<-randomForest(Attack~.,data=d[,c("X","Y",vars)],ntree=10000)
 varImpPlot(rf)
 #par(mfrow=c(4,7),mar=c(4,3,1,0))
 #visreg(rf)
@@ -941,7 +943,9 @@ waic<-lapply(seq_along(waic),function(i){
   res
 })
 
-save(waic,file="C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
+#save(waic,file="C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
+
+#load("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
 
 lapply(ml,function(i){lapply(i,vif2,data=d)})
 
