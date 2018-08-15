@@ -246,7 +246,7 @@ names(index)[3:length(index)]<-v
 
 ##################################################
 ### rerun best model with each variable to predict
-m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"))
 
 
 ##################################
@@ -308,8 +308,61 @@ for(i in seq_along(v)){
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
 
+######################################################
+### model checking and posterior predictive checks
+
+# from bayesian regression modeling with INLA, Faraway frpom google books
+# the same thing is shown on Blangardio et Cameletti on p. 168
+# something does not work cause response is 1 or 0 and there are NaN in predictions
+post.predicted.pval<-vector(mode="numeric",length=nrow(occ))
+for(i in 1:nrow(occ)){
+  post.predicted.pval[i]<-inla.pmarginal(q=occ$PA[i],marginal=m$marginals.fitted.values[[i]])
+}
+hist(post.predicted.pval,main="",breaks=10,xlab="Posterior predictive p-value")
 
 
+### from haakon bakka, BTopic112
+samples<-inla.posterior.sample(2000,m)
+m$misc$configs$contents
+contents<-m$misc$configs$contents
+effect<-"APredictor"
+id.effect<-which(contents$tag==effect)
+ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[index[["est"]]]
+samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
+s.eff<-t(matrix(unlist(samples.effect),byrow=T,nrow=length(samples.effect)))
+
+### check with inla model
+prob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
+matprob<-apply(s.eff,2,function(i){
+  rbinom(length(i),size=1,prob=inla.link.invlogit(i))  
+})
+o<-createDHARMa(simulatedResponse=matprob,observedResponse=occ$PA,fittedPredictedResponse=prob,integerResponse=TRUE)
+par(mfrow=c(2,2))
+plot(o,quantreg=TRUE)
+#hist(o$scaledResiduals)
+
+### check same for glm using the two methods
+mod1 <- glm(PA ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA, data = occ, family=binomial)
+simulationOutput <- simulateResiduals(fittedModel = mod1)
+plot(simulationOutput,quantreg=TRUE)
+s<-simulateResiduals(mod1)
+o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = occ$PA, fittedPredictedResponse = fitted(mod1),integerResponse = T)
+plot(o,quantreg=TRUE)
+hist(o$scaledResiduals)
+
+
+##########################################
+### confusion matrix
+
+m$summary.fitted.values
+
+########################################################
+### cross-validation / confusion matrix on hold-out data
+
+
+
+#################################
+###
 
 #image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
 projgrid <- inla.mesh.projector(mesh, dims=c(500,500))
@@ -395,52 +448,54 @@ library(spatstat)
 sweden <- raster:::getData("GADM", country = "SWE", level = 1)  
 sweden<-spTransform(sweden,CRS(proj4string(occs)))
 
+locs<-occs[occs$PA==1,]
+locs$x<-coordinates(locs)[,1]
+locs$y<-coordinates(locs)[,2]
+
 plot(sweden)
-plot(ds2,add=TRUE)
+plot(locs,add=TRUE)
 
-o<-owin(xrange=bbox(ds2)[1,],yrange=bbox(ds2)[2,])
-X<-ppp(coordinates(ds2)[,1],coordinates(ds2)[,2],window=o)
+o<-owin(xrange=bbox(locs)[1,],yrange=bbox(locs)[2,])
+X<-ppp(coordinates(locs)[,1],coordinates(locs)[,2],window=o)
 
+plot(Kest(X))
+plot(Kinhom(X))
+plot(Ginhom(X))
 
 
 # inhomogeneous pattern of maples
 #X <- unmark(split(lansing)$maple)
 
+Q<-quadscheme(X)
+
 # (1) intensity function estimated by model-fitting
 # Fit spatial trend: polynomial in x and y coordinates
-fit <- ppm(X, ~ polynom(x,y,4), Poisson(),data=ds2@data)
+fit <- ppm(X, ~ polynom(x,y,8), Poisson(),data=locs@data,covariates=NULL)
+fit <- ppm(Q ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA, Poisson(),data=locs@data)
+fit <- ppm(Q ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA, Poisson(),data=locs@data)
+
 # (a) predict intensity values at points themselves,
 #     obtaining a vector of lambda values
 lambda <- predict(fit, locations=X, type="trend")
 # inhomogeneous K function
-Ki <- Kinhom(X, lambda, nlarge=2000)
+Ki <- Kinhom(X, lambda, nlarge=10000)
 Ki <- Ginhom(X, lambda, nlarge=2000)
 #Ki <- Kest(X, lambda)
 plot(Ki,xlim=c(0,5000))
   
-  
+n<-200  
+x<-runif(n,0,50)
+y<-runif(n,0,50)
 
-# method for point patterns
-kppm(redwood, ~1, "Thomas")
-# method for formulas
-kppm(redwood ~ 1, "Thomas")
+x<-sapply(x,function(i){rnorm(10,i,1)})
+y<-sapply(y,function(i){rnorm(10,i,1)})
 
-kppm(redwood ~ 1, "Thomas", method="c")
-kppm(redwood ~ 1, "Thomas", method="p")
+plot(x,y)
 
-kppm(redwood ~ x, "MatClust") 
-kppm(redwood ~ x, "MatClust", statistic="pcf", statargs=list(stoyan=0.2)) 
-kppm(redwood ~ x, cluster="Cauchy", statistic="K")
-kppm(redwood, cluster="VarGamma", nu = 0.5, statistic="pcf")
+o<-owin(xrange=range(x),yrange=range(y))
+X<-ppp(x,y,window=o)
 
-# LGCP models
-kppm(redwood ~ 1, "LGCP", statistic="pcf")
-if(require("RandomFields")) {
-  k<-kppm(redwood ~ x, "LGCP", statistic="pcf",
-       model="matern", nu=0.3,
-       control=list(maxit=10))
-}
-  
+plot(envelope(X,Kest))
   
   
 
