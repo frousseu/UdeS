@@ -11,6 +11,8 @@ library(FRutils)
 library(RColorBrewer)
 library(visreg)
 library(sf)
+library(DHARMa)
+library(ROCR)
 
 ######################################################################
 ### function to create a sequence from the range of values in a vector
@@ -352,13 +354,51 @@ hist(o$scaledResiduals)
 
 
 ##########################################
-### confusion matrix
+### confusion matrix with training data
 
-m$summary.fitted.values
+predprob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
+cm<-table(as.logical(occ$PA),rbinom(length(predprob),size=1,prob=predprob))
+cm
 
-########################################################
-### cross-validation / confusion matrix on hold-out data
 
+sensitivity<-cm[2,2]/sum(cm[2,]) # true positive rate
+specificity<-cm[1,1]/sum(cm[1,]) # true negative rate
+
+##########################################
+### confusion matrix on hold-out data
+
+
+##########################################
+### confusion matrix on hold-out data
+
+### code adapted from Myer et al. 2017 (spatiotemporal mosquitoes, https://doi.org/10.1002/ecs2.1854) supplementary material
+
+roc.pred<-prediction(predprob,occ$PA)
+roc.perf<-performance(roc.pred, measure="tpr", x.measure="fpr") #"tpr" means true positive rate, "fpr" is false positive rate
+#tiff(filename="testfig5.tiff",width=3,height=3,units="in",res=300,pointsize=8,compression="lzw")
+plot(roc.perf)
+abline(a=0,b=1)
+#dev.off()
+#This code snippet finds the optimal cutoff point
+opt.cut = function(perf, pred){
+  cut.ind = mapply(FUN=function(x, y, p){
+    d = (x - 0)^2 + (y-1)^2
+    ind = which(d == min(d))
+    c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
+      cutoff = p[[ind]])
+  }, perf@x.values, perf@y.values, pred@cutoffs)
+}
+print(opt.cut(roc.perf, roc.pred))
+
+#Obtain the AUC value
+auc.perf = performance(roc.pred, measure = "auc")
+auc.perf@y.values
+
+
+##########################################
+### cross-validation/cpo/pit measures ?
+
+plot(m) #? PIT and CPO valid with bernoulli response?
 
 
 #################################
