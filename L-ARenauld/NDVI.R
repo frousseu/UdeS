@@ -220,18 +220,39 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 #############################################################
 ##### Extract raster values for each region #################
 
-r<-gimms # determine series to use
-rd<-gimms_jul
-doy<-gimms_doy
+### the following part needs to be run twice, each for gimms and modis and adjust silenced parts
+
+#r<-gimms # determine series to use
+#rd<-gimms_jul
+#doy<-gimms_doy
+#divide<-1 # divide values by 1
+
+r<-modis # determine series to use
+rd<-modis_jul
+doy<-modis_doy
+divide<-10000 # divide values by 10000
 
 
 registerDoParallel(6) 
 getDoParWorkers()
 
-# build a list of matrices of each pixel ndvi value for each polygon
+### build a list of matrices of each pixel ndvi value for each polygon, the for each is designed for multiple polygons, but here there is only one
 v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
   extract(r,pol[i,])[[1]]  
 }
+
+vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
+  extract(rd,pol[i,])[[1]]  
+}
+
+### faster velox version of preceding lines, but transforming to velox actually takes too long
+#vx<-velox(r)
+#v<-vx$extract(pol)
+
+#vdx<-velox(rd)
+#vd<-vdx$extract(pol)
+
+
 ### remove all NA values for some pixels
 #v<-lapply(v,function(i){
 #  k<-!apply(i,1,function(j){
@@ -240,9 +261,6 @@ v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #  i[k,]
 #})
 
-vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
-  extract(rd,pol[i,])[[1]]  
-}
 #vd<-lapply(vd,function(i){
 #  k<-!apply(i,1,function(j){
 #    all(is.na(j))  
@@ -254,11 +272,14 @@ vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #############################################################
 ##### Compute metrics #######################################
 
+# for the gimms data, I think the values are obtained using only two pixels, one of which does not overlap a lot with the ram pol
+#plot(r[[1]])
+#plot(pol,add=TRUE)
 
 peak_cell<-lapply(seq_along(v),function(i){
   lapply(1:nrow(v[[i]]),function(j){
-    pl<-FALSE
-    val<-v[[i]][j,]/1
+    pl<-TRUE # for plotting or not
+    val<-v[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
     if(all(is.na(val))){
       val[seq_along(val)]<-1  
     }
@@ -307,7 +328,10 @@ peak_cell<-lapply(seq_along(v),function(i){
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    mLog<-fitLog(val[!is.na(val)],plot=pl)[-1] #take out firt year for gimms
+    mLog<-fitLog(val[!is.na(val)],plot=pl) 
+    if(divide==1){
+      mLog<-mLog[-1] # take out first year for gimms
+    }
     logi<-as.Date(sapply(mLog,function(k){k["xmid"]}))
     #xx<<-val[!is.na(val)]
     #gaus<-as.Date(fitGau(val[!is.na(val)],plot=pl))[-1]
@@ -336,13 +360,18 @@ peak2<-lapply(peak_cell,function(i){
   as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
 
-peak1g<-peak1
-peak2g<-peak2
 
-#peak1m<-peak1
-#peak2m<-peak2
+#peak1g<-peak1 # change here to obtain both series
+#peak2g<-peak2
 
-peak22<-sapply(peak2,function(i){median(as.integer(format(i,"%j")),na.rm=TRUE)})
+peak1m<-peak1
+peak2m<-peak2
+
+
+
+peak22<-sapply(peak2,function(i){
+  median(as.integer(format(i,"%j")),na.rm=TRUE)
+})
 plot(pol,col=colo.scale(peak22))
 as.Date(range(peak22),"1970-01-01")
 #tmap_mode("view")
@@ -383,13 +412,20 @@ res2<-ddply(res,.(years),function(i){format(i[-1],"%j")})
 names(res2)[2:ncol(res2)]<-paste0(names(res2)[2:ncol(res2)],"jul")
 
 res<-merge(res,res2)
-#fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",row.names=FALSE,sep=";")
+#fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all2.csv",row.names=FALSE,sep=";")
 
 
+####################################################################################################
+### verifications
+x1<-fread("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",sep=";")
+x2<-fread("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all2.csv",sep=";")
 
+plot(x1$years,x1$modisSGjul,type="n",ylim=c(80,160))
+lines(x1$years,x1$modisSGjul)
+lines(x2$years,x2$modisSGjul)
 
-
-
+lines(x1$years,x1$gimmsSGjul)
+lines(x2$years,x2$gimmsSGjul)
 
 
 
