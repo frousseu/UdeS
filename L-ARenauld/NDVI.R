@@ -71,22 +71,72 @@ findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
 
 #### test logistic
 
+### check package sicegar and associated peerj paper for double sigmoïd curve fitting
 
-
+### simple logictic
 fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
   years<-as.integer(unique(substr(names(x),1,4)))
   years<-years[years<=2016]
   l<-lapply(years,function(i){
-    paste(c(i-1,i),mmdate,sep="-")  
+    if(mmdate[1]>mmdate[2]){
+      paste(c(i-1,i),mmdate,sep="-") 
+    }else{
+      paste(c(i-1,i),mmdate,sep="-")
+    }
   })
   peak<-lapply(l,function(i){
     sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
     d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
-    min_xmid<-as.integer(as.Date(i[1])+120)
-    max_xmid<-as.integer(as.Date(i[2])-75)
-    lo1<-list(Asym=0,xmid=min_xmid,scal=15,c=0.0)
-    up1<-list(Asym=1,xmid=max_xmid,scal=40,c=0.8)
-    m1<-tryCatch(nls(y~Asym/(1+exp((xmid-x)/scal))+c,data=d,start=list(Asym=0.5,xmid=min_xmid+(max_xmid-min_xmid)/2,scal=20,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo1,upper=up1,algorithm="port"),error=function(j){TRUE})
+    min_xmid_up<-as.integer(as.Date(i[1])+120)
+    max_xmid_up<-as.integer(as.Date(i[2])-75)
+    lo<-list(Asym_up=0,xmid_up=min_xmid_up,scal_up=15,c=0.0)
+    up<-list(Asym_up=1,xmid_up=max_xmid_up,scal_up=40,c=0.8)
+    m1<-tryCatch(nls(y~Asym_up/(1+exp((xmid_up-x)/scal_up))+c,data=d,start=list(Asym_up=0.5,xmid_up=min_xmid_up+(max_xmid_up-min_xmid_up)/2,scal_up=20,c=0.2),control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    if(!isTRUE(m1)){
+      se<-seq(min(d$x),max(d$x),by=1) 
+      if(plot){  
+        #plot(as.Date(d$x),d$y)
+        lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("grey40",0.5),lwd=4)
+      }
+      coef(m1)
+    }else{
+      NA  
+    }
+  })
+  peak
+}
+
+### double logistic
+fitDLog<-function(x,mmdate=c("12-01","02-15"),plot=FALSE){
+  years<-as.integer(unique(substr(names(x),1,4)))
+  years<-years[years<=2016]
+  l<-lapply(years,function(i){
+    if(mmdate[1]>mmdate[2]){
+      paste(c(i-2,i),mmdate,sep="-") 
+    }else{
+      paste(c(i-2,i),mmdate,sep="-")
+    }
+  })
+  peak<-lapply(l,function(i){
+    sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
+    d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
+    
+    min_xmid_up<-as.integer(as.Date(i[1])+120)
+    max_xmid_up<-as.integer(as.Date(i[1])+250)
+    
+    min_xmid_do<-as.integer(as.Date(i[2])-120)
+    max_xmid_do<-as.integer(as.Date(i[2])-0)
+    
+    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=8,Asym_do=-1,xmid_do=min_xmid_do,scal_do=8,c=0.1)
+    up<-list(Asym_up=1,xmid_up=max_xmid_up,scal_up=30,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=30,c=0.6)
+    start=lo
+    
+    m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    
+    #plot(d$x,d$y)
+    #lines(d$x,predict(m1,data.frame(x=d$x)))
+    
+    
     if(!isTRUE(m1)){
       se<-seq(min(d$x),max(d$x),by=1) 
       if(plot){  
@@ -100,6 +150,7 @@ fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
   })
   peak
 }
+
 
 fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
   years<-as.integer(unique(substr(names(x),1,4)))
@@ -152,6 +203,8 @@ pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 #############################################################
 ##### Get MODIS raster ######################################
+
+### check which and how to use QA and pixel reliability
 
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
 
@@ -302,8 +355,10 @@ peak_cell<-lapply(seq_along(v),function(i){
     names(s1)<-names(val)
     #pos<-findminmax(s1,n=5,beg="03-01",end="07-01")
     #sg<-as.Date(sapply(pos,function(k){mean(as.Date(names(s1)[k]))}))
-    pos<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
-    sg<-as.Date(names(s1)[pos])
+    pos_up<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
+    pos_do<-unlist(findminmax(s1,n=1,beg="09-01",end="12-01",max=FALSE))
+    sg_up<-as.Date(names(s1)[pos_up])
+    sg_do<-as.Date(names(s1)[pos_do])
     s0<-sgolayfilt(na.spline(val),n=21,p=3,m=0)
     #data.frame(na.spline(v[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
     if(!j%%20)
@@ -321,27 +376,32 @@ peak_cell<-lapply(seq_along(v),function(i){
       #  dyRangeSelector()
       
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
-      #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16)
+      #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16) # sup refers to values that were removed based on a previous threshold 
       #points(as.Date(names(val2[sup])),val2[sup],pch=8)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),"-01-01")),las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    mLog<-fitLog(val[!is.na(val)],plot=pl) 
+    #mLog<-fitLog(val[!is.na(val)],plot=pl) # old up version (grey)
+    mLog<-fitDLog(val[!is.na(val)],plot=pl) # new up down version (green)
+    #browser()
     if(divide==1){
       mLog<-mLog[-1] # take out first year for gimms
     }
-    logi<-as.Date(sapply(mLog,function(k){k["xmid"]}))
-    #xx<<-val[!is.na(val)]
-    #gaus<-as.Date(fitGau(val[!is.na(val)],plot=pl))[-1]
+    log_up<-as.Date(sapply(mLog,function(k){k["xmid_up"]}))
+    log_do<-as.Date(sapply(mLog,function(k){k["xmid_do"]}))
     if(pl){  
-      h<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym"]})/2
-      axis.Date(1,at=logi,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
-      points(sg,h,col="red",pch=16)
-      points(logi,h,col="green4",pch=16)
+      h_up<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})/2
+      h_do<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})+sapply(mLog,function(k){k["Asym_do"]})/2
+      axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
+      axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
+      points(sg_up,h_up,col="red",pch=16)
+      points(sg_do,h_do,col="red",pch=16)
+      points(log_up,h_up,col="green4",pch=16)
+      points(log_do,h_do,col="green4",pch=16)
     }
-    ans<-rbind(sg,logi)#,gaus)
+    ans<-rbind(sg_up,log_up,sg_do,log_do)#,gaus)
     if(all(val==1)){
       ans[]<-NA
       ans
@@ -351,14 +411,28 @@ peak_cell<-lapply(seq_along(v),function(i){
   })
 })
 
-peak1<-lapply(peak_cell,function(i){
+
+
+metrics<-row.names(peak_cell[[1]][[1]]) # peak_cell is a list (1 for pol) of list of pixels
+
+
+peak_log_up<-lapply(metrics,function(k){
+  lapply(peak_cell,function(i){
+    ii<-do.call("rbind",lapply(i,function(j){j[row.names(j)==,]}))
+    as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
+  })
+})
+
+#
+peak_log_up<-lapply(peak_cell,function(i){
   ii<-do.call("rbind",lapply(i,function(j){j[1,]}))
   as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
-peak2<-lapply(peak_cell,function(i){
+peak_sg_up<-lapply(peak_cell,function(i){
   ii<-do.call("rbind",lapply(i,function(j){j[2,]}))
   as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
 })
+
 
 
 #peak1g<-peak1 # change here to obtain both series
@@ -368,12 +442,6 @@ peak1m<-peak1
 peak2m<-peak2
 
 
-
-peak22<-sapply(peak2,function(i){
-  median(as.integer(format(i,"%j")),na.rm=TRUE)
-})
-plot(pol,col=colo.scale(peak22))
-as.Date(range(peak22),"1970-01-01")
 #tmap_mode("view")
 #tm_shape(pol)+tm_borders(lwd=2,col="red")+tm_layout(basemaps=c("Esri.WorldImagery"))
 
@@ -415,8 +483,12 @@ res<-merge(res,res2)
 #fwrite(res,"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all2.csv",row.names=FALSE,sep=";")
 
 
+
+
+####################################################################################################
 ####################################################################################################
 ### verifications
+
 x1<-fread("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all.csv",sep=";")
 x2<-fread("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc/greenup_ts_all2.csv",sep=";")
 
