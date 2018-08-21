@@ -112,6 +112,7 @@ fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
   peak
 }
 
+
 ### double logistic
 fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
   years<-as.integer(unique(substr(names(x),1,4)))
@@ -127,14 +128,22 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
     d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
     
-    min_xmid_up<-as.integer(as.Date(i[1])+120)
-    max_xmid_up<-as.integer(as.Date(i[1])+250)
+    #browser()
     
-    min_xmid_do<-as.integer(as.Date(i[2])-120)
-    max_xmid_do<-as.integer(as.Date(i[2])-0)
+    #min_xmid_up<-as.integer(as.Date(i[1])+120)
+    #max_xmid_up<-as.integer(as.Date(i[1])+250)
     
-    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=10,Asym_do=-0.4,xmid_do=min_xmid_do,scal_do=10,c=0.1)
-    up<-list(Asym_up=0.4,xmid_up=max_xmid_up,scal_up=50,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=50,c=0.7)
+    yy<-as.integer(substr(i[1],1,4))+1
+    
+    min_xmid_up<-as.integer(as.Date(paste0(yy,"-04-01")))
+    max_xmid_up<-as.integer(as.Date(paste0(yy,"-07-01")))
+    
+    min_xmid_do<-as.integer(as.Date(paste0(yy,"-09-01")))
+    max_xmid_do<-as.integer(as.Date(paste0(yy,"-12-01")))
+    
+    
+    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=8,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=8,c=0.1)
+    up<-list(Asym_up=0.9,xmid_up=max_xmid_up,scal_up=40,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=40,c=0.7)
     start=lo
     
     m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
@@ -366,7 +375,7 @@ peak_cell<-lapply(seq_along(v),function(i){
     #if(j==1)browser()
     s1<-sgolayfilt(na.spline(val),n=41,p=3,m=1)
     names(s1)<-names(val)
-    pos_up<-unlist(findminmax(s1,n=1,beg="03-01",end="07-01"))
+    pos_up<-unlist(findminmax(s1,n=1,beg="04-01",end="07-01"))
     pos_do<-unlist(findminmax(s1,n=1,beg="09-01",end="12-01",max=FALSE))
     sg_up<-as.Date(names(s1)[pos_up])
     sg_do<-as.Date(names(s1)[pos_do])
