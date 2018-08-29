@@ -142,11 +142,13 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     max_xmid_do<-as.integer(as.Date(paste0(yy,"-12-01")))
     
     
-    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=8,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=8,c=0.1)
+    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=15,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=15,c=-0.1)
     up<-list(Asym_up=0.9,xmid_up=max_xmid_up,scal_up=40,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=40,c=0.7)
     start=lo
     
     m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    
+    #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
     #browser()
     
@@ -223,10 +225,20 @@ pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 ### check which and how to use QA and pixel reliability
 
+### read multiple .tif instead of RData
+#path<-"S:/NDVI/MODIS/Ram/VI_16Days_250m_v6/NDVI/"
+#x<-list.files(path,pattern=".tif",full.names=TRUE)
+#x<-x[-grep(".aux.xml",x)]
+#x<-x[order(substr(x,nchar(x)-12,nchar(x)))]
+#r2<-stack(x)
+
+
 path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
 
 load(paste0(path,"MOD13Q1_MYD13Q1_NDVI_49_2000_1_2017_RData.RData"))
 modis<-raster_ts #r5 is the initial raster used in plot ndvi3
+#load(paste0(path,"MOD13Q1_MYD13Q1_EVI_49_2000_1_2017_RData.RData"))
+#modis<-raster_ts #r5 is the initial raster used in plot ndvi3
 load(paste0(path,"MOD13Q1_MYD13Q1_DOY_49_2000_1_2017_RData.RData"))
 modis_jul<-raster_ts
 load(paste0(path,"MOD13Q1_MYD13Q1_Rely_49_2000_1_2017_RData.RData"))
@@ -245,7 +257,8 @@ keep<-1:length(names(modis))
 ### subset modis to only get data from when Aqua was also used
 modis<-subset(modis,keep)
 modis_jul<-subset(modis_jul,keep)
-modis_doy<-modis_doy[keep]
+modis_doy<-modis_doy[[keep]]
+modis_rely<-modis_rely[[keep]]
 
 # Alpha and Terra data are offset by a certain amount in their blocks, but the specific date on which the ndvi is measured for a pixel may be earlier in a later block. Thus, although blocks are ordered, it does not mean that the specific dates are ordered. Ideally, order dates for each pixel one the observations are out of the complete matrix
 
@@ -292,19 +305,24 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 
 ### the following part needs to be run twice, each for gimms and modis and adjust silenced parts
 
-r<-gimms # determine series to use
-rd<-gimms_jul
-doy<-gimms_doy
-divide<-1 # divide values by 1
+#r<-gimms # determine series to use
+#rd<-gimms_jul
+#doy<-gimms_doy
+#divide<-1 # divide values by 1
 
-#r<-modis # determine series to use
-#rd<-modis_jul
-#doy<-modis_doy
-#divide<-10000 # divide values by 10000
+r<-modis # determine series to use
+rd<-modis_jul
+doy<-modis_doy
+rely<-modis_rely
+divide<-10000 # divide values by 10000
 
 years<-sort(unique(as.integer(substr(c(gimms_doy,modis_doy),1,4))))
 years<-years[years<2017]
 
+### mask snow or cloud values
+rely<-rely%in%c(-1,2,3,255)
+r<-mask(r,rely,maskvalue=TRUE)
+rd<-mask(rd,rely,maskvalue=TRUE)
 
 registerDoParallel(6) 
 getDoParWorkers()
