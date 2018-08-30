@@ -320,6 +320,8 @@ years<-sort(unique(as.integer(substr(c(gimms_doy,modis_doy),1,4))))
 years<-years[years<2017]
 
 ### mask snow or cloud values
+# the ts with removed values does not play well with the SG filter
+# and it gives really wild results with NDVI...
 rely<-rely%in%c(-1,2,3,255)
 r<-mask(r,rely,maskvalue=TRUE)
 rd<-mask(rd,rely,maskvalue=TRUE)
