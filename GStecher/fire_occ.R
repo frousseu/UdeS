@@ -373,6 +373,8 @@ specificity<-cm[1,1]/sum(cm[1,]) # true negative rate
 
 ### code adapted from Myer et al. 2017 (spatiotemporal mosquitoes, https://doi.org/10.1002/ecs2.1854) supplementary material
 
+### but see Boyce et al. 2002 pour le use-availability design
+
 roc.pred<-prediction(predprob,occ$PA)
 roc.perf<-performance(roc.pred, measure="tpr", x.measure="fpr") #"tpr" means true positive rate, "fpr" is false positive rate
 #tiff(filename="testfig5.tiff",width=3,height=3,units="in",res=300,pointsize=8,compression="lzw")
