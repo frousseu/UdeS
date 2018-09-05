@@ -944,7 +944,7 @@ waic<-lapply(seq_along(waic),function(i){
   res
 })
 
-#save(waic,file="C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
+#save(waic,file=file.path("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer",paste0("waic",gsub("-| |:","",Sys.time()),".RData")))
 
 #load("C:/Users/rouf1703/Documents/UdeS/Consultation/M-LLecuyer/waic.RData")
 
