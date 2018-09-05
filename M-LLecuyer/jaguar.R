@@ -700,7 +700,7 @@ vif(V2VifLEN2)
 V2N0<-Attack~Cat_Typ
 V2N1<-V2SC1
 V2N2<-V2FC3
-V2N3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_matFor_tg+P_indFor_g +P_matFor_m_2000+P_indFor_m_2000 ## + SC + FC
+V2N3<-Attack~Cat_Typ+Den__MinPS_m+Dist_HabP+Bridge_p+Branch_p+P_matFor_m_2000+P_indFor_m_2000 ## + SC + FC
 
 V2N<-list(V2N0=V2N0,V2N1=V2N1,V2N2=V2N2,V2N3=V2N3)
 ml[[length(ml)+1]]<-V2N
@@ -854,6 +854,7 @@ sapply(F,vif2,data=d)
 #############################
 ### run models
 #############################
+
 
 
 
