@@ -177,8 +177,8 @@ summary(ma)
 lsmeans(ma,pairwise ~ seasonyear)
 lsmeans(ma,pairwise ~ plot|seasonyear)
 
-
-png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/CO_SR_biplot3.png",units="in",res=500,width=8,height=8)
+### black and white
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/CO_SR_biplot4.png",units="in",res=500,width=8,height=8)
 ### ggplot biplot pca
 g<-ggbiplot2(pca,choices=1:2,obs.scale=1,var.scale=1,groups=paste(temp$time),ellipse=TRUE,circle=FALSE,labels=NULL,labels.size=5)
 g<-g+scale_color_manual(name='Date',label=lab,values=gray(seq(0.0,0.8,length.out=5)))
@@ -191,6 +191,30 @@ g<-g+xlim(-5.1,3.25)
 print(g)
 #ggscreeplot(pca)
 dev.off()
+
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+pca2<-pca
+
+
+
+### color
+png("C:/Users/rouf1703/Documents/UdeS/Consultation/RBradley/Prog/CO_SR_biplot5.png",units="in",res=500,width=8,height=8)
+### ggplot biplot pca
+g<-ggbiplot2(pca,choices=1:2,obs.scale=1,var.scale=1,groups=paste(temp$time),ellipse=TRUE,circle=FALSE,labels=NULL,labels.size=5)
+g<-g+scale_color_manual(name='Date',label=lab,values=gg_color_hue(5))
+g<-g+scale_shape_manual(values=c(10,16),name="Treatment")
+g<-g+theme_light()
+g<-g+theme(legend.direction='vertical',legend.position='right',panel.grid=element_blank(),panel.border=element_rect(colour="black"))
+g<-g+xlim(-5.1,3.25)
+print(g)
+#ggscreeplot(pca)
+dev.off()
+
 
 
 ### betadisper

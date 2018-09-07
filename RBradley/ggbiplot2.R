@@ -74,7 +74,7 @@ ggbiplot2<-function (pcobj, choices = 1:2, scale = 1, pc.biplot = TRUE,
   }
   df.v$angle <- with(df.v, (180/pi) * atan(yvar/xvar))
   df.v$hjust = with(df.v, (1 - varname.adjust * sign(xvar))/2)
-  df.u$symbol<-temp$plot
+  df.u$symbol<-gsub("SR","BR",temp$plot)
   g <- ggplot(data = df.u, aes(x = xvar, y = yvar)) + xlab(u.axis.labs[1]) + 
     ylab(u.axis.labs[2]) + coord_equal()
   if (var.axes) {
