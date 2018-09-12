@@ -112,6 +112,10 @@ fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
   peak
 }
 
+### double logistic with Beck's et al (2006) parametrisation
+dl<-function(x,wNDVI,mNDVI,S,A,mA,mS){
+  wNDVI+(mNDVI-wNDVI)*((1/(1+exp(-mS*(x-S))))+(1/(1+exp(mA*(x-A))))-1)  
+}
 
 ### double logistic
 fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
@@ -135,18 +139,36 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     
     yy<-as.integer(substr(i[1],1,4))+1
     
-    min_xmid_up<-as.integer(as.Date(paste0(yy,"-04-01")))
-    max_xmid_up<-as.integer(as.Date(paste0(yy,"-07-01")))
+    ### Original parametrisation
+    #min_xmid_up<-as.integer(as.Date(paste0(yy,"-04-01")))
+    #max_xmid_up<-as.integer(as.Date(paste0(yy,"-07-01")))
     
-    min_xmid_do<-as.integer(as.Date(paste0(yy,"-09-01")))
-    max_xmid_do<-as.integer(as.Date(paste0(yy,"-12-01")))
+    #min_xmid_do<-as.integer(as.Date(paste0(yy,"-09-01")))
+    #max_xmid_do<-as.integer(as.Date(paste0(yy,"-12-01")))
+    
+    #lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=15,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=15,c=-0.1)
+    #up<-list(Asym_up=0.9,xmid_up=max_xmid_up,scal_up=40,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=40,c=0.7)
+    #start=lo
+    
+    #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
     
-    lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=15,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=15,c=-0.1)
-    up<-list(Asym_up=0.9,xmid_up=max_xmid_up,scal_up=40,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=40,c=0.7)
+    ### Beck's et al. (2006) parametrisation 
+    
+    min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+    max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+    
+    min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+    max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+    
+    lo<-list(wNDVI=0.1,S=min_S,mS=0.03,mNDVI=0.3,A=min_A,mA=0.03)
+    up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
     start=lo
     
-    m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    #browser()
+    
+    m1<-tryCatch(nls(y~dl(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    
     
     #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
@@ -378,7 +400,7 @@ vlai<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #plot(pol,add=TRUE)
 
 peak_cell<-lapply(seq_along(v),function(i){
-  lapply(1:nrow(v[[i]][1,,drop=FALSE]),function(j){
+  lapply(1:nrow(v[[i]]),function(j){
     #browser()
     pl<-TRUE # for plotting or not
     val<-v[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
@@ -435,6 +457,7 @@ peak_cell<-lapply(seq_along(v),function(i){
       abline(0,0)
     }
     #mLog<-fitLog(val[!is.na(val)],plot=pl) # old up version (grey)
+    #browser()
     mLog<-fitDLog(val[!is.na(val)],plot=pl) # new up down version (green)
     y<-setdiff(years,names(mLog)) # we complete the logistic, and because of merge we don't need to complete the SG I think
     if(any(y)){
@@ -446,8 +469,8 @@ peak_cell<-lapply(seq_along(v),function(i){
     #if(divide==1){
     #  mLog<-mLog[-1] # take out first year for gimms
     #}
-    log_up<-as.Date(sapply(mLog,function(k){unname(k["xmid_up"])}))
-    log_do<-as.Date(sapply(mLog,function(k){unname(k["xmid_do"])}))
+    log_up<-as.Date(sapply(mLog,function(k){unname(k["S"])}))
+    log_do<-as.Date(sapply(mLog,function(k){unname(k["A"])}))
     
     #ans<-rbind(sg_up,log_up,sg_do,log_do)
     ans<-list(sg_up=sg_up,log_up=log_up,sg_do=sg_do,log_do=log_do)
@@ -464,8 +487,12 @@ peak_cell<-lapply(seq_along(v),function(i){
     #browser()
     if(pl){  
       # check ordering of dates
-      h_up<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})/2
-      h_do<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})+sapply(mLog,function(k){k["Asym_do"]})/2
+      #h_up<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})/2
+      #h_do<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})+sapply(mLog,function(k){k["Asym_do"]})/2
+      
+      h_up<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("dl",c(x=as.list(k)$S,as.list(k)))}})
+      h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("dl",c(x=as.list(k)$A,as.list(k)))}})
+      
       axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
       axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
       points(ans$sg_up,h_up,col="red",pch=16)
