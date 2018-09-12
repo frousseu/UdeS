@@ -245,6 +245,8 @@ load(paste0(path,"MOD13Q1_MYD13Q1_Rely_49_2000_1_2017_RData.RData"))
 modis_rely<-raster_ts
 load(paste0(path,"MOD13Q1_MYD13Q1_VI_QA_49_2000_1_2017_RData.RData"))
 modis_QA<-raster_ts
+load("S:/NDVI/MODIS/LAI_8Days_500m_v6/Time_Series/RData/Terra/Lai/MCD15A2H_Lai_1_2010_1_2018_RData.RData")
+modis_lai<-raster_ts
 rm(raster_ts)
 l<-strsplit(names(modis),"_")
 modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
@@ -257,7 +259,7 @@ keep<-1:length(names(modis))
 ### subset modis to only get data from when Aqua was also used
 modis<-subset(modis,keep)
 modis_jul<-subset(modis_jul,keep)
-modis_doy<-modis_doy[[keep]]
+modis_doy<-modis_doy[keep]
 modis_rely<-modis_rely[[keep]]
 
 # Alpha and Terra data are offset by a certain amount in their blocks, but the specific date on which the ndvi is measured for a pixel may be earlier in a later block. Thus, although blocks are ordered, it does not mean that the specific dates are ordered. Ideally, order dates for each pixel one the observations are out of the complete matrix
@@ -314,6 +316,7 @@ r<-modis # determine series to use
 rd<-modis_jul
 doy<-modis_doy
 rely<-modis_rely
+lai<-modis_lai
 divide<-10000 # divide values by 10000
 
 years<-sort(unique(as.integer(substr(c(gimms_doy,modis_doy),1,4))))
@@ -322,9 +325,10 @@ years<-years[years<2017]
 ### mask snow or cloud values
 # the ts with removed values does not play well with the SG filter
 # and it gives really wild results with NDVI...
-rely<-rely%in%c(-1,2,3,255)
-r<-mask(r,rely,maskvalue=TRUE)
-rd<-mask(rd,rely,maskvalue=TRUE)
+
+#rely<-rely%in%c(-1,2,3,255)
+#r<-mask(r,rely,maskvalue=TRUE)
+#rd<-mask(rd,rely,maskvalue=TRUE)
 
 registerDoParallel(6) 
 getDoParWorkers()
@@ -336,6 +340,10 @@ v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 
 vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
   extract(rd,pol[i,])[[1]]  
+}
+
+vlai<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
+  extract(lai,pol[i,])[[1]]  
 }
 
 ### faster velox version of preceding lines, but transforming to velox actually takes too long
@@ -370,7 +378,7 @@ vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #plot(pol,add=TRUE)
 
 peak_cell<-lapply(seq_along(v),function(i){
-  lapply(1:nrow(v[[i]]),function(j){
+  lapply(1:nrow(v[[i]][1,,drop=FALSE]),function(j){
     #browser()
     pl<-TRUE # for plotting or not
     val<-v[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
