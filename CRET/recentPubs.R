@@ -8,7 +8,7 @@ library(RCurl)
 #aut<-c("Marc B\u00E9lisle")
 # when a - is not present in the first name, it should not be added (e.g. F. Guillaume Blanchet)
 
-recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-01",html=TRUE){
+recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2018-01-01",html=TRUE){
   
   ### this function turns strings to names with capital letters or to abbreviated names in the scientific paper style
   string2name<-function(x,abbrev=TRUE){
@@ -126,7 +126,7 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2016-01-
   ans
 }
 
-x<-recentPubs(date="2017-01-01")
+x<-recentPubs(date="2018-01-01")
 
 
 
