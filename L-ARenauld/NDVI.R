@@ -33,6 +33,8 @@ library(zoo)
 library(rasterVis)
 library(FRutils)
 library(phenex)
+library(doSNOW)
+
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -113,7 +115,7 @@ fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
 }
 
 ### double logistic with Beck's et al (2006) parametrisation
-dl<-function(x,wNDVI,mNDVI,S,A,mA,mS){
+DLog<-function(x,wNDVI,mNDVI,S,A,mA,mS){
   wNDVI+(mNDVI-wNDVI)*((1/(1+exp(-mS*(x-S))))+(1/(1+exp(mA*(x-A))))-1)  
 }
 
@@ -167,7 +169,7 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     
     #browser()
     
-    m1<-tryCatch(nls(y~dl(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
     
     #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
@@ -230,9 +232,10 @@ fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
 
 ### Ram mountain
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
-pol<-gBuffer(ram,width=0.0)
+#pol<-gBuffer(ram,width=0.0)
 #pol<-bbox2pol(c(-72.26,-72.15,45.29,45.40))
-pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
+#pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
+
 
 #tmap_mode("view")
 #tm_shape(pol)+tm_polygons(alpha=0.3)+tm_borders(lwd=5)+tm_layout(basemaps=c("Esri.WorldImagery"))
@@ -255,34 +258,102 @@ pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 #r2<-stack(x)
 
 
-path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
+### Stack single image files
 
-load(paste0(path,"MOD13Q1_MYD13Q1_NDVI_49_2000_1_2017_RData.RData"))
-modis<-raster_ts #r5 is the initial raster used in plot ndvi3
-#load(paste0(path,"MOD13Q1_MYD13Q1_EVI_49_2000_1_2017_RData.RData"))
-#modis<-raster_ts #r5 is the initial raster used in plot ndvi3
-load(paste0(path,"MOD13Q1_MYD13Q1_DOY_49_2000_1_2017_RData.RData"))
-modis_jul<-raster_ts
-load(paste0(path,"MOD13Q1_MYD13Q1_Rely_49_2000_1_2017_RData.RData"))
-modis_rely<-raster_ts
-load(paste0(path,"MOD13Q1_MYD13Q1_VI_QA_49_2000_1_2017_RData.RData"))
-modis_QA<-raster_ts
-load("S:/NDVI/MODIS/LAI_8Days_500m_v6/Time_Series/RData/Terra/Lai/MCD15A2H_Lai_1_2010_1_2018_RData.RData")
-modis_lai<-raster_ts
-rm(raster_ts)
-l<-strsplit(names(modis),"_")
-modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
+#l<-list.files("S:/NDVI/MODIS/VI_16Days_500m_v6/NDVI",full.names=TRUE)
+#modis<-stack(l)
+#l<-list.files("S:/NDVI/MODIS/VI_16Days_500m_v6/DOY",full.names=TRUE)
+#modis_jul<-stack(l)
 
-m<-match("MYD",substr(names(modis),1,3))
+#lr<-lapply(l[1:10],function(i){velox(i,extent=extent(pol))})
+
+#rasterOptions(chunksize = 1e+10)
+#rasterOptions(maxmemory = 1e+12)
+
+
+#path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/MODIS/VI_16Days_250m_v6/Time_Series/RData/"
+
+### loading RData session
+load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/NDVI/MOD13A1_MYD13A1_NDVI_49_2000_1_2018_RData.RData")
+modis<-raster_ts
+#load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/DOY/MOD13A1_MYD13A1_DOY_49_2000_1_2018_RData.RData")
+#modis_jul<-raster_ts
+#load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/Rely/MOD13A1_MYD13A1_Rely_49_2000_1_2018_RData.RData")
+#modis_rely<-raster_ts
+#load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/VI_QA/MOD13A1_MYD13A1_VI_QA_49_2000_1_2018_RData.RData")
+#modis_QA<-raster_ts
+#load("S:/NDVI/MODIS/LAI_8Days_500m_v6/Time_Series/RData/Mixed/Lai/MOD15A2H_MYD15A2H_Lai_49_2000_1_2018_RData.RData")
+#modis_lai<-raster_ts
+#load("S:/NDVI/MODIS/Snow_Cov_8-Day_500m_v6/Time_Series/RData/Mixed/MAX_SNW/MOD10_A2_MYD10_A2_MAX_SNW_55_2000_1_2018_RData.RData")
+##modis_snow<-raster_ts
+#load("S:/NDVI/MODIS/Gross_PP_8Days_500m_v6/Time_Series/RData/Mixed/GPP/MOD17A2H_MYD17A2H_GPP_1_2001_1_2018_RData.RData")
+#modis_gpp<-raster_ts
+#rm(raster_ts)
+#l<-strsplit(names(modis),"_")
+#modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
+
+pol<-spTransform(ram,CRS(proj4string(modis)))
+
+#registerDoParallel(8)
+#no_cores <- detectCores(logical=FALSE) 
+#registerDoParallel(no_cores)
+#getDoParWorkers()
+
+lpaths<-c(
+"S:/NDVI/MODIS/VI_16Days_500m_v6/DOY",                                          
+"S:/NDVI/MODIS/VI_16Days_500m_v6/EVI",                                          
+"S:/NDVI/MODIS/VI_16Days_500m_v6/NDVI",                                         
+"S:/NDVI/MODIS/VI_16Days_500m_v6/QA_qual",                                      
+"S:/NDVI/MODIS/VI_16Days_500m_v6/QA_usef",                                      
+"S:/NDVI/MODIS/VI_16Days_500m_v6/Rely", 
+"S:/NDVI/MODIS/VI_16Days_500m_v6/VI_QA",
+"S:/NDVI/MODIS/Snow_Cov_8-Day_500m_v6/MAX_SNW",                                 
+"S:/NDVI/MODIS/Snow_Cov_8-Day_500m_v6/SC_8DAY_bitfield", 
+"S:/NDVI/MODIS/LAI_8Days_500m_v6/Fpar",                                         
+"S:/NDVI/MODIS/LAI_8Days_500m_v6/Lai",
+"S:/NDVI/MODIS/Gross_PP_8Days_500m_v6/GPP",                                     
+"S:/NDVI/MODIS/Gross_PP_8Days_500m_v6/PsnNet")
+
+cl <- makeCluster(8)
+registerDoSNOW(cl)
+pb <- txtProgressBar(max = length(l), style = 3)
+progress <- function(n) setTxtProgressBar(pb, n)
+opts <- list(progress = progress)
+
+lr<-vector(mode="list",length=length(lpaths))
+names(lr)<-sapply(strsplit(lpaths,"/"),tail,1)
+
+for(i in 1:length(lpaths)){
+  l<-list.files(lpaths[i],full.names=TRUE,pattern=".tif")[1:52]
+  l<-l[grep("MYD|MOD",l)]
+  lid<-substr(l,nchar(l)-11,nchar(l)-4)
+  l<-l[order(lid)]
+  lid<-lid[order(lid)]
+  cat("\n",paste("",i," / ",length(lpaths)),"\n")
+  v<-foreach(j=1:length(l),.packages=c("velox"),.verbose=FALSE,.options.snow=opts) %dopar% {velox(l[j])}
+  v<-velox(v)
+  lr[[i]]<-v$extract(pol)
+}
+
+close(pb)
+stopCluster(cl) 
+
+
+
+
+#modis<-crop(modis,pol)
+#snow<-crop(snow,pol)
+
+### keep only data from when Aqua is also present (not sure if this is relevant)
+#m<-match("MYD",substr(names(modis),1,3))
 #keep<-m:length(names(modis))
-keep<-1:length(names(modis))
+#keep<-1:length(names(modis))
 #keep<-grep("MOD",names(r))
-
 ### subset modis to only get data from when Aqua was also used
-modis<-subset(modis,keep)
-modis_jul<-subset(modis_jul,keep)
-modis_doy<-modis_doy[keep]
-modis_rely<-modis_rely[[keep]]
+#modis<-subset(modis,keep)
+#modis_jul<-subset(modis_jul,keep)
+#modis_doy<-modis_doy[keep]
+#modis_rely<-modis_rely[[keep]]
 
 # Alpha and Terra data are offset by a certain amount in their blocks, but the specific date on which the ndvi is measured for a pixel may be earlier in a later block. Thus, although blocks are ordered, it does not mean that the specific dates are ordered. Ideally, order dates for each pixel one the observations are out of the complete matrix
 
@@ -309,12 +380,13 @@ modis_rely<-modis_rely[[keep]]
 #############################################################
 ##### Get GIMMS raster ######################################
 
-path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/GIMMS/"
+path<-"S:/NDVI/GIMMS/"
+#path<-"C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/GIMMS/"
 
 x<-list.files(path)
 ts<-monthlyIndices(x, version = 1, timestamp = T)
 gimms_doy<-as.Date(as.character(ts+round(c(diff(ts),17)/2,0)))
-gimms<-rasterizeGimms(x=paste0(path,x),ext=pol,cores=6L) # clipping
+gimms<-rasterizeGimms(x=paste0(path,x),ext=ram,cores=6L) # clipping
 names(gimms)<-as.character(gimms_doy)
 gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimms)),"%j"))))
 
@@ -331,14 +403,16 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 
 #r<-gimms # determine series to use
 #rd<-gimms_jul
-#doy<-gimms_doy
+#bdoy<-gimms_doy
 #divide<-1 # divide values by 1
 
-r<-modis # determine series to use
-rd<-modis_jul
-doy<-modis_doy
-rely<-modis_rely
-lai<-modis_lai
+ndvi<-lr$NDVI # determine series to use
+doy<-lr$DOY
+rely<-lr$Rely
+lai<-lr$Lai
+snow<-lr$MAX_SNW
+gpp<-lr$GPP
+bdoy<-(as.Date(paste0(sapply(strsplit(names(modis),"_"),"[",3),"-01-01"))+as.integer(sapply(strsplit(names(modis),"_"),"[",4))-1)[1:ncol(ndvi[[1]])]
 divide<-10000 # divide values by 10000
 
 years<-sort(unique(as.integer(substr(c(gimms_doy,modis_doy),1,4))))
@@ -352,21 +426,36 @@ years<-years[years<2017]
 #r<-mask(r,rely,maskvalue=TRUE)
 #rd<-mask(rd,rely,maskvalue=TRUE)
 
-registerDoParallel(6) 
-getDoParWorkers()
+#registerDoParallel(6) 
+#getDoParWorkers()
 
 ### build a list of matrices of each pixel ndvi value for each polygon, the for each is designed for multiple polygons, but here there is only one
-v<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
-  extract(r,pol[i,])[[1]]  
-}
+#vndvi<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(r,pol[i,])[[1]]  
+#}
 
-vd<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
-  extract(rd,pol[i,])[[1]]  
-}
+#vdoy<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(rd,pol[i,])[[1]]  
+#}
 
-vlai<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
-  extract(lai,pol[i,])[[1]]  
-}
+#vlai<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(lai,spTransform(pol,CRS(proj4string(lai)))[i,])[[1]]  
+#}
+
+#vsnow<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(snow,spTransform(pol,CRS(proj4string(lai)))[i,])[[1]]  
+#}
+
+#vgpp<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(gpp,spTransform(pol,CRS(proj4string(gpp)))[i,])[[1]]  
+#}
+
+
+#vgpp<-foreach(i=1:length(pol),.packages=c("raster","sp")) %do% {
+#  extract(brick(gpp[[1:10]]),spTransform(pol,CRS(proj4string(gpp)))[i,])[[1]]  
+#}
+
+#pol<-spTransform(pol,CRS(proj4string(lai)))
 
 ### faster velox version of preceding lines, but transforming to velox actually takes too long
 #vx<-velox(r)
@@ -399,23 +488,23 @@ vlai<-foreach(i=1:length(pol),.packages=c("raster","sp")) %dopar% {
 #plot(r[[1]])
 #plot(pol,add=TRUE)
 
-peak_cell<-lapply(seq_along(v),function(i){
-  lapply(1:nrow(v[[i]]),function(j){
+peak_cell<-lapply(seq_along(ndvi),function(i){
+  lapply(1:nrow(ndvi[[i]]),function(j){
     #browser()
     pl<-TRUE # for plotting or not
-    val<-v[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
+    val<-ndvi[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
     if(all(is.na(val))){
       val[seq_along(val)]<-1  
     }
-    jul<-vd[[i]][j,]
-    names(jul)<-doy
+    jul<-doy[[i]][j,]
+    names(jul)<-bdoy
     #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
-    jul2<-as.integer(format(doy,"%j"))
+    jul2<-as.integer(format(bdoy,"%j"))
     k<-is.na(jul)
     if(any(k)){
       jul[k]<-jul2[k] # missing values in precise julian days are given the beginning of the block  
     }
-    name<-unname(as.Date(jul2nd(as.integer(substr(doy,1,4)),jul,jul2),origin="1970-01-01")) # blocks are ordered, but not necessarily precise dates
+    name<-unname(as.Date(jul2nd(as.integer(substr(bdoy,1,4)),jul,jul2),origin="1970-01-01")) # blocks are ordered, but not necessarily precise dates
     names(val)<-name
     o<-order(name)
     val<-val[o]
@@ -423,7 +512,7 @@ peak_cell<-lapply(seq_along(v),function(i){
     #sup<-c(diff(val,lag=2)>0.4,FALSE)
     #val[sup]<-NA
     #if(j==1)browser()
-    s1<-sgolayfilt(na.spline(val),n=41,p=3,m=1)
+    s1<-sgolayfilt(na.spline(val),n=ifelse(length(val)<41,11,41),p=3,m=1)
     names(s1)<-names(val)
     pos_up<-unlist(findminmax(s1,n=1,beg="04-01",end="07-01"))
     pos_do<-unlist(findminmax(s1,n=1,beg="09-01",end="12-01",max=FALSE))
@@ -432,8 +521,8 @@ peak_cell<-lapply(seq_along(v),function(i){
     names(sg_up)<-substr(sg_up,1,4)
     names(sg_do)<-substr(sg_do,1,4)
     
-    s0<-sgolayfilt(na.spline(val),n=21,p=3,m=0)
-    #data.frame(na.spline(v[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
+    s0<-sgolayfilt(na.spline(val),n=ifelse(length(val)<21,11,21),p=3,m=0)
+    #data.frame(na.spline(vndvi[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
     if(!j%%20)
       print(paste(i,j))
     if(pl){  
@@ -490,8 +579,8 @@ peak_cell<-lapply(seq_along(v),function(i){
       #h_up<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})/2
       #h_do<-sapply(mLog,function(k){k["c"]})+sapply(mLog,function(k){k["Asym_up"]})+sapply(mLog,function(k){k["Asym_do"]})/2
       
-      h_up<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("dl",c(x=as.list(k)$S,as.list(k)))}})
-      h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("dl",c(x=as.list(k)$A,as.list(k)))}})
+      h_up<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$S,as.list(k)))}})
+      h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$A,as.list(k)))}})
       
       axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
       axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
@@ -499,6 +588,12 @@ peak_cell<-lapply(seq_along(v),function(i){
       points(ans$sg_do,h_do,col="red",pch=16)
       points(ans$log_up,h_up,col="green4",pch=16)
       points(ans$log_do,h_do,col="green4",pch=16)
+      
+
+      
+      #LAI<-rescale(vlai[[i]][j,],to=c(0.9,1))
+      #points(as.Date(names(val)),LAI,col=gray(0.5,0.5),cex=1,pch=16)
+      
     }
     ans
   })
