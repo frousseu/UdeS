@@ -169,25 +169,30 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     
     #browser()
     
-    m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
-    
-    
-    #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
-    
-    #browser()
-    
-    #plot(d$x,d$y)
-    #lines(d$x,predict(m1,data.frame(x=d$x)))
-    
-    if(!isTRUE(m1)){
-      se<-seq(min(d$x),max(d$x),by=1) 
-      if(plot){  
-        #plot(as.Date(d$x),d$y)
-        lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("green4",0.5),lwd=4)
-      }
-      coef(m1)
+    if(nrow(d)<10){
+      NA
     }else{
-      NA  
+    
+      m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    
+    
+      #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
+    
+      #browser()
+    
+      #plot(d$x,d$y)
+      #lines(d$x,predict(m1,data.frame(x=d$x)))
+    
+      if(!isTRUE(m1)){
+        se<-seq(min(d$x),max(d$x),by=1) 
+        if(plot){  
+          #plot(as.Date(d$x),d$y)
+          lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("green4",0.5),lwd=4)
+        }
+        coef(m1)
+      }else{
+        NA  
+      }
     }
   })
   names(peak)<-years
@@ -223,7 +228,16 @@ fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
   peak
 } # this would need to be updated to work like fitDLog if it is used after all
 
+# x is a file name ending with "_2002_342.tif"
+getDates<-function(x){
+    x<-gsub(".tif","",x)
+    n<-nchar(x)
+    s<-substr(x,n-7,n)
+    s<-strsplit(s,"_")
+    as.Date(paste0(sapply(s,"[",1),"-01-01"))+as.integer(sapply(s,"[",2))-1
+}
 
+#getDate("whatata_2001_324.tif")
 
 #############################################################
 ##### Get regions of interest ###############################
@@ -316,23 +330,33 @@ lpaths<-c(
 
 cl <- makeCluster(8)
 registerDoSNOW(cl)
-pb <- txtProgressBar(max = length(l), style = 3)
-progress <- function(n) setTxtProgressBar(pb, n)
-opts <- list(progress = progress)
 
 lr<-vector(mode="list",length=length(lpaths))
 names(lr)<-sapply(strsplit(lpaths,"/"),tail,1)
 
 for(i in 1:length(lpaths)){
-  l<-list.files(lpaths[i],full.names=TRUE,pattern=".tif")[1:52]
-  l<-l[grep("MYD|MOD",l)]
+  l<-list.files(lpaths[i],full.names=TRUE,pattern=".tif")
+  jj<-substr(l,nchar(l)-11,nchar(l)-4)
+  l<-l[jj>="2005_001" & jj<="2008_001"] # for a tiny subset######################
+  g<-grep("MCD15",l)
+  if(any(g)){  
+    l<-l[-g]
+  }
   lid<-substr(l,nchar(l)-11,nchar(l)-4)
   l<-l[order(lid)]
   lid<-lid[order(lid)]
   cat("\n",paste("",i," / ",length(lpaths)),"\n")
+  pb<-txtProgressBar(max=length(l),style=3)
+  progress<-function(n) setTxtProgressBar(pb, n)
+  opts <- list(progress = progress)
   v<-foreach(j=1:length(l),.packages=c("velox"),.verbose=FALSE,.options.snow=opts) %dopar% {velox(l[j])}
   v<-velox(v)
-  lr[[i]]<-v$extract(pol)
+  m<-v$extract(pol)
+  m<-lapply(m,function(k){
+    dimnames(k)[[2]]<-as.character(getDates(l))
+    k
+  })
+  lr[[i]]<-m
 }
 
 close(pb)
@@ -412,10 +436,10 @@ rely<-lr$Rely
 lai<-lr$Lai
 snow<-lr$MAX_SNW
 gpp<-lr$GPP
-bdoy<-(as.Date(paste0(sapply(strsplit(names(modis),"_"),"[",3),"-01-01"))+as.integer(sapply(strsplit(names(modis),"_"),"[",4))-1)[1:ncol(ndvi[[1]])]
+bdoy<-dimnames(doy[[1]])[[2]]
 divide<-10000 # divide values by 10000
 
-years<-sort(unique(as.integer(substr(c(gimms_doy,modis_doy),1,4))))
+years<-sort(unique(as.integer(substr(c(gimms_doy,bdoy),1,4))))
 years<-years[years<2017]
 
 ### mask snow or cloud values
@@ -499,7 +523,7 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     jul<-doy[[i]][j,]
     names(jul)<-bdoy
     #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
-    jul2<-as.integer(format(bdoy,"%j"))
+    jul2<-as.integer(format(as.Date(bdoy),"%j"))
     k<-is.na(jul)
     if(any(k)){
       jul[k]<-jul2[k] # missing values in precise julian days are given the beginning of the block  
@@ -537,10 +561,11 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       #  dySeries("s1", drawPoints = FALSE, color = "red",strokeWidth=2) %>%
       #  dyRangeSelector()
       
-      plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n")
+      plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n",col=alpha("green4",0.5),pch=16)
       #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16) # sup refers to values that were removed based on a previous threshold 
       #points(as.Date(names(val2[sup])),val2[sup],pch=8)
-      axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),"-01-01")),las=2)
+      axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
+      axis.Date(3,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
@@ -582,17 +607,32 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       h_up<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$S,as.list(k)))}})
       h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$A,as.list(k)))}})
       
-      axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
-      axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%m-%d")
+      axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%b-%d",line=-3)
+      axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%b-%d",line=-3)
       points(ans$sg_up,h_up,col="red",pch=16)
       points(ans$sg_do,h_do,col="red",pch=16)
       points(ans$log_up,h_up,col="green4",pch=16)
       points(ans$log_do,h_do,col="green4",pch=16)
       
-
+      LAI<-rescale(lai[[i]][j,],to=c(0,1))
+      lines(as.Date(names(LAI)),LAI,col=alpha("green",0.5),lwd=1)
+      points(as.Date(names(LAI)),LAI,col=alpha("green",0.5),cex=1,pch=16)
       
-      #LAI<-rescale(vlai[[i]][j,],to=c(0.9,1))
-      #points(as.Date(names(val)),LAI,col=gray(0.5,0.5),cex=1,pch=16)
+      SNOW<-snow[[i]][j,]
+      #SNOW<-rescale(SNOW,to=c(0,1))
+      SNOW[SNOW==50]<-NA
+      SNOW[SNOW==200]<-1
+      SNOW[SNOW==25]<-0
+      points(as.Date(names(SNOW)),SNOW,col=alpha("black",0.5),cex=1,pch=16)
+      
+      GPP<-rescale(gpp[[i]][j,],to=c(0,1))
+      lines(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),lwd=1)
+      points(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),cex=1,pch=16)
+      
+      #PsnNet<-rescale(pnet[[i]][j,],to=c(0,1))
+      #lines(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),lwd=1)
+      #points(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),cex=1,pch=16)
+       
       
     }
     ans
