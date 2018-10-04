@@ -76,6 +76,13 @@ findminmax<-function(x,n=1,beg="06-01",end="11-01",max=TRUE){
   res
 }
 
+rangeinc<-function(x,inc=c(0.2,0.1)){
+  r<-range(x)
+  d<-r[2]-r[1]
+  c(r[1]-d*inc[1],r[2]+d*inc[2])
+}
+
+
 
 #### test logistic
 
@@ -118,6 +125,8 @@ fitLog<-function(x,mmdate=c("12-01","09-15"),plot=FALSE){
 DLog<-function(x,wNDVI,mNDVI,S,A,mA,mS){
   wNDVI+(mNDVI-wNDVI)*((1/(1+exp(-mS*(x-S))))+(1/(1+exp(mA*(x-A))))-1)  
 }
+
+DLog1<-Deriv(DLog,"x")
 
 ### double logistic
 fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="NDVI"){
@@ -174,8 +183,8 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="NDVI"){
       min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
       max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
       
-      lo<-list(wNDVI=0.0,S=min_S,mS=0.03,mNDVI=0.5,A=min_A,mA=0.03)
-      up<-list(wNDVI=0.05,S=max_S,mS=0.08,mNDVI=0.99,A=max_A,mA=0.08)
+      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=400,A=min_A,mA=0.03)
+      up<-list(wNDVI=0,S=max_S,mS=0.08,mNDVI=800,A=max_A,mA=0.08)
     }    
 
     if(type=="EVI"){
@@ -186,7 +195,8 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="NDVI"){
       
     } 
     
-    start=lo+((up-lo)/2)
+    #start=lo+((up-lo)/2)
+    start<-mapply(function(i,j){i+j},lo,mapply(function(x,y){(x-y)/2},up,lo,SIMPLIFY=FALSE),SIMPLIFY=FALSE)
     
     if(nrow(d)<10){
       NA
@@ -535,6 +545,7 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     #browser()
     pl<-TRUE # for plotting or not
     
+    ################
     ### Values first
     val<-rescale(gpp[[i]][j,]/divide,to=c(0,1)) # divide by 1 for gimms data and by 10000 for modis data
     if(all(is.na(val))){
@@ -553,7 +564,27 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     o<-order(name)
     val<-val[o]
     
+    #################
     ### Values second
+    val<-gpp[[i]][j,] # divide by 1 for gimms data and by 10000 for modis data
+    #val<-gpp[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
+    if(all(is.na(val))){
+      val[seq_along(val)]<-0  
+    }
+    dates<-dimnames(gpp[[1]])[[2]]
+    jul<-as.integer(format(as.Date(dates),"%j"))
+    #jul<-doy[[i]][j,] # for ndvi-evi data
+    names(jul)<-dates
+    #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
+    jul2<-as.integer(format(as.Date(dates),"%j"))
+    k<-is.na(jul)
+    if(any(k)){
+      jul[k]<-jul2[k] # missing values in precise julian days are given the beginning of the block  
+    }
+    name<-unname(as.Date(jul2nd(as.integer(substr(dates,1,4)),jul,jul2),origin="1970-01-01")) # blocks are ordered, but not necessarily precise dates
+    names(val)<-name
+    o<-order(name)
+    val<-val[o]
     
     
     
@@ -572,7 +603,7 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     if(!j%%20)
       print(paste(i,j))
     if(pl){  
-      plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n",col=alpha("green4",0.5),pch=16)
+      plot(as.Date(names(val)),val,ylim=rangeinc(val),xaxt="n",col=alpha("green4",0.5),pch=16)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       axis.Date(3,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       lines(as.Date(names(val)),s0)
@@ -616,12 +647,27 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       h_up<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$S,as.list(k)))}})
       h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$A,as.list(k)))}})
       
+      ### derivs
+      brute<-0:20000
+      h_up<-sapply(mLog,function(k){if(identical(k,NA)){
+        NA
+      }else{
+        brute[which.max(do.call("DLog1",c(list(x=brute),as.list(k))))]
+      }})
+      h_do<-sapply(mLog,function(k){if(identical(k,NA)){
+        NA
+      }else{
+        brute[which.min(do.call("DLog1",c(list(x=brute),as.list(k))))]
+      }})
+      
+
+      
       axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%b-%d",line=-3)
       axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("brown",0.5),format="%b-%d",line=-3)
-      points(ans$sg_up,h_up,col="red",pch=16)
-      points(ans$sg_do,h_do,col="red",pch=16)
-      points(ans$log_up,h_up,col="green4",pch=16)
-      points(ans$log_do,h_do,col="brown",pch=16)
+      #points(ans$sg_up,h_up,col="red",pch=16)
+      #points(ans$sg_do,h_do,col="red",pch=16)
+      points(ans$log_up,h_up,col="green4",pch=15)
+      points(ans$log_do,h_do,col="brown",pch=15)
       
       LAI<-rescale(lai[[i]][j,],to=c(0,1))
       lines(as.Date(names(LAI)),LAI,col=alpha("green",0.5),lwd=1)
@@ -641,8 +687,6 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       #PsnNet<-rescale(pnet[[i]][j,],to=c(0,1))
       #lines(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),lwd=1)
       #points(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),cex=1,pch=16)
-       
-      
     }
     ans
   })
