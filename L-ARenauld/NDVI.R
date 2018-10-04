@@ -120,7 +120,7 @@ DLog<-function(x,wNDVI,mNDVI,S,A,mA,mS){
 }
 
 ### double logistic
-fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
+fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="NDVI"){
   years<-as.integer(unique(substr(names(x),1,4)))
   years<-years[years<=2016]
   l<-lapply(years,function(i){
@@ -156,23 +156,41 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE){
     
     
     ### Beck's et al. (2006) parametrisation 
+    if(type=="NDVI"){
+      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
     
-    min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-    max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+      
+      lo<-list(wNDVI=0.1,S=min_S,mS=0.03,mNDVI=0.3,A=min_A,mA=0.03)
+      up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
+    }
+      
+    if(type=="GPP"){
+      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+      
+      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+      
+      lo<-list(wNDVI=0.0,S=min_S,mS=0.03,mNDVI=0.5,A=min_A,mA=0.03)
+      up<-list(wNDVI=0.05,S=max_S,mS=0.08,mNDVI=0.99,A=max_A,mA=0.08)
+    }    
+
+    if(type=="EVI"){
+
+    } 
     
-    min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-    max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+    if(type=="LAI"){
+      
+    } 
     
-    lo<-list(wNDVI=0.1,S=min_S,mS=0.03,mNDVI=0.3,A=min_A,mA=0.03)
-    up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
-    start=lo
-    
-    #browser()
+    start=lo+((up-lo)/2)
     
     if(nrow(d)<10){
       NA
     }else{
-    
       m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
     
@@ -337,7 +355,7 @@ names(lr)<-sapply(strsplit(lpaths,"/"),tail,1)
 for(i in 1:length(lpaths)){
   l<-list.files(lpaths[i],full.names=TRUE,pattern=".tif")
   jj<-substr(l,nchar(l)-11,nchar(l)-4)
-  l<-l[jj>="2005_001" & jj<="2008_001"] # for a tiny subset######################
+  l<-l[jj>="2005_001" & jj<="2017_001"] # for a tiny subset######################
   g<-grep("MCD15",l)
   if(any(g)){  
     l<-l[-g]
@@ -516,7 +534,9 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
   lapply(1:nrow(ndvi[[i]]),function(j){
     #browser()
     pl<-TRUE # for plotting or not
-    val<-ndvi[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
+    
+    ### Values first
+    val<-rescale(gpp[[i]][j,]/divide,to=c(0,1)) # divide by 1 for gimms data and by 10000 for modis data
     if(all(is.na(val))){
       val[seq_along(val)]<-1  
     }
@@ -532,10 +552,13 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     names(val)<-name
     o<-order(name)
     val<-val[o]
-    #val2<-val
-    #sup<-c(diff(val,lag=2)>0.4,FALSE)
-    #val[sup]<-NA
-    #if(j==1)browser()
+    
+    ### Values second
+    
+    
+    
+
+    ## Savitsky-Golay filter
     s1<-sgolayfilt(na.spline(val),n=ifelse(length(val)<41,11,41),p=3,m=1)
     names(s1)<-names(val)
     pos_up<-unlist(findminmax(s1,n=1,beg="04-01",end="07-01"))
@@ -544,35 +567,21 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     sg_do<-as.Date(names(s1)[pos_do])
     names(sg_up)<-substr(sg_up,1,4)
     names(sg_do)<-substr(sg_do,1,4)
-    
     s0<-sgolayfilt(na.spline(val),n=ifelse(length(val)<21,11,21),p=3,m=0)
-    #data.frame(na.spline(vndvi[[i]][j,]),doy,names(s1),max=as.numeric(seq_along(doy)%in%pos)) # verif
+    
     if(!j%%20)
       print(paste(i,j))
     if(pl){  
-      #browser()
-      #valts <- xts::xts(val, order.by = as.POSIXct(names(val)))
-      #s0ts <- xts::xts(s0, order.by = as.POSIXct(names(val)))
-      #s1ts <- xts::xts(s1, order.by = as.POSIXct(names(val)))
-      #dat<-cbind(val=valts,s0=s0ts,s1=s1ts)
-      #dygraph(dat, main = "S") %>%
-      #  dySeries("val", drawPoints = TRUE, color = "blue",strokeWidth=0) %>%
-      #  dySeries("s0", drawPoints = FALSE, color = "black",strokeWidth=2) %>%
-      #  dySeries("s1", drawPoints = FALSE, color = "red",strokeWidth=2) %>%
-      #  dyRangeSelector()
-      
       plot(as.Date(names(val)),val,ylim=c(-0.2,1),xaxt="n",col=alpha("green4",0.5),pch=16)
-      #points(as.Date(names(val[sup])),na.spline(val)[sup],pch=16) # sup refers to values that were removed based on a previous threshold 
-      #points(as.Date(names(val2[sup])),val2[sup],pch=8)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       axis.Date(3,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       lines(as.Date(names(val)),s0)
       points(as.Date(names(val)),s1*7,col="red",cex=0.5)
       abline(0,0)
     }
-    #mLog<-fitLog(val[!is.na(val)],plot=pl) # old up version (grey)
-    #browser()
-    mLog<-fitDLog(val[!is.na(val)],plot=pl) # new up down version (green)
+    
+    ### Logistic curve
+    mLog<-fitDLog(val[!is.na(val)],plot=pl,type="GPP") # new up down version (green)
     y<-setdiff(years,names(mLog)) # we complete the logistic, and because of merge we don't need to complete the SG I think
     if(any(y)){
       mLog<-c(rep(NA,length(y)),mLog)
@@ -608,11 +617,11 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       h_do<-sapply(mLog,function(k){if(identical(k,NA)){NA}else{do.call("DLog",c(x=as.list(k)$A,as.list(k)))}})
       
       axis.Date(1,at=log_up,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%b-%d",line=-3)
-      axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("green4",0.5),format="%b-%d",line=-3)
+      axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("brown",0.5),format="%b-%d",line=-3)
       points(ans$sg_up,h_up,col="red",pch=16)
       points(ans$sg_do,h_do,col="red",pch=16)
       points(ans$log_up,h_up,col="green4",pch=16)
-      points(ans$log_do,h_do,col="green4",pch=16)
+      points(ans$log_do,h_do,col="brown",pch=16)
       
       LAI<-rescale(lai[[i]][j,],to=c(0,1))
       lines(as.Date(names(LAI)),LAI,col=alpha("green",0.5),lwd=1)
@@ -626,8 +635,8 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       points(as.Date(names(SNOW)),SNOW,col=alpha("black",0.5),cex=1,pch=16)
       
       GPP<-rescale(gpp[[i]][j,],to=c(0,1))
-      lines(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),lwd=1)
-      points(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),cex=1,pch=16)
+      lines(as.Date(names(GPP)),GPP,col=alpha("darkred",0.5),lwd=1)
+      points(as.Date(names(GPP)),GPP,col=alpha("darkred",0.5),cex=1,pch=16)
       
       #PsnNet<-rescale(pnet[[i]][j,],to=c(0,1))
       #lines(as.Date(names(GPP)),GPP,col=alpha("brown",0.5),lwd=1)
@@ -727,7 +736,6 @@ lines(x2$years,x2$modisSGjul)
 
 lines(x1$years,x1$gimmsSGjul)
 lines(x2$years,x2$gimmsSGjul)
-
 
 
 
