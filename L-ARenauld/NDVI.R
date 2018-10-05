@@ -176,6 +176,17 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
       lo<-list(wNDVI=0.1,S=min_S,mS=0.03,mNDVI=0.3,A=min_A,mA=0.03)
       up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
     }
+    
+    if(type=="evi"){
+      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+      
+      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+      
+      lo<-list(wNDVI=0.0,S=min_S,mS=0.03,mNDVI=0.1,A=min_A,mA=0.03)
+      up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
+    } 
       
     if(type=="gpp"){
       min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
@@ -188,9 +199,7 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
       up<-list(wNDVI=0,S=max_S,mS=0.08,mNDVI=1000,A=max_A,mA=0.1)
     }    
 
-    if(type=="evi"){
-
-    } 
+    
     
     if(type=="lai"){
       min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
@@ -478,6 +487,7 @@ gimms_jul<-stack(setValues(gimms,as.integer(format(rep(gimms_doy,each=ncell(gimm
 #divide<-1 # divide values by 1
 
 ndvi<-lr$NDVI # determine series to use
+evi<-lr$EVI # determine series to use
 doy<-lr$DOY
 rely<-lr$Rely
 lai<-lr$Lai
@@ -559,39 +569,29 @@ years<-years[years<2017]
 #plot(r[[1]])
 #plot(pol,add=TRUE)
 
-peak_cell<-lapply(seq_along(ndvi),function(i){
-  lapply(1:nrow(ndvi[[i]]),function(j){
-    #browser()
+ts<-c("ndvi","gpp")
+
+peak_cell<-lapply(ts,function(i){
+  lapply(1:nrow(get(i)[[1]]),function(j){
+
     pl<-TRUE # for plotting or not
-    type<-"snow"
-    
-    ################
-    ### Values first
-    val<-rescale(gpp[[i]][j,]/divide,to=c(0,1)) # divide by 1 for gimms data and by 10000 for modis data
-    if(all(is.na(val))){
-      val[seq_along(val)]<-1  
-    }
-    jul<-doy[[i]][j,]
-    names(jul)<-bdoy
-    #jul2<-as.integer(sapply(strsplit(names(jul),"_"),"[",4))
-    jul2<-as.integer(format(as.Date(bdoy),"%j"))
-    k<-is.na(jul)
-    if(any(k)){
-      jul[k]<-jul2[k] # missing values in precise julian days are given the beginning of the block  
-    }
-    name<-unname(as.Date(jul2nd(as.integer(substr(bdoy,1,4)),jul,jul2),origin="1970-01-01")) # blocks are ordered, but not necessarily precise dates
-    names(val)<-name
-    o<-order(name)
-    val<-val[o]
+    type<-i
     
     #################
-    ### Values second
-    val<-get(type)[[i]][j,] # divide by 1 for gimms data and by 10000 for modis data
+    ### Values
+    val<-get(type)[[1]][j,] # divide by 1 for gimms data and by 10000 for modis data
     #val<-gpp[[i]][j,]/divide # divide by 1 for gimms data and by 10000 for modis data
     if(all(is.na(val))){
       val[seq_along(val)]<-0  
     }
     dates<-dimnames(get(type)[[1]])[[2]]
+    if(any(is.na(val))){
+      dates<-dates[!is.na(val)]  
+      val<-val[!is.na(val)]  
+    }
+    if(type%in%c("ndvi","evi")){
+      val<-val/divide
+    }
     if(type=="lai"){
       dates<-dates[val<45]  
       val<-val[val<45]
@@ -666,13 +666,13 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
     log_up<-as.Date(sapply(mLog,function(k){if(identical(k,NA)){
       NA
     }else{
-      vals<-seq(as.list(k)$S-800,as.list(k)$S+200,by=1)
+      vals<-seq(as.list(k)$S-150,as.list(k)$S+150,by=0.5)
       vals[which.max(do.call("DLog1",c(list(x=vals),as.list(k))))]
     }}))
     log_do<-as.Date(sapply(mLog,function(k){if(identical(k,NA)){
       NA
     }else{
-      vals<-seq(as.list(k)$A-200,as.list(k)$A+200,by=1)
+      vals<-seq(as.list(k)$A-150,as.list(k)$A+150,by=0.5)
       vals[which.min(do.call("DLog1",c(list(x=vals),as.list(k))))]
     }}))
     
@@ -709,7 +709,6 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
       #points(ans$sg_do,h_do,col="red",pch=16)
       points(ans$log_up,h_up,col="green4",pch=15)
       points(ans$log_do,h_do,col="brown",pch=15)
-      
     }
     ans
   })
@@ -717,16 +716,31 @@ peak_cell<-lapply(seq_along(ndvi),function(i){
 
 
 
-metrics<-row.names(peak_cell[[1]][[1]]) # peak_cell is a list (1 for pol) of list of pixels
+#metrics<-row.names(peak_cell[[1]][[1]]) # peak_cell is a list (1 for pol) of list of pixels
 
 
-peaks<-sapply(metrics,function(k){
-  lapply(peak_cell,function(i){
-    ii<-do.call("rbind",lapply(i,function(j){j[row.names(j)==k,]}))
-    as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
-  })
+#peaks<-sapply(metrics,function(k){
+#  lapply(peak_cell,function(i){
+#    ii<-do.call("rbind",lapply(i,function(j){j[row.names(j)==k,]}))
+#    as.Date(colMeans(ii,na.rm=TRUE),origin="1970-01-01")  
+#  })
+#})
+#names(peaks)<-metrics
+
+
+
+peaks<-lapply(ts,function(i){
+  x<-rbindlist(peak_cell[[match(i,ts)]]) 
+  cols<-names(x)[-1]
+  x[,(cols):=list(as.Date(log_up),as.Date(log_do))]
+  x<-x[,lapply(.SD,function(j){mean(j,na.rm=TRUE)}),by=.(year),.SDcols=cols] # problem here!
+  names(x)[-1]<-paste(i,names(x)[-1],sep="_")
+  x
 })
-names(peaks)<-metrics
+
+peaks<-do.call("merge",peaks)
+
+
 
 #
 #peak_log_up<-lapply(peak_cell,function(i){
