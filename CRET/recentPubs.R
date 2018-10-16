@@ -42,7 +42,7 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2018-01-
   
   l<-lapply(authors,function(i){
     a<-unlist(strsplit(i," "))
-    tx<-cr_works(query=keyword,filter=c(from_pub_date=date),flq=c(query.author=a[2]),limit=200,sort='published',order="desc")
+    tx<-cr_works(query=keyword,filter=c(from_pub_date=date),flq=c(query.author=a[2]),limit=1000,sort='published',order="desc")
     x<-as.data.frame(tx$data)
     if(nrow(x)==0L){
       warning(paste("No matches found for",i))
