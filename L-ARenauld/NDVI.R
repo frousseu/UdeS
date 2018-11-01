@@ -36,6 +36,8 @@ library(phenex)
 library(doSNOW)
 library(Deriv)
 
+library(vegan)
+
 
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
@@ -130,9 +132,9 @@ DLog<-function(x,wNDVI,mNDVI,S,A,mA,mS){
 DLog1<-Deriv(DLog,"x")
 
 ### double logistic
-fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
+fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi",...){
   years<-as.integer(unique(substr(names(x),1,4)))
-  years<-years[years<=2016]
+  #years<-years[years<=2018]
   l<-lapply(years,function(i){
     if(mmdate[1]>mmdate[2]){
       paste(c(i-1,i+1),mmdate,sep="-") 
@@ -223,6 +225,28 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
       up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=1,A=max_A,mA=0.5)
     }
     
+    if(type=="fpar"){
+      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+      
+      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+      
+      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=40,A=min_A,mA=0.05)
+      up<-list(wNDVI=60,S=max_S,mS=0.08,mNDVI=100,A=max_A,mA=0.1)
+    }
+    
+    if(type=="psnnet"){
+      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
+      
+      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
+      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
+      
+      lo<-list(wNDVI=-20,S=min_S,mS=0.03,mNDVI=0,A=min_A,mA=0.05)
+      up<-list(wNDVI=100,S=max_S,mS=0.08,mNDVI=600,A=max_A,mA=0.1)
+    }
+    
     #start=lo+((up-lo)/2)
     start<-mapply(function(i,j){i+j},lo,mapply(function(x,y){(x-y)/2},up,lo,SIMPLIFY=FALSE),SIMPLIFY=FALSE)
     
@@ -230,7 +254,9 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
       NA
     }else{
       m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
-    
+      
+      #browser()
+      #m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),algorithm="port"),error=function(j){TRUE})
     
       #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
     
@@ -243,7 +269,7 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi"){
         se<-seq(min(d$x),max(d$x),by=1) 
         if(plot){  
           #plot(as.Date(d$x),d$y)
-          lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("green4",0.5),lwd=4)
+          lines(as.Date(se),predict(m1,data.frame(x=se)),lwd=4,...)
         }
         coef(m1)
       }else{
@@ -302,13 +328,25 @@ getDates<-function(x){
 
 ### Ram mountain
 ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
-#pol<-gBuffer(ram,width=0.0)
+ram<-gBuffer(ram,width=-0.015)
 #pol<-bbox2pol(c(-72.26,-72.15,45.29,45.40))
 #pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
+### the ram area could possibly be shrinked
 
-#tmap_mode("view")
-#tm_shape(pol)+tm_polygons(alpha=0.3)+tm_borders(lwd=5)+tm_layout(basemaps=c("Esri.WorldImagery"))
+pol<-spTransform(ram,CRS(proj4string(modis)))
+
+tmap_mode("view")
+
+tm_shape(pol) +
+  tm_polygons(alpha=0.3) +
+  tm_borders(lwd=5) +
+tm_shape(r) +
+  tm_raster() +
+tm_layout(basemaps=c("Esri.WorldImagery"))
+
+
+
 
 ### Refuges Alberta BC
 #z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
@@ -346,6 +384,7 @@ ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer
 ### loading RData session
 load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/NDVI/MOD13A1_MYD13A1_NDVI_49_2000_1_2018_RData.RData")
 modis<-raster_ts
+r<-raster_ts
 #load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/DOY/MOD13A1_MYD13A1_DOY_49_2000_1_2018_RData.RData")
 #modis_jul<-raster_ts
 #load("S:/NDVI/MODIS/VI_16Days_500m_v6/Time_Series/RData/Mixed/Rely/MOD13A1_MYD13A1_Rely_49_2000_1_2018_RData.RData")
@@ -393,7 +432,7 @@ names(lr)<-sapply(strsplit(lpaths,"/"),tail,1)
 for(i in 1:length(lpaths)){
   l<-list.files(lpaths[i],full.names=TRUE,pattern=".tif")
   jj<-substr(l,nchar(l)-11,nchar(l)-4)
-  l<-l[jj>="2005_001" & jj<="2017_001"] # for a tiny subset######################
+  l<-l[jj>="2000_001" & jj<="2018_001"] # for a tiny subset######################
   g<-grep("MCD15",l)
   if(any(g)){  
     l<-l[-g]
@@ -493,6 +532,8 @@ rely<-lr$Rely
 lai<-lr$Lai
 snow<-lr$MAX_SNW
 gpp<-lr$GPP
+fpar<-lr$Fpar
+psnnet<-lr$PsnNet
 bdoy<-dimnames(doy[[1]])[[2]]
 divide<-10000 # divide values by 10000
 
@@ -569,12 +610,24 @@ years<-years[years<2017]
 #plot(r[[1]])
 #plot(pol,add=TRUE)
 
-ts<-c("ndvi","gpp")
+
+
+ts<-c("ndvi","evi","lai","gpp","snow","psnnet","fpar")
+cols<-list(ndvi="darkgreen",evi="chartreuse4",lai="chartreuse2",gpp="coral3",snow="azure3",psnnet="aquamarine3",fpar="aquamarine4")
+lts<-list(ndvi="Normalized Difference Vegetation Index",evi="Enhanced Vegetation Index",lai="Leaf Area Index",gpp="Gross Primary Productivity",snow="8-Day Snow Cover",psnnet="Net Photosynthesis",fpar="Fraction of Photosynthetically Active Radiation")
+#ts<-c("evi")
 
 peak_cell<-lapply(ts,function(i){
   lapply(1:nrow(get(i)[[1]]),function(j){
 
-    pl<-TRUE # for plotting or not
+    pl<-FALSE# for plotting or not
+    pdfs<-FALSE
+    cell<-(-100)
+    
+    if(cell>0 && j!=cell){
+      return(NA)
+    }
+    
     type<-i
     
     #################
@@ -592,7 +645,7 @@ peak_cell<-lapply(ts,function(i){
     if(type%in%c("ndvi","evi")){
       val<-val/divide
     }
-    if(type=="lai"){
+    if(type=="lai"){ # values over 45 are eliminated (some values in winter are abnormally high)
       dates<-dates[val<45]  
       val<-val[val<45]
     }
@@ -633,8 +686,11 @@ peak_cell<-lapply(ts,function(i){
     
     if(!j%%20)
       print(paste(i,j))
-    if(pl){  
-      plot(as.Date(names(val)),val,ylim=rangeinc(val),xaxt="n",col=alpha("green4",0.5),pch=16)
+    if(pl || pdfs){  
+      if(j==cell){
+        pdf(file.path("C:/Users/rouf1703/Downloads",paste0(i,".pdf")),width=18,height=6,pointsize=4)
+      }
+      plot(as.Date(names(val)),val,ylim=rangeinc(val),xaxt="n",col=alpha(cols[[type]],0.5),pch=16,ylab=i)
       axis.Date(1,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       axis.Date(3,at=as.Date(paste0(substr(names(val),1,4),paste0("-",formatC(1:12,width=2,flag=0),"-01"))),format="%y-%b",las=2)
       #lines(as.Date(names(val)),s0)
@@ -643,7 +699,7 @@ peak_cell<-lapply(ts,function(i){
     }
     
     ### Logistic curve
-    mLog<-fitDLog(val[!is.na(val)],plot=pl,type=type) # new up down version (green)
+    mLog<-fitDLog(val[!is.na(val)],plot=pl,type=type,col=cols[[type]]) # new up down version (green)
     
     ### not sur eif this is essential
     #y<-setdiff(years,names(mLog)) # we complete the logistic, and because of merge we don't need to complete the SG I think
@@ -707,9 +763,16 @@ peak_cell<-lapply(ts,function(i){
       axis.Date(1,at=log_do,las=2,cex.axis=0.7,col.axis=alpha("brown",0.5),format="%b-%d",line=-3)
       #points(ans$sg_up,h_up,col="red",pch=16)
       #points(ans$sg_do,h_do,col="red",pch=16)
-      points(ans$log_up,h_up,col="green4",pch=15)
-      points(ans$log_do,h_do,col="brown",pch=15)
+      points(ans$log_up,h_up,col="green4",pch=15,cex=1.5)
+      points(ans$log_do,h_do,col="brown",pch=15,cex=1.5)
     }
+    
+    if(pl || pdfs){  
+      if(j==cell){
+        dev.off()
+      }
+    }
+    
     ans
   })
 })
@@ -733,14 +796,53 @@ peaks<-lapply(ts,function(i){
   x<-rbindlist(peak_cell[[match(i,ts)]]) 
   cols<-names(x)[-1]
   x[,(cols):=list(as.Date(log_up),as.Date(log_do))]
-  x<-x[,lapply(.SD,function(j){mean(j,na.rm=TRUE)}),by=.(year),.SDcols=cols] # problem here!
+  #x<-x[1:5,]
+  x<-x[,lapply(.SD,function(j){mean.Date(j,na.rm=TRUE)}),by=year,.SDcols=cols] # problem here!
   names(x)[-1]<-paste(i,names(x)[-1],sep="_")
   x
 })
+peaks<-Reduce(merge,peaks)
 
-peaks<-do.call("merge",peaks)
+
+###################
+
+plot(as.integer(format(peaks[,2],"%j")),peaks$year,xlim=range(as.integer(format(peaks[,-1],"%j")),na.rm=TRUE),type="n",xaxt="n",yaxt="n",xlab="Dates",ylab="Year")
+
+segments(j,-2000,j,4000,lty=3,col=gray(0,0.1))
+#segments(j[grep("-01",dates)],-2000,j[grep("-01",dates)],4000,lty=3,col=gray(0,0.25))
+
+invisible(lapply(2:ncol(peaks),function(i){
+  tsval<-sapply(strsplit(names(peaks)[i],"_"),"[",1)
+  lines(as.integer(format(peaks[,..i],"%j")),peaks$year,type="b",lwd=5,col=alpha(cols[[tsval]],0.85))   
+}))
+
+legend("top",cex=1.15,lwd=5,legend=paste(names(cols),"-",lts),col=alpha(unlist(cols),0.85),bty="n",inset=c(0.1,-0.00))
+axis(2,at=peaks$year,las=2)
+
+dates<-seq.Date(as.Date("2000-01-01"),as.Date("2001-01-01"),by="day")
+dates<-dates[grep("-01|-10|-20",substr(dates,8,10))]
+j<-as.integer(format(dates,"%j"))
+axis(1,at=j,labels=format(dates,"%b %d"),las=2)
 
 
+
+
+###################
+
+
+
+up<-as.data.frame(peaks)[,grep("_up",names(peaks))]
+row.names(up)<-peaks$year
+
+up[]<-lapply(up,function(i){
+  as.integer(format(i,"%j"))  
+})
+up<-up[apply(up,1,function(i){!any(is.na(i))}),]
+
+cor(up,use="complete.obs")
+
+m<-rda(as.matrix(up),scale=TRUE)
+biplot(m,scaling=2)
 
 #
 #peak_log_up<-lapply(peak_cell,function(i){
