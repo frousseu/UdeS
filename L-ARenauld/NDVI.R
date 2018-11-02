@@ -146,108 +146,25 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi",...){
     sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
     d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
     
-    #browser()
-    
-    #min_xmid_up<-as.integer(as.Date(i[1])+120)
-    #max_xmid_up<-as.integer(as.Date(i[1])+250)
-    
     yy<-as.integer(substr(i[1],1,4))+1
     
-    ### Original parametrisation
-    #min_xmid_up<-as.integer(as.Date(paste0(yy,"-04-01")))
-    #max_xmid_up<-as.integer(as.Date(paste0(yy,"-07-01")))
+    min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
+    max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
     
-    #min_xmid_do<-as.integer(as.Date(paste0(yy,"-09-01")))
-    #max_xmid_do<-as.integer(as.Date(paste0(yy,"-12-01")))
-    
-    #lo<-list(Asym_up=0.01,xmid_up=min_xmid_up,scal_up=15,Asym_do=-0.9,xmid_do=min_xmid_do,scal_do=15,c=-0.1)
-    #up<-list(Asym_up=0.9,xmid_up=max_xmid_up,scal_up=40,Asym_do=-0.01,xmid_do=max_xmid_do,scal_do=40,c=0.7)
-    #start=lo
-    
-    #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
-    
+    min_A<-as.integer(as.Date(paste0(yy,"-08-15")))
+    max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
     
     ### Beck's et al. (2006) parametrisation 
-    if(type=="ndvi"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
     
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0.1,S=min_S,mS=0.03,mNDVI=0.3,A=min_A,mA=0.03)
-      up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
-    }
-    
-    if(type=="evi"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0.0,S=min_S,mS=0.03,mNDVI=0.1,A=min_A,mA=0.03)
-      up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=0.9,A=max_A,mA=0.08)
-    } 
-      
-    if(type=="gpp"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=400,A=min_A,mA=0.05)
-      up<-list(wNDVI=0,S=max_S,mS=0.08,mNDVI=1000,A=max_A,mA=0.1)
-    }    
-
-    
-    
-    if(type=="lai"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=10,A=min_A,mA=0.05)
-      up<-list(wNDVI=20,S=max_S,mS=0.08,mNDVI=90,A=max_A,mA=0.1)
-    } 
+    lo<-list(wNDVI=min(x),S=min_S,mS=0.03,mNDVI=median(x),A=min_A,mA=0.03)
+    up<-list(wNDVI=median(x),S=max_S,mS=0.1,mNDVI=max(x),A=max_A,mA=0.1)
     
     if(type=="snow"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=0.5,A=min_A,mA=0.05)
-      up<-list(wNDVI=0.5,S=max_S,mS=0.08,mNDVI=1,A=max_A,mA=0.5)
+
+      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=0.5,A=min_A,mA=0.03)
+      up<-list(wNDVI=0.5,S=max_S,mS=0.5,mNDVI=1,A=max_A,mA=0.5)
     }
-    
-    if(type=="fpar"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=0,S=min_S,mS=0.03,mNDVI=40,A=min_A,mA=0.05)
-      up<-list(wNDVI=60,S=max_S,mS=0.08,mNDVI=100,A=max_A,mA=0.1)
-    }
-    
-    if(type=="psnnet"){
-      min_S<-as.integer(as.Date(paste0(yy,"-04-01")))
-      max_S<-as.integer(as.Date(paste0(yy,"-07-01")))
-      
-      min_A<-as.integer(as.Date(paste0(yy,"-09-01")))
-      max_A<-as.integer(as.Date(paste0(yy,"-12-01")))
-      
-      lo<-list(wNDVI=-20,S=min_S,mS=0.03,mNDVI=0,A=min_A,mA=0.05)
-      up<-list(wNDVI=100,S=max_S,mS=0.08,mNDVI=600,A=max_A,mA=0.1)
-    }
-    
-    #start=lo+((up-lo)/2)
+
     start<-mapply(function(i,j){i+j},lo,mapply(function(x,y){(x-y)/2},up,lo,SIMPLIFY=FALSE),SIMPLIFY=FALSE)
     
     if(nrow(d)<10){
@@ -255,16 +172,6 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi",...){
     }else{
       m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
       
-      #browser()
-      #m1<-tryCatch(nls(y~DLog(x,wNDVI,mNDVI,S,A,mA,mS),data=d,start=start,control=list(minFactor=1e-12,maxiter=500),algorithm="port"),error=function(j){TRUE})
-    
-      #m1<-tryCatch(nls(y~(Asym_up/(1+exp((xmid_up-x)/scal_up)))+(Asym_do/(1+exp((xmid_do-x)/scal_do)))+c,data=d,start=start,control=list(minFactor=1e-12,maxiter=500),lower=lo,upper=up,algorithm="port"),error=function(j){TRUE})
-    
-      #browser()
-    
-      #plot(d$x,d$y)
-      #lines(d$x,predict(m1,data.frame(x=d$x)))
-    
       if(!isTRUE(m1)){
         se<-seq(min(d$x),max(d$x),by=1) 
         if(plot){  
@@ -280,6 +187,8 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi",...){
   names(peak)<-years
   peak
 }
+
+
 
 
 fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
@@ -618,11 +527,14 @@ lts<-list(ndvi="Normalized Difference Vegetation Index",evi="Enhanced Vegetation
 #ts<-c("evi")
 
 peak_cell<-lapply(ts,function(i){
+    
   lapply(1:nrow(get(i)[[1]]),function(j){
-
+    
+    #i<-sample(ts,1)
+    
     pl<-FALSE# for plotting or not
     pdfs<-FALSE
-    cell<-(-100)
+    cell<-(-50)
     
     if(cell>0 && j!=cell){
       return(NA)
@@ -648,6 +560,10 @@ peak_cell<-lapply(ts,function(i){
     if(type=="lai"){ # values over 45 are eliminated (some values in winter are abnormally high)
       dates<-dates[val<45]  
       val<-val[val<45]
+    }
+    if(type=="fpar"){ # values over 90 are eliminated (some values in winter are abnormally high)
+      dates<-dates[val<90]  
+      val<-val[val<90]
     }
     if(type=="snow"){
       val[val==50]<-NA
@@ -699,7 +615,7 @@ peak_cell<-lapply(ts,function(i){
     }
     
     ### Logistic curve
-    mLog<-fitDLog(val[!is.na(val)],plot=pl,type=type,col=cols[[type]]) # new up down version (green)
+    mLog<-fitDLog(val[!is.na(val)],plot=pl,type=type,col=alpha(cols[[type]],0.85)) # new up down version (green)
     
     ### not sur eif this is essential
     #y<-setdiff(years,names(mLog)) # we complete the logistic, and because of merge we don't need to complete the SG I think
@@ -765,6 +681,9 @@ peak_cell<-lapply(ts,function(i){
       #points(ans$sg_do,h_do,col="red",pch=16)
       points(ans$log_up,h_up,col="green4",pch=15,cex=1.5)
       points(ans$log_do,h_do,col="brown",pch=15,cex=1.5)
+      
+      abline(median(val,na.rm=TRUE),0)
+      
     }
     
     if(pl || pdfs){  
@@ -808,23 +727,20 @@ peaks<-Reduce(merge,peaks)
 
 plot(as.integer(format(peaks[,2],"%j")),peaks$year,xlim=range(as.integer(format(peaks[,-1],"%j")),na.rm=TRUE),type="n",xaxt="n",yaxt="n",xlab="Dates",ylab="Year")
 
+dates<-seq.Date(as.Date("2000-01-01"),as.Date("2001-01-01"),by="day")
+dates<-dates[grep("-01|-10|-20",substr(dates,8,10))]
+j<-as.integer(format(dates,"%j"))
+axis(1,at=j,labels=format(dates,"%b %d"),las=2)
 segments(j,-2000,j,4000,lty=3,col=gray(0,0.1))
 #segments(j[grep("-01",dates)],-2000,j[grep("-01",dates)],4000,lty=3,col=gray(0,0.25))
 
 invisible(lapply(2:ncol(peaks),function(i){
   tsval<-sapply(strsplit(names(peaks)[i],"_"),"[",1)
-  lines(as.integer(format(peaks[,..i],"%j")),peaks$year,type="b",lwd=5,col=alpha(cols[[tsval]],0.85))   
+  lines(as.integer(format(peaks[,..i],"%j")),peaks$year,type="b",lwd=5,col=alpha(cols[[tsval]],0.75))   
 }))
 
-legend("top",cex=1.15,lwd=5,legend=paste(names(cols),"-",lts),col=alpha(unlist(cols),0.85),bty="n",inset=c(0.1,-0.00))
+legend("top",cex=1.15,lwd=5,legend=paste(names(cols),"-",lts),col=alpha(unlist(cols),0.75),bty="n",inset=c(0.1,0.00))
 axis(2,at=peaks$year,las=2)
-
-dates<-seq.Date(as.Date("2000-01-01"),as.Date("2001-01-01"),by="day")
-dates<-dates[grep("-01|-10|-20",substr(dates,8,10))]
-j<-as.integer(format(dates,"%j"))
-axis(1,at=j,labels=format(dates,"%b %d"),las=2)
-
-
 
 
 ###################
@@ -842,7 +758,7 @@ up<-up[apply(up,1,function(i){!any(is.na(i))}),]
 cor(up,use="complete.obs")
 
 m<-rda(as.matrix(up),scale=TRUE)
-biplot(m,scaling=2)
+biplot(m,scaling=1)
 
 #
 #peak_log_up<-lapply(peak_cell,function(i){
