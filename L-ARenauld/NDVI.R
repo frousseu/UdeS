@@ -38,7 +38,9 @@ library(Deriv)
 
 library(vegan)
 
-
+library(mapview)
+library(mapedit)
+library(magrittr)
 
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
 
@@ -188,37 +190,6 @@ fitDLog<-function(x,mmdate=c("12-01","03-15"),plot=FALSE,type="ndvi",...){
   peak
 }
 
-
-
-
-fitGau<-function(x,mmdate=c("12-01","10-15"),plot=FALSE){
-  years<-as.integer(unique(substr(names(x),1,4)))
-  years<-years[years<=2016]
-  l<-lapply(years,function(i){
-    paste(c(i-1,i),mmdate,sep="-")  
-  })
-  peak<-lapply(l,function(i){
-    sx<-x[which(names(x)>=i[1] & names(x)<=i[2])]
-    d<-data.frame(y=sx,x=as.integer(as.Date(names(sx))))
-    min_mu<-as.integer(as.Date(i[1])+120)
-    max_mu<-as.integer(as.Date(i[2])-0)
-    #lo1<-list(c=0.0)
-    #up1<-list(c=0.7)
-    m1<-tryCatch(nls(y~(a/(sigma*sqrt(2*pi)))*exp(-((x-mu)^2)/(2*sigma^2))+c,data=d,start=list(a=100,mu=max_mu-30,sigma=5,c=0.3),control=list(minFactor=1e-12,maxiter=500),algorithm="port"),error=function(j){TRUE})
-    if(!isTRUE(m1)){
-      se<-seq(min(d$x),max(d$x),by=1) 
-      if(plot){  
-        #plot(as.Date(d$x),d$y)
-        lines(as.Date(se),predict(m1,data.frame(x=se)),col=alpha("blue4",0.5),lwd=4)
-      }
-      coef(m1)
-    }else{
-      NA  
-    }
-  })
-  peak
-} # this would need to be updated to work like fitDLog if it is used after all
-
 # x is a file name ending with "_2002_342.tif"
 getDates<-function(x){
     x<-gsub(".tif","",x)
@@ -236,31 +207,60 @@ getDates<-function(x){
 # A list of SpatialPolygonsDataFrame for which a metric is wanted
 
 ### Ram mountain
-ram<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram")
-ram<-gBuffer(ram,width=-0.015)
+
+#x <- mapview() %>% editMap()
+#plot(x$finished)
+#ram<-as(x$finished,"Spatial")
+#writeOGR(ram,dsn="C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/Doc",layer="ram",driver="ESRI Shapefile")
+
+
+
+
+### elevation data comes from tile 083b05: 
+# http://ftp.geogratis.gc.ca/pub/nrcan_rncan/archive/elevation/geobase_cded_dnec/50k_dem/
+e<-raster("S:/NDVI/MODIS/083b05/083b05_0201_deme.dem")
+w<-raster("S:/NDVI/MODIS/083b05/083b05_0201_demw.dem")
+alt<-merge(e,w)
+
+###  build a tile to crop the MODIS rasters when dowloading data with MODIStsp
+#tileram<-as(extent(alt),"SpatialPolygons")
+#proj4string(tileram)<-proj4string(alt)
+#writeOGR(SpatialPolygonsDataFrame(tileram,data=data.frame(id=1)),dsn="S:/NDVI/MODIS/083b05",layer="tileram",driver="ESRI Shapefile",overwrite_layer=FALSE)
+#plot(alt)
+#plot(tileram,add=TRUE)
+
+
+a<-alt
+a<-aggregate(alt,2)
+av<-1600
+a[a<av]<-0
+a[a>=av]<-1
+
+
+
+
+ram<-rasterToPolygons(a,fun=function(x){x>=1},dissolve=TRUE)
+ram<-disaggregate(ram)
+o<-over(ram,SpatialPoints(cbind(c(-115.8549,-115.7963),c(52.38193,52.35439)),proj4string=CRS(proj4string(ram))))
+ram<-ram[!is.na(o),]
+plot(alt)
+plot(ram,add=TRUE)
+#plot(ram,add=TRUE)
+
+#x<-list.files("C:/Users/rouf1703/Documents/UdeS/Consultation/L-ARenaud/test/Gross_PP_8Days_500m_v6/GPP",full.names=TRUE)
+#v<-velox(sapply(x,velox))
+#r<-v$as.RasterStack()
+
+#plot(r[[1]])
+#plot(spTransform(ram,CRS(proj4string(r))),add=TRUE)
+#plot(spTransform(patch,CRS(proj4string(r))),add=TRUE)
+
+
+#ram<-gBuffer(ram,width=-0.015)
 #pol<-bbox2pol(c(-72.26,-72.15,45.29,45.40))
 #pol<-SpatialPolygonsDataFrame(pol,data.frame(id=1),match.ID=FALSE)
 
 ### the ram area could possibly be shrinked
-
-pol<-spTransform(ram,CRS(proj4string(modis)))
-
-tmap_mode("view")
-
-tm_shape(pol) +
-  tm_polygons(alpha=0.3) +
-  tm_borders(lwd=5) +
-tm_shape(r) +
-  tm_raster() +
-tm_layout(basemaps=c("Esri.WorldImagery"))
-
-
-
-
-### Refuges Alberta BC
-#z<-readOGR("C:/Users/rouf1703/Documents/UdeS/Consultation/YPoisson/Doc",layer="largezone_BC_Alberta")
-#pol<-spTransform(z,CRS(proj4string(ram)))
-
 
 #############################################################
 ##### Get MODIS raster ######################################
@@ -309,6 +309,23 @@ r<-raster_ts
 #rm(raster_ts)
 #l<-strsplit(names(modis),"_")
 #modis_doy<-as.Date(paste0(sapply(l,"[",3),"-01-01"))+as.integer(sapply(l,"[",4))-1
+
+
+pol<-spTransform(ram,CRS(proj4string(modis)))
+
+tmap_mode("view")
+tm_shape(pol) +
+  tm_polygons(col="red",alpha=0.3) +
+  tm_borders(col="red",lwd=5) +
+  tm_shape(r[[1]]) +
+  tm_raster() +
+  tm_layout(basemaps=c("Esri.WorldImagery"))
+
+#plot(test)
+#test<-rasterToPolygons(r[[1]])
+#ocells<-over(test,spTransform(ram,proj4string(test)))
+#plot(test[!is.na(ocells[,1]),],border="red",lwd=2,add=TRUE)
+
 
 pol<-spTransform(ram,CRS(proj4string(modis)))
 
@@ -366,6 +383,18 @@ for(i in 1:length(lpaths)){
 close(pb)
 stopCluster(cl) 
 
+
+
+
+m<-v$extract(pol)
+vm<-v$getCoordinates()
+vm<-vm[order(vm[,1],-vm[,2]),]
+cents<-SpatialPoints(vm,proj4string=CRS(v$crs))
+par(mar=c(0,0,0,0))
+plot(modis[[1]])
+plot(cents,add=TRUE,pch=1,cex=0.6)
+
+ocells<-over(cents,pol)
 
 
 
@@ -522,6 +551,7 @@ years<-years[years<2017]
 
 
 ts<-c("ndvi","evi","lai","gpp","snow","psnnet","fpar")
+#ts<-c("ndvi")
 cols<-list(ndvi="darkgreen",evi="chartreuse4",lai="chartreuse2",gpp="coral3",snow="azure3",psnnet="aquamarine3",fpar="aquamarine4")
 lts<-list(ndvi="Normalized Difference Vegetation Index",evi="Enhanced Vegetation Index",lai="Leaf Area Index",gpp="Gross Primary Productivity",snow="8-Day Snow Cover",psnnet="Net Photosynthesis",fpar="Fraction of Photosynthetically Active Radiation")
 #ts<-c("evi")
@@ -532,9 +562,9 @@ peak_cell<-lapply(ts,function(i){
     
     #i<-sample(ts,1)
     
-    pl<-FALSE# for plotting or not
-    pdfs<-FALSE
-    cell<-(-50)
+    pl<-TRUE# for plotting or not
+    pdfs<-TRUE
+    cell<-(sample(1:nrow(get(i)[[1]]),1))
     
     if(cell>0 && j!=cell){
       return(NA)
@@ -692,10 +722,26 @@ peak_cell<-lapply(ts,function(i){
       }
     }
     
+    ### plotting cells
+    #w<-which(!is.na(ocells[,1]))
+    #plot(ram)
+    #plot(spTransform(cents[w,],CRS(proj4string(ram))),add=TRUE,pch=1)
+    #plot(spTransform(cents[w[j],],CRS(proj4string(ram))),add=TRUE,pch=16,col="red",cex=2)
+    
+    #tmap_mode("plot")
+    #tm_shape(pol) +
+    #  tm_polygons(col="red",alpha=0.3) +
+    #  tm_borders(col="red",lwd=5) +
+    #  tm_shape(r[[1]]) +
+    #  tm_raster() +
+    #  tm_shape(cent[w[j],])+
+    #  tm_dots()+
+    #  tm_view(basemaps=c("Esri.WorldImagery"))
+    
     ans
   })
 })
-
+names(peak_cell)<-ts
 
 
 #metrics<-row.names(peak_cell[[1]][[1]]) # peak_cell is a list (1 for pol) of list of pixels
@@ -720,7 +766,7 @@ peaks<-lapply(ts,function(i){
   names(x)[-1]<-paste(i,names(x)[-1],sep="_")
   x
 })
-peaks<-Reduce(merge,peaks)
+peaks<-Reduce(function(x,y){merge(x,y,all=TRUE)},peaks)
 
 
 ###################
@@ -742,11 +788,45 @@ invisible(lapply(2:ncol(peaks),function(i){
 legend("top",cex=1.15,lwd=5,legend=paste(names(cols),"-",lts),col=alpha(unlist(cols),0.75),bty="n",inset=c(0.1,0.00))
 axis(2,at=peaks$year,las=2)
 
+###############################
+### WHICH CELL ################
 
-###################
+w<-which(!is.na(ocells[,1]))
+gridi<-v$as.RasterStack()[[1]]
+
+rl<-lapply(peak_cell,function(i){
+  years<-i[[1]]$year
+  l<-lapply(years,function(j){
+    grid<-gridi  
+    vals<-rep(NA,ncell(grid))
+    vals[w]<-sapply(i,function(k){
+      as.integer(format(k[k$year==j,"log_up"],"%j"))
+    })
+    #vals[w]<-1:length(peak_cell[[1]])
+    grid[]<-vals[t(matrix(1:ncell(grid),ncol=ncol(grid)))]
+    grid
+  })
+  res<-stack(l)
+  names(res)<-years
+  res<-crop(res,pol)
+  projectRaster(res,crs=CRS(proj4string(ram)))
+})
+names(rl)<-names(peak_cell)
+
+levelplot(rl$evi)
+
+#tmap_mode("view")
+#tm_shape(pol) +
+#  tm_polygons(col="red",alpha=0.3) +
+#  tm_borders(col="red",lwd=5) +
+#  tm_shape(grid) +
+#  tm_raster(alpha=0.5) +
+#  tm_view(basemaps=c("Esri.WorldImagery"))
 
 
 
+###############################
+### PCA #######################
 up<-as.data.frame(peaks)[,grep("_up",names(peaks))]
 row.names(up)<-peaks$year
 
