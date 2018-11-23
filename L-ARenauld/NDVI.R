@@ -42,6 +42,8 @@ library(mapview)
 library(mapedit)
 library(magrittr)
 
+load("C:/Users/rouf1703/Desktop/ram2000_2018.RData")
+
 ### This script is for extracting ndvi/evi metrics from RasterStack objects using a set of regions defined by polygons
 
 # RasterStacks may be of the MODIS or GIMMS type
@@ -433,6 +435,18 @@ ocells<-over(cents,pol)
 
 #rc<-SpatialPointsDataFrame(coordinates(modis),proj4string=CRS(proj4string(modis)),data.frame(id=seq_len(dim(modis)[1]*dim(modis)[2])))
 
+### Rely
+
+#load("C:/Users/rouf1703/Desktop/ram2000_2018.RData")
+
+#pix<-90
+#idx<-"EVI"
+#plot(lr[[idx]][[1]][pix,])
+#w<-which(!lr$Rely[[1]]%in%c(1,2,NA)) # values in here are supposed to be -1,0,1,2,3 not sure why they differ from the user guide
+#lr[[idx]][[1]][w]<-NA
+#points(lr[[idx]][[1]][pix,],pch=16,col="darkgreen")
+
+
 
 #############################################################
 ##### Get GIMMS raster ######################################
@@ -551,7 +565,7 @@ years<-years[years<2017]
 
 
 ts<-c("ndvi","evi","lai","gpp","snow","psnnet","fpar")
-#ts<-c("ndvi")
+#ts<-c("evi")
 cols<-list(ndvi="darkgreen",evi="chartreuse4",lai="chartreuse2",gpp="coral3",snow="azure3",psnnet="aquamarine3",fpar="aquamarine4")
 lts<-list(ndvi="Normalized Difference Vegetation Index",evi="Enhanced Vegetation Index",lai="Leaf Area Index",gpp="Gross Primary Productivity",snow="8-Day Snow Cover",psnnet="Net Photosynthesis",fpar="Fraction of Photosynthetically Active Radiation")
 #ts<-c("evi")
@@ -562,9 +576,9 @@ peak_cell<-lapply(ts,function(i){
     
     #i<-sample(ts,1)
     
-    pl<-TRUE# for plotting or not
-    pdfs<-TRUE
-    cell<-(sample(1:nrow(get(i)[[1]]),1))
+    pl<-FALSE# for plotting or not
+    pdfs<-FALSE
+    cell<-(-sample(1:nrow(get(i)[[1]]),1))
     
     if(cell>0 && j!=cell){
       return(NA)
@@ -768,8 +782,16 @@ peaks<-lapply(ts,function(i){
 })
 peaks<-Reduce(function(x,y){merge(x,y,all=TRUE)},peaks)
 
+j<-do.call("data.frame",lapply(peaks[,-1],function(i){as.integer(format(i,"%j"))}))
+names(j)<-paste0(names(peaks)[-1],"_jul")
+peaks2<-cbind(peaks,j)
 
-###################
+fwrite(peaks2,"S:/NDVI/MODIS/peaks_ram.csv",row.names=FALSE)
+
+
+
+#################################
+### graph all time series #######
 
 plot(as.integer(format(peaks[,2],"%j")),peaks$year,xlim=range(as.integer(format(peaks[,-1],"%j")),na.rm=TRUE),type="n",xaxt="n",yaxt="n",xlab="Dates",ylab="Year")
 
@@ -788,8 +810,8 @@ invisible(lapply(2:ncol(peaks),function(i){
 legend("top",cex=1.15,lwd=5,legend=paste(names(cols),"-",lts),col=alpha(unlist(cols),0.75),bty="n",inset=c(0.1,0.00))
 axis(2,at=peaks$year,las=2)
 
-###############################
-### WHICH CELL ################
+##########################################
+### map values to rasters ################
 
 w<-which(!is.na(ocells[,1]))
 gridi<-v$as.RasterStack()[[1]]
@@ -809,11 +831,16 @@ rl<-lapply(peak_cell,function(i){
   res<-stack(l)
   names(res)<-years
   res<-crop(res,pol)
-  projectRaster(res,crs=CRS(proj4string(ram)))
+  res<-projectRaster(from=res,crs=CRS(proj4string(ram))) # this changes the values in the cells
+  res
 })
 names(rl)<-names(peak_cell)
 
-levelplot(rl$evi)
+levelplot(rl$gpp)
+
+test<-do.call("rbind",peak_cell$evi)
+range(as.integer(format(test[,2],"%j")),na.rm=TRUE)
+hist(as.integer(format(test[,2],"%j")),na.rm=TRUE)
 
 #tmap_mode("view")
 #tm_shape(pol) +
@@ -838,7 +865,7 @@ up<-up[apply(up,1,function(i){!any(is.na(i))}),]
 cor(up,use="complete.obs")
 
 m<-rda(as.matrix(up),scale=TRUE)
-biplot(m,scaling=1)
+biplot(m,scaling=2)
 
 #
 #peak_log_up<-lapply(peak_cell,function(i){
