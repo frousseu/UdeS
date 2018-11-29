@@ -13,6 +13,16 @@ library(visreg)
 library(sf)
 library(DHARMa)
 library(ROCR)
+library(doParallel)
+library(foreach)
+
+### List of things potentially missing:
+
+# scale variables
+# turn coordinates to km or something smaller
+# better priors for intercept and factors
+# check pc priors for range (sd seems to be done)
+# figure out how to correct the shift in the posterior predictive checks
 
 ######################################################################
 ### function to create a sequence from the range of values in a vector
@@ -27,7 +37,7 @@ toseq<-function(x,n=100){
 
 #####################################################################################
 ### function to create a data.frame for predictions for each variable in a data.frame
-newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
+newdata<-function(x,v=names(x),n=20,fun=mean,list=FALSE){
   
   # returns the mean or the levels
   mm<-function(y){
@@ -83,6 +93,11 @@ tab[2,]/(tab[1,]+tab[2,])
 occ$high_name<-as.factor(occ$high_name)
 occ$logPop_2017<-log(occ$Pop_2017+0.2)
 
+#####################################################################
+### change vegzone to complete names
+occ$VEGZONSNA<-gsub(" ","_",occ$VEGZONSNA)
+occ$VEGZONSNA<-as.factor(occ$VEGZONSNA)
+
 #############################################
 ### build a spatial object with the locations
 occs<-occ
@@ -109,19 +124,38 @@ plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",ty
 swe <- raster::getData("GADM", country = "SWE", level = 0)
 swe<-spTransform(swe,proj4string(occs))
 
-#############################################
+####################################################################
 ### build a mesh and use sweden as a boundary
 # smaller values put in here will make a more precise grid, but will take longer to run
-mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(20000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
+mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(10000,40000),offset=c(10000,40000),cutoff=10000,boundary=swe)
 plot(mesh,asp=1)
 
-#############################
-### build spde with pc priors
-spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
+####################################################################
+### build spde with pc priors (why use pc priors ?, not sure yet)
+spde<-inla.spde2.pcmatern(mesh, # mesh 
+                          alpha=2, # smoothness parameter
+                          prior.range=c(100000,0.9), # P(practic.range < 100000m) = 0.9
+                          prior.sigma=c(3,0.1) # P(sigma > 3) = 0.1
+                          )
+
+
+####################################################################
+### sensible priors on factors and intercept
+
+fac<-sapply(occ,is.factor)
+fac<-names(fac[fac])
+fac<-sapply(fac,function(i){levels(occ[,i])})
+fac<-unlist(sapply(seq_along(fac),function(i){paste0(names(fac)[i],fac[[i]])}))
+vals<-rep(1/5^2,length(fac))
+names(vals)<-fac
+vals<-as.list(vals)
+vals<-c(vals,list(intercept=1/0.001^2,default=0.001))
+control.fixed<-list(prec=vals,mean=list(intercept=0.2774,default=0))
+
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=20000)
+g<-makegrid(swe,n=30000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 o<-over(g,swe)
@@ -167,22 +201,35 @@ modell<-list(
   PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
 )
 
+### this is to do some tests to turn spatial models in non-spatial models
+#modell<-lapply(modell,function(i){
+#  mod<-as.character(i)
+#  mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
+#  mod<-as.formula(paste0(mod[c(2,1,3)],collapse=""))
+#  mod
+#})
+
 ###################
 ### model selection
 
 # this runs every model in the model set
 
+registerDoParallel(detectCores()-1) 
+getDoParWorkers()
+
 ml<-vector(mode="list",length=length(modell))
 
-for(i in seq_along(modell)){
-  # list of variables
+ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopar% {
+#for(i in seq_along(modell)){
+  ### list of variables
   v<-setdiff(all.vars(modell[[i]]),c("PA","intercept","spatial","spde"))
-  # build the data stack
+  ### build the data stack
+  spde<-spde # this only to make sure spde is exported to the nodes
   stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
-  # run the model with the eb strategy for faster runs (more approximate)
-  ml[[i]]<-inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+  ### run the model with the eb strategy for faster runs (more approximate)
+  inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),control.fixed=control.fixed,num.threads=1)
   # print iterations
-  print(paste(" ",i,"/",length(ml)," "))
+  #print(paste(" ",i,"/",length(ml)," "))
 }
 
 #######################################
@@ -248,7 +295,7 @@ names(index)[3:length(index)]<-v
 
 ##################################################
 ### rerun best model with each variable to predict
-m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.fixed=control.fixed,control.inla=list(strategy='gaussian',int.strategy="eb"))
 
 
 ##################################
@@ -324,7 +371,7 @@ hist(post.predicted.pval,main="",breaks=10,xlab="Posterior predictive p-value")
 
 
 ### from haakon bakka, BTopic112
-samples<-inla.posterior.sample(2000,m)
+samples<-inla.posterior.sample(500,m)
 m$misc$configs$contents
 contents<-m$misc$configs$contents
 effect<-"APredictor"
@@ -341,16 +388,85 @@ matprob<-apply(s.eff,2,function(i){
 o<-createDHARMa(simulatedResponse=matprob,observedResponse=occ$PA,fittedPredictedResponse=prob,integerResponse=TRUE)
 par(mfrow=c(2,2))
 plot(o,quantreg=TRUE)
-#hist(o$scaledResiduals)
+hist(o$scaledResiduals)
 
 ### check same for glm using the two methods
-mod1 <- glm(PA ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA, data = occ, family=binomial)
-simulationOutput <- simulateResiduals(fittedModel = mod1)
+
+bm<-as.character(modell[[b]])
+bm[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",bm[3]) # remove spatial effect and intercept notation
+bm[3]<-gsub("\\-1 \\+ intercept \\+ ","",bm[3]) # remove spatial effect and intercept notation
+bm<-as.formula(paste0(bm[c(2,1,3)],collapse=""))
+bm
+
+mod <- glm(bm, data = occ, family=binomial)
+simulationOutput <- simulateResiduals(fittedModel = mod)
 plot(simulationOutput,quantreg=TRUE)
-s<-simulateResiduals(mod1)
-o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = occ$PA, fittedPredictedResponse = fitted(mod1),integerResponse = T)
+s<-simulateResiduals(mod)
+o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = occ$PA, fittedPredictedResponse = fitted(mod),integerResponse = T)
 plot(o,quantreg=TRUE)
 hist(o$scaledResiduals)
+
+hist(m$summary.fitted.values[1:nrow(occ),"mean"])
+hist(inla.link.invlogit(predict(mod)))
+
+range(m$summary.fitted.values[1:nrow(occ),"mean"])
+range(inla.link.invlogit(predict(mod)))
+
+par(ask=TRUE)
+plot(m,plot.prior=TRUE)
+par(ask=FALSE)
+
+
+int<-m$marginals.fixed$intercept
+plot(int[,1],int[,2],type="l")
+hist(inla.link.invlogit(int[,1]))
+hist(inla.link.invlogit(seq(-3,3,by=0.01)))
+
+
+mu<-3
+alpha<-0.5
+pc.prec<-function(tau,mu,alpha){
+  lambda<--log(alpha)/mu
+  dtau<-(lambda/2)*(tau^(-3/2))*exp(-lambda*tau^(-1/2))
+  sigma<-1/sqrt(dtau)
+  sigma
+}
+v<-seq(0.001,1000,by=0.001)
+p<-pc.prec(tau=1/v^2,mu,alpha)
+plot(v,p,type="l",ylim=c(0,50),xlim=c(0,5),pos=c(0,0))
+p<-1/sqrt(inla.pc.dprec(prec=1/v^2,mu,alpha))
+plot(v,p,type="l",ylim=c(0,50),xlim=c(0,5),pos=c(0,0))
+
+
+
+
+res = inla.spde.result(m, "spatial", spde)
+par(mfrow=c(2,1))
+plot(res$marginals.range.nominal[[1]],
+     type="l", main="Posterior density for range")
+plot(inla.tmarginal(sqrt, res$marginals.variance.nominal[[1]]),
+     type="l", main="Posterior density for std.dev.")
+par(mfrow=c(1,1))
+
+
+
+### From Baaka BTopic122, spatial field
+local.plot.field = function(field, mesh,xlim=c(200000,1000000),ylim=c(6100000,7700000), ...){
+  stopifnot(length(field) == mesh$n)
+  proj = inla.mesh.projector(mesh, xlim = xlim,ylim = ylim, dims=c(500, 500))
+  field.proj = inla.mesh.project(proj, field)
+  n.col = 20
+  image.plot(list(x = proj$x, y=proj$y, z = field.proj),xlim = xlim, ylim = ylim, col = plasma(n.col), nlevel=n.col+1,asp=1, ...)
+}
+
+local.plot.field(m$summary.random[['spatial']][['sd']],mesh)
+plot(swe,add=TRUE)
+coo<-coordinates(swe)
+lwr<-exp(res$summary.log.range.nominal[["0.025quant"]])
+mea<-exp(res$summary.log.range.nominal[["mean"]])
+upr<-exp(res$summary.log.range.nominal[["0.975quant"]])
+arrows(coo[1,1]-0.5*mea, coo[1,2], coo[1,1]+0.5*mea, coo[1,2], length=0.05, angle=90, code=3, lwd=3)
+#points(occs,cex=0.1)
 
 
 ##########################################
@@ -359,7 +475,6 @@ hist(o$scaledResiduals)
 predprob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
 cm<-table(as.logical(occ$PA),rbinom(length(predprob),size=1,prob=predprob))
 cm
-
 
 sensitivity<-cm[2,2]/sum(cm[2,]) # true positive rate
 specificity<-cm[1,1]/sum(cm[1,]) # true negative rate
