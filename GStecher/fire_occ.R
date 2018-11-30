@@ -135,7 +135,8 @@ plot(mesh,asp=1)
 spde<-inla.spde2.pcmatern(mesh, # mesh 
                           alpha=2, # smoothness parameter
                           prior.range=c(100000,0.9), # P(practic.range < 100000m) = 0.9
-                          prior.sigma=c(3,0.1) # P(sigma > 3) = 0.1
+                          prior.sigma=c(3,0.1), # P(sigma > 3) = 0.1,
+                          constr=T # forces the spatial field to sum to zero
                           )
 
 
@@ -149,15 +150,18 @@ fac<-unlist(sapply(seq_along(fac),function(i){paste0(names(fac)[i],fac[[i]])}))
 vals<-rep(1/5^2,length(fac))
 names(vals)<-fac
 vals<-as.list(vals)
-vals<-c(vals,list(intercept=1/0.001^2,default=0.001))
-control.fixed<-list(prec=vals,mean=list(intercept=0.2774,default=0))
+vals<-c(vals,list(intercept=1/5^2,default=0.001)) # not sure if the intercept should be fixed or not in relation to the know prop of 0 or 1s
+control.fixed<-list(prec=vals,mean=list(intercept=0,default=0),expand.factor.strategy = "model.matrix")
 
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=30000)
+g<-makegrid(swe,n=5000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
+#test1<-st_as_sf(g)
+#test2<-st_as_sf(swe)
+#test<-st_intersects(test1,test2)
 o<-over(g,swe)
 g<-SpatialPixels(g)
 g<-g[apply(o,1,function(i){!all(is.na(i))}),]
@@ -174,40 +178,50 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
 ### model set
 
 modell<-list(
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens * logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens * logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
 )
 
 ### this is to do some tests to turn spatial models in non-spatial models
-#modell<-lapply(modell,function(i){
-#  mod<-as.character(i)
-#  mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
-#  mod<-as.formula(paste0(mod[c(2,1,3)],collapse=""))
-#  mod
-#})
+mm<-lapply(modell,function(i){
+  mod<-as.character(i)
+  mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
+  mod[3]<-gsub("0 \\+ intercept \\+ ","",mod[3]) # remove spatial effect and intercept notation
+  mod<-as.formula(paste0(mod[c(1,3)],collapse=" "))
+  model.matrix(mod,occ)[,-1]
+})
+
+### this is the model with the dummy variable from the model.matrix as suggested by the pdf E Krainski on using factors
+modellmm<-lapply(mm,function(i){
+  as.formula(paste("PA ~ 0 + intercept +",paste(dimnames(i)[[2]],collapse=" + "),"+ f(spatial, model = spde)"))
+})
+
+
+
+
 
 ###################
 ### model selection
@@ -225,9 +239,11 @@ ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopa
   v<-setdiff(all.vars(modell[[i]]),c("PA","intercept","spatial","spde"))
   ### build the data stack
   spde<-spde # this only to make sure spde is exported to the nodes
-  stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
+  #stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est") # without model.matrix
+  stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[i]])),tag="est") # with model.matrix see avoiding problems with factors in inla.stack by E. Krainski
   ### run the model with the eb strategy for faster runs (more approximate)
-  inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),control.fixed=control.fixed,num.threads=1)
+  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),control.fixed=control.fixed,num.threads=1)
+  m
   # print iterations
   #print(paste(" ",i,"/",length(ml)," "))
 }
