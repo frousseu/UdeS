@@ -13,71 +13,39 @@ library(brinla)
 library(visreg)
 library(quantreg)
 library(DHARMa)
+library(ROCR)
+library(doParallel)
+library(foreach)
+library(fields)
+library(viridisLite)
 
 #######################################
 #######################################
 #######################################
 #######################################
 
-######################################################################
-### function to create a sequence from the range of values in a vector
-toseq<-function(x,n=100){
-  if(is.numeric(x)){
-    r<-range(x,na.rm=TRUE)
-    seq(r[1],r[2],length.out=n)
-  }else{
-    sort(unique(x))  
-  }
-}
 
-#####################################################################################
-### function to create a data.frame for predictions for each variable in a data.frame
-newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
-  
-  # returns the mean or the levels
-  mm<-function(y){
-    if(is.numeric(y)){
-      fun(y)
-    }else{
-      names(rev(sort(table(y))))[1]
-    }
-  }
-  ## possibly a bug with the function did not save the last part
-  ans<-lapply(v,function(i){
-    if(n==1L){
-      val<-mm(x[,i])
-    }else{
-      val<-toseq(x[,i],n=n)
-    }
-    l<-lapply(x[,setdiff(names(x),i),drop=FALSE],mm)
-    res<-data.frame(val,as.data.frame(l),stringsAsFactors=FALSE)
-    names(res)[1]<-i
-    if(list){ # inefficient, should not be turned to data.frame if list=TRUE
-      as.list(res)
-    }else{
-      res
-    } 
-  })  
-  names(ans)<-v
-  
-  if(length(v)==1L){
-    unlist(ans,recursive=FALSE)
-  }else{
-    ans
-  }
-  
-}
 
 #############
 ### load data
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_size.RData")
-
 size<-llf.size
+
+#####################################################################
+### source newdata and toseq
+
+source("https://raw.githubusercontent.com/frousseu/UdeS/master/GStecher/newdata.R")
 
 #####################################################################
 ### convert high_name to factor and log transform the population size
 size$high_name<-as.factor(size$high_name)
 size$logPop_2017<-log(size$Pop_2017+0.2)
+
+##########################################################################################
+### Use a boxcox transformation determined from the most complete linear model
+bc<-boxcox(lm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size))
+lambda<-bc$x[which.max(bc$y)]
+size$tArea<-size$Area^lambda
 
 #############################################
 ### build a spatial object with the locations
@@ -89,15 +57,16 @@ sizes<-spTransform(sizes,CRS(prj))
 
 #########################################
 ### build a simple glm to compare results
-m1 <- glm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = na.omit(size))
+m1 <- lm (tArea ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI,data = na.omit(size))
+#m1 <- glm (Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = na.omit(size))
 par(mfrow=c(3,3),mar=c(4,4,3,3))
-visreg(m1,scale="response")
+visreg(m1,scale="response",trans=function(i){i^(1/lambda)},ylim=c(0,2))
 par(mfrow=c(1,1))
 
 ####################################################################
 ### look at the variogram with the residuals from the previous model
 coords <- coordinates(sizes)
-v<-variog(coords=coords,data=resid(m1),breaks=seq(0,200000,by=1000),max.dist=200000,bin.cloud=TRUE)
+v<-variog(coords=coords,data=resid(m1),breaks=seq(0,100000,by=1000),max.dist=100000,bin.cloud=TRUE)
 plot(v, main = "Variogram for spatial autocorrelation (LFY, fire sizeurrence)",type="b") 
 
 ##############
@@ -108,7 +77,7 @@ swe<-spTransform(swe,proj4string(sizes))
 #############################################
 ### build a mesh and use sweden as a boundary
 # smaller values put in here will make a more precise grid, but will take longer to run
-mesh<-inla.mesh.2d(loc=coordinates(sizes),max.edge=c(20000,200000),offset=c(20000,50000),cutoff=20000,boundary=swe)
+mesh<-inla.mesh.2d(loc=coordinates(sizes),max.edge=c(5000,15000),offset=c(5000,15000),cutoff=5000,boundary=swe)
 plot(mesh,asp=1)
 
 #############################
@@ -132,12 +101,13 @@ s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 ### make observation matrix
 A<-inla.spde.make.A(mesh=mesh,loc=coordinates(sizes))
 
+
 #############
 ### model set
 
 modell<-list(
-  Area ~ -1 + intercept + FWI + f(spatial,model=spde),
-  Area ~ -1 + intercept + VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI + f(spatial,model=spde)
+  tArea ~ 0 + intercept + FWI + f(spatial,model=spde),
+  tArea ~ 0 + intercept + VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI + f(spatial,model=spde)
 )
 
 ###################
@@ -145,17 +115,22 @@ modell<-list(
 
 # this runs every model in the model set
 
-ml<-vector(mode="list",length=length(modell))
+registerDoParallel(min(detectCores()-1,length(modell))) 
+getDoParWorkers()
 
-for(i in seq_along(modell)){
+#ml<-vector(mode="list",length=length(modell))
+
+ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopar% {
   # list of variables
-  v<-setdiff(all.vars(modell[[i]]),c("Area","intercept","spatial","spde"))
+  v<-setdiff(all.vars(modell[[i]]),c("tArea","intercept","spatial","spde"))
   # build the data stack
-  stack.est<-inla.stack(data=list(Area=size$Area),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
+  spde<-spde # this only to make sure spde is exported to the nodes
+  stack.est<-inla.stack(data=list(tArea=size$tArea),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
   # run the model with the eb strategy for faster runs (more approximate)
-  ml[[i]]<-inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="gamma",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+  m<-inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),num.threads=1)
   # print iterations
-  print(paste(" ",i,"/",length(ml)," "))
+  m
+  #print(paste(" ",i,"/",length(ml)," "))
 }
 
 #######################################
@@ -186,14 +161,14 @@ Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,d
 
 ################################################
 ### build newdata with variable values to submit
-v<-setdiff(all.vars(bmodel),c("Area","intercept","spatial","spde"))
+v<-setdiff(all.vars(bmodel),c("tArea","intercept","spatial","spde"))
 lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
 lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
 
 ########################################################
 ### bind the data stack for the estimate and for the map
-stack.est<-inla.stack(data=list(Area=size$Area),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
-stack.map<-inla.stack(data=list(Area=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
+stack.est<-inla.stack(data=list(tArea=size$tArea),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
+stack.map<-inla.stack(data=list(tArea=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
 full.stack<-inla.stack(stack.est,stack.map)
 
 #######################################
@@ -205,7 +180,7 @@ for(i in seq_along(v)){
   }else{
     AA<-Apn # for numerical variables
   }
-  stack<-inla.stack(data=list(Area=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
+  stack<-inla.stack(data=list(tArea=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
   full.stack<-inla.stack(full.stack,stack)
 }
 
@@ -221,7 +196,7 @@ names(index)[3:length(index)]<-v
 
 ##################################################
 ### rerun best model with each variable to predict
-m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="gamma",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"))
 
 
 ##################################
@@ -232,10 +207,12 @@ par(mfrow=c(1,4),oma=c(0,5,0,5))
 plot(swe,border=gray(0,0.25),lwd=0.01)
 points(sizes,col=alpha("blue",0.2),pch=16,cex=30*size$Area/max(size$Area))
 mtext("Fire size",side=4,font=2)
+
 plot(swe,border=gray(0,0.25),lwd=0.01)
 points(sizes,col=alpha("blue",0.2),pch=16,cex=log(size$Area))
 mtext("log Fire size",side=4,font=2)
-p<-m$summary.fitted.values[index[["map"]],"mean"]
+
+p<-m$summary.fitted.values[index[["map"]],"mean"]^(1/lambda) # the lambda is to back-transform on the original scale)
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 rgp<-raster(gp)
 brks <- seq(min(p),max(p),by=0.01)
@@ -263,14 +240,15 @@ plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
-  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,50),xlab=v[i],font=2,ylab="",lty=1)
+  p[]<-lapply(p,function(i){i^(1/lambda)})
+  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,20),xlab=v[i],font=2,ylab="",lty=1)
   if(nrow(p)==n){
     lines(lp[[v[i]]][[1]],p[,1],lty=3)
     lines(lp[[v[i]]][[1]],p[,3],lty=3)
   }else{
     segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
   }
-  points(size[,v[i]],size$Area,pch=16,col=gray(0,0.15))
+  points(size[,v[i]],size$tArea^(1/lambda),pch=16,col=gray(0,0.15))
 }
 mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
@@ -283,7 +261,7 @@ mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 # something does not work cause response is 1 or 0 and there are NaN in predictions
 post.predicted.pval<-vector(mode="numeric",length=nrow(size))
 for(i in 1:nrow(size)){
-  post.predicted.pval[i]<-inla.pmarginal(q=size$Area[i],marginal=m$marginals.fitted.values[[i]])
+  post.predicted.pval[i]<-inla.pmarginal(q=size$tArea[i],marginal=m$marginals.fitted.values[[i]])
 }
 hist(post.predicted.pval,main="",breaks=10,xlab="Posterior predictive p-value")
 
@@ -303,17 +281,21 @@ prob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
 matprob<-apply(s.eff,2,function(i){
   rbinom(length(i),size=1,prob=inla.link.invlogit(i))  
 })
-o<-createDHARMa(simulatedResponse=matprob,observedResponse=size$Area,fittedPredictedResponse=prob,integerResponse=TRUE)
+o<-createDHARMa(simulatedResponse=matprob,observedResponse=size$tArea,fittedPredictedResponse=prob,integerResponse=TRUE)
 par(mfrow=c(2,2))
 plot(o,quantreg=TRUE)
 #hist(o$scaledResiduals)
 
 ### check same for glm using the two methods
-mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=Gamma(link="log"))
+size$tArea<-size$Area^-0.26
+mod1 <- lm(tArea ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size)
+
+mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=Gamma(link="log"))
+#mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=tweedie(var.power = 2.5, link.power = 1))
 simulationOutput <- simulateResiduals(fittedModel = mod1)
 plot(simulationOutput,quantreg=TRUE)
 s<-simulateResiduals(mod1)
-o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = size$Area, fittedPredictedResponse = fitted(mod1),integerResponse = T)
+o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = size$tArea, fittedPredictedResponse = fitted(mod1),integerResponse = F)
 plot(o,quantreg=TRUE)
 hist(o$scaledResiduals)
 
@@ -394,7 +376,7 @@ bc(size$Area)
 size$high_name<-as.factor(size$high_name)
 size$logArea<-log(size$Area)
 
-m <- glm (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = gaussian(link = "identity"), data = size)
+m <- glm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = size)
 m <- glm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = size)
 #m <- rq (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, tau=0.95)
 #m <- glm (Area ~ 1, family = gaussian(link = "log"), data = d)
@@ -416,3 +398,96 @@ testDispersion(simulationOutput)
 
 swe <- raster::getData("GADM", country = "SWE", level = 1)
 swe<-spTransform(swe,proj4string(sizes))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+f<-size$Area
+f2<-log(f)
+brks<-exp(seq(log(min(f)-0.00001),log(max(f)+0.00001),length.out=20))
+cl<-cut(f2,brks)
+f2[is.na(cl)]
+tab<-table(cl)
+barplot(tab,names.arg=names(tab),las=2)
+
+
+
+bc<-boxcox(lm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size))
+lambda<-bc$x[which.max(bc$y)]
+
+#lambda<--1000.0
+f<-size$Area^lambda
+hist(f)
+
+visreg(mod1,trans=function(i){i^(1/lambda)})
+
+
+
+### build the raster/grid that will be used for predictions
+g<-makegrid(swe,n=200)
+g<-SpatialPoints(g,proj4string=CRS(proj4string(sizes)))
+o<-over(g,swe)
+g<-SpatialPixels(g)
+g<-g[apply(o,1,function(i){!all(is.na(i))}),]
+plot(swe)
+plot(g,add=TRUE)
+
+
+cfire<-function(x,show=FALSE,n=20,mode=TRUE){ # gives characteristics fire zei according to  Lehsten et al 2013
+  x2<-log(x)
+  brks<-exp(seq(log(min(x)-0.00001),log(max(x)+0.00001),length.out=n))
+  cl<-cut(x2,brks)
+  x2[is.na(cl)]
+  tab<-table(cl)
+  if(show){
+    barplot(tab,names.arg=names(tab),las=2)
+  }
+  if(mode){
+    sapply(strsplit(gsub("\\(|\\]","",names(tab[which.max(tab)])),","),function(i){mean(as.numeric(i))})
+  }else{
+    tab  
+  }
+}
+
+o<-over(sizes,g)
+size$o<-o
+
+s<-data.table(size)
+s<-s[,.(cf=cfire(Area)),by=o]
+hist(s$cf)
+
+
+cfire(size$Area)
+
+s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
