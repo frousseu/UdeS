@@ -1,4 +1,16 @@
 
+
+######################################################################
+### function to create a sequence from the range of values in a vector
+toseq<-function(x,n=100){
+  if(is.numeric(x)){
+    r<-range(x,na.rm=TRUE)
+    seq(r[1],r[2],length.out=n)
+  }else{
+    sort(unique(x))  
+  }
+}
+
 #####################################################################################
 ### function to create a data.frame for predictions for each variable in a data.frame
 
