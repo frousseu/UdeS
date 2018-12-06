@@ -15,6 +15,8 @@ library(DHARMa)
 library(ROCR)
 library(doParallel)
 library(foreach)
+library(fields)
+library(viridisLite)
 
 ### List of things potentially missing:
 
@@ -24,58 +26,14 @@ library(foreach)
 # check pc priors for range (sd seems to be done)
 # figure out how to correct the shift in the posterior predictive checks
 
-######################################################################
-### function to create a sequence from the range of values in a vector
-toseq<-function(x,n=100){
-  if(is.numeric(x)){
-    r<-range(x,na.rm=TRUE)
-    seq(r[1],r[2],length.out=n)
-  }else{
-    sort(unique(x))  
-  }
-}
-
-#####################################################################################
-### function to create a data.frame for predictions for each variable in a data.frame
-newdata<-function(x,v=names(x),n=20,fun=mean,list=FALSE){
-  
-  # returns the mean or the levels
-  mm<-function(y){
-    if(is.numeric(y)){
-      fun(y)
-    }else{
-      names(rev(sort(table(y))))[1]
-    }
-  }
-  ## possibly a bug with the function did not save the last part
-  ans<-lapply(v,function(i){
-    if(n==1L){
-      val<-mm(x[,i])
-    }else{
-      val<-toseq(x[,i],n=n)
-    }
-    l<-lapply(x[,setdiff(names(x),i),drop=FALSE],mm)
-    res<-data.frame(val,as.data.frame(l),stringsAsFactors=FALSE)
-    names(res)[1]<-i
-    if(list){ # inefficient, should not be turned to data.frame if list=TRUE
-      as.list(res)
-    }else{
-      res
-    } 
-  })  
-  names(ans)<-v
-  
-  if(length(v)==1L){
-    unlist(ans,recursive=FALSE)
-  }else{
-    ans
-  }
-  
-}
-
 #############
 ### load data
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
+
+#####################################################################
+### source newdata and toseq
+
+source("https://raw.githubusercontent.com/frousseu/UdeS/master/GStecher/newdata.R")
 
 ############################################################################################
 ### remove everything with NAs (temporary) and take a random sample to reduce computing time
@@ -127,7 +85,9 @@ swe<-spTransform(swe,proj4string(occs))
 ####################################################################
 ### build a mesh and use sweden as a boundary
 # smaller values put in here will make a more precise grid, but will take longer to run
-mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(10000,40000),offset=c(10000,40000),cutoff=10000,boundary=swe)
+
+#bound<-inla.nonconvex.hull(coordinates(occs)[sample(1:nrow(occs),100),], concave=-0.5, resolution=20)
+mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(5000,15000),offset=c(5000,15000),cutoff=5000,boundary=swe)
 plot(mesh,asp=1)
 
 ####################################################################
@@ -156,7 +116,7 @@ control.fixed<-list(prec=vals,mean=list(intercept=0,default=0),expand.factor.str
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=5000)
+g<-makegrid(swe,n=10000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 #test1<-st_as_sf(g)
@@ -178,30 +138,30 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
 ### model set
 
 modell<-list(
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + VEGZONSNA + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + VEGZONSNA + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens * logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
   PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
 )
 
@@ -231,7 +191,7 @@ modellmm<-lapply(mm,function(i){
 registerDoParallel(detectCores()-1) 
 getDoParWorkers()
 
-ml<-vector(mode="list",length=length(modell))
+#ml<-vector(mode="list",length=length(modell))
 
 ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopar% {
 #for(i in seq_along(modell)){
