@@ -18,6 +18,7 @@ library(doParallel)
 library(foreach)
 library(fields)
 library(viridisLite)
+library(MASS)
 
 #######################################
 #######################################
@@ -30,6 +31,7 @@ library(viridisLite)
 ### load data
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_size.RData")
 size<-llf.size
+size<-size[sample(1:nrow(size),2000),]
 
 #####################################################################
 ### source newdata and toseq
@@ -43,9 +45,33 @@ size$logPop_2017<-log(size$Pop_2017+0.2)
 
 ##########################################################################################
 ### Use a boxcox transformation determined from the most complete linear model
+
+BoxCox<-function(x,lambda=0){
+  if(lambda==0){
+    log(x)
+  }else{
+    ((x^lambda)-1)/lambda  
+  }
+}
+
+BoxCoxI<-function(x,lambda=0){
+  if(lambda==0){
+    exp(x)
+  }else{
+    ((x*lambda)+1)^(1/lambda)  
+  }
+}
+
+#trans<-BoxCox
+#transI<-BoxCoxI
+
+trans<-identity
+transI<-identity
+
 bc<-boxcox(lm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size))
 lambda<-bc$x[which.max(bc$y)]
-size$tArea<-size$Area^lambda
+size$tArea<-trans(size$Area,lambda)
+size$tArea<-size$Area
 
 #############################################
 ### build a spatial object with the locations
@@ -156,7 +182,7 @@ bmodel<-modell[[b]]
 ###################################################################
 ### build prediction matrices for the map and the prediction graphs
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
-n<-100 # number of divisions in generated values for the focus variable
+n<-50 # number of divisions in generated values for the focus variable
 Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE]) # the graphs are build using a random points in the area
 
 ################################################
@@ -196,8 +222,9 @@ names(index)[3:length(index)]<-v
 
 ##################################################
 ### rerun best model with each variable to predict
-m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"))
+#m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),num.threads=6)
 
+m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),family="gp",control.family=list(control.link=list(quantile=0.98)),num.threads=6)
 
 ##################################
 ### build a relative frequency map
@@ -212,7 +239,7 @@ plot(swe,border=gray(0,0.25),lwd=0.01)
 points(sizes,col=alpha("blue",0.2),pch=16,cex=log(size$Area))
 mtext("log Fire size",side=4,font=2)
 
-p<-m$summary.fitted.values[index[["map"]],"mean"]^(1/lambda) # the lambda is to back-transform on the original scale)
+p<-transI(m$summary.fitted.values[index[["map"]],"mean"]) # the lambda is to back-transform on the original scale)
 gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 rgp<-raster(gp)
 brks <- seq(min(p),max(p),by=0.01)
@@ -240,17 +267,22 @@ plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
-  p[]<-lapply(p,function(i){i^(1/lambda)})
-  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,20),xlab=v[i],font=2,ylab="",lty=1)
+  p[]<-lapply(p,transI)
+  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1)
   if(nrow(p)==n){
     lines(lp[[v[i]]][[1]],p[,1],lty=3)
     lines(lp[[v[i]]][[1]],p[,3],lty=3)
   }else{
     segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
   }
-  points(size[,v[i]],size$tArea^(1/lambda),pch=16,col=gray(0,0.15))
+  points(size[,v[i]],transI(size$tArea),pch=16,col=gray(0,0.15))
 }
 mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
+
+#rq<-rq(tArea~FWI,data=size,tau=0.98)
+#p<-predict(rq,data.frame(FWI=toseq(size$FWI,100)))
+#lines(toseq(size$FWI,100),p,col="blue")
+
 
 
 ######################################################
@@ -267,7 +299,7 @@ hist(post.predicted.pval,main="",breaks=10,xlab="Posterior predictive p-value")
 
 
 ### from haakon bakka, BTopic112
-samples<-inla.posterior.sample(2000,m)
+samples<-inla.posterior.sample(500,m)
 m$misc$configs$contents
 contents<-m$misc$configs$contents
 effect<-"APredictor"
@@ -279,23 +311,23 @@ s.eff<-t(matrix(unlist(samples.effect),byrow=T,nrow=length(samples.effect)))
 ### check with inla model
 prob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
 matprob<-apply(s.eff,2,function(i){
-  rbinom(length(i),size=1,prob=inla.link.invlogit(i))  
+  rnorm(length(i),size=1,prob=inla.link.invlogit(i))  
 })
-o<-createDHARMa(simulatedResponse=matprob,observedResponse=size$tArea,fittedPredictedResponse=prob,integerResponse=TRUE)
+o<-createDHARMa(simulatedResponse=s.eff,observedResponse=size$tArea,fittedPredictedResponse=prob,integerResponse=TRUE)
 par(mfrow=c(2,2))
 plot(o,quantreg=TRUE)
 #hist(o$scaledResiduals)
 
 ### check same for glm using the two methods
-size$tArea<-size$Area^-0.26
 mod1 <- lm(tArea ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size)
 
 mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=Gamma(link="log"))
+mod1 <- lm(Area^(0.1) ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size)
 #mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=tweedie(var.power = 2.5, link.power = 1))
 simulationOutput <- simulateResiduals(fittedModel = mod1)
 plot(simulationOutput,quantreg=TRUE)
 s<-simulateResiduals(mod1)
-o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = size$tArea, fittedPredictedResponse = fitted(mod1),integerResponse = F)
+o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = size$Area^(0.1), fittedPredictedResponse = fitted(mod1),integerResponse = F)
 plot(o,quantreg=TRUE)
 hist(o$scaledResiduals)
 
@@ -433,10 +465,10 @@ bc<-boxcox(lm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age +
 lambda<-bc$x[which.max(bc$y)]
 
 #lambda<--1000.0
-f<-size$Area^lambda
+f<-BoxCox(size$Area,lambda)
 hist(f)
 
-visreg(mod1,trans=function(i){i^(1/lambda)})
+visreg(mod1,trans=function(i){BoxCoxI(i,lambda)})
 
 
 
@@ -474,7 +506,12 @@ s<-s[,.(cf=cfire(Area)),by=o]
 hist(s$cf)
 
 
-cfire(size$Area)
+barplot(cfire(size$Area,mode=FALSE))
+
+
+hist(BoxCox(size$Area+0.1,lambda))
+
+
 
 s
 
