@@ -31,7 +31,8 @@ library(MASS)
 ### load data
 load("~/UdeS/Consultation/GStetcher/Doc/LLF_size.RData")
 size<-llf.size
-size<-size[sample(1:nrow(size),2000),]
+size<-size[sample(1:nrow(size),1000),]
+
 
 #####################################################################
 ### source newdata and toseq
@@ -100,22 +101,33 @@ plot(v, main = "Variogram for spatial autocorrelation (LFY, fire sizeurrence)",t
 swe <- raster::getData("GADM", country = "SWE", level = 0)
 swe<-spTransform(swe,proj4string(sizes))
 
+bb<-bbox(swe)
+swediv<-elide(swe,bb=bb,scale=TRUE) # this scales the data to [0,1] using the bb while maintaining the aspect
+sizesdiv<-elide(sizes,bb=bb,scale=TRUE)
+
 #############################################
 ### build a mesh and use sweden as a boundary
 # smaller values put in here will make a more precise grid, but will take longer to run
-mesh<-inla.mesh.2d(loc=coordinates(sizes),max.edge=c(5000,15000),offset=c(5000,15000),cutoff=5000,boundary=swe)
-plot(mesh,asp=1)
+
+w<-which.max(apply(bb,1,max))
+div<-diff(abs(bb[w,])) # this is a scale factor to reduce absolute values to smaller values by division
+me<-5000/div # this is the max edge in meters divided by the value to scale this to [0,1]
+out_fac<-3 # this the max edge in the buffer area
+
+mesh<-inla.mesh.2d(loc=coordinates(sizesdiv),max.edge=c(me,me*out_fac),offset=c(me,me*out_fac),cutoff=me,boundary=swediv)
+plot(swediv,col="tomato3",axes=TRUE)
+plot(mesh,asp=1,add=TRUE)
 
 #############################
 ### build spde with pc priors
-spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000,0.9),prior.sigma=c(3,0.1))
+spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000/div,0.9),prior.sigma=c(3,0.1))
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=20000)
-g<-SpatialPoints(g,proj4string=CRS(proj4string(sizes)))
+g<-makegrid(swediv,n=20000)
+g<-SpatialPoints(g,proj4string=CRS(proj4string(sizesdiv)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
-o<-over(g,swe)
+o<-over(g,swediv)
 g<-SpatialPixels(g)
 g<-g[apply(o,1,function(i){!all(is.na(i))}),]
 
@@ -125,7 +137,7 @@ s.index<-inla.spde.make.index(name="spatial",n.spde=spde$n.spde)
 
 ###########################
 ### make observation matrix
-A<-inla.spde.make.A(mesh=mesh,loc=coordinates(sizes))
+A<-inla.spde.make.A(mesh=mesh,loc=coordinates(sizesdiv))
 
 
 #############
@@ -183,7 +195,8 @@ bmodel<-modell[[b]]
 ### build prediction matrices for the map and the prediction graphs
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-50 # number of divisions in generated values for the focus variable
-Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE]) # the graphs are build using a random points in the area
+#Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE]) # the graphs are build using a random points in the area
+Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,n),,drop=FALSE])
 
 ################################################
 ### build newdata with variable values to submit
@@ -202,7 +215,8 @@ full.stack<-inla.stack(stack.est,stack.map)
 for(i in seq_along(v)){
   le<-length(lp[[v[i]]][[1]])
   if(le!=n){
-    AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
+    #AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
+    AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
   }else{
     AA<-Apn # for numerical variables
   }
@@ -231,12 +245,12 @@ m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.st
 
 ### raw predictions on probability of usage
 par(mfrow=c(1,4),oma=c(0,5,0,5))
-plot(swe,border=gray(0,0.25),lwd=0.01)
-points(sizes,col=alpha("blue",0.2),pch=16,cex=30*size$Area/max(size$Area))
+plot(swediv,border=gray(0,0.25),lwd=0.01,axes=TRUE)
+points(sizesdiv,col=alpha("blue",0.2),pch=16,cex=30*size$Area/max(size$Area))
 mtext("Fire size",side=4,font=2)
 
-plot(swe,border=gray(0,0.25),lwd=0.01)
-points(sizes,col=alpha("blue",0.2),pch=16,cex=log(size$Area))
+plot(swediv,border=gray(0,0.25),lwd=0.01,axes=TRUE)
+points(sizesdiv,col=alpha("blue",0.2),pch=16,cex=log(size$Area))
 mtext("log Fire size",side=4,font=2)
 
 p<-transI(m$summary.fitted.values[index[["map"]],"mean"]) # the lambda is to back-transform on the original scale)
@@ -244,10 +258,10 @@ gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 rgp<-raster(gp)
 brks <- seq(min(p),max(p),by=0.01)
 cols<-colo.scale(300,rev(brewer.pal(11,"RdYlGn")))
-plot(swe)
+plot(swediv,axes=TRUE)
 plot(rgp,col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(brks,n=10), labels=pretty(brks,n=10)),
      legend.args=list(text='Predicted fire size', side=4, font=2, line=2.3))
-plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
+plot(swediv,add=TRUE,border=gray(0,0.25),lwd=0.01)
 
 ### sd
 p<-m$summary.fitted.values[index[["map"]],"sd"]
@@ -255,10 +269,10 @@ gp<-SpatialPixelsDataFrame(g,data=data.frame(p=p))
 rgp<-raster(gp)
 brks <- seq(min(p),max(p),by=0.01)
 cols<-colo.scale(300,rev(brewer.pal(11,"RdYlGn")))
-plot(swe)
+plot(swediv,axes=TRUE)
 plot(rgp,col=cols,axes=FALSE,box="n",legend.shrink=1, legend.width=4,add=TRUE,axis.args=list(at=pretty(brks,n=10), labels=pretty(brks,n=10)),
      legend.args=list(text='sd of predicted fire size', side=4, font=2, line=2.3))
-plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
+plot(swediv,add=TRUE,border=gray(0,0.25),lwd=0.01)
 
 
 #####################################
@@ -283,7 +297,16 @@ mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 #p<-predict(rq,data.frame(FWI=toseq(size$FWI,100)))
 #lines(toseq(size$FWI,100),p,col="blue")
 
+###############################################
+### range and sigma
 
+res = inla.spde.result(m, "spatial", spde)
+par(mfrow=c(2,1))
+plot(res$marginals.range.nominal[[1]],
+     type="l", main="Posterior density for range")
+plot(inla.tmarginal(sqrt, res$marginals.variance.nominal[[1]]),
+     type="l", main="Posterior density for std.dev.")
+par(mfrow=c(1,1))
 
 ######################################################
 ### model checking and posterior predictive checks
