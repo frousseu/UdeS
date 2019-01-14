@@ -11,6 +11,7 @@ library(velox)
 library(scales)
 library(doSNOW)
 library(foreach)
+library(FRutils)
 
 
 ################################
@@ -26,7 +27,7 @@ d16<-d16[!is.na(d16$X),] # create a new dataset without the NAs
 coordinates(d16)<-~X+Y # transform object data into a SpatialPoints data.frama
 proj4string(d16)<-"+init=epsg:20255" # define the coordinate system of the Spatial.Points data.frame
 roos<-d16[sample(1:nrow(d16),5000),]
-#prom<-gConvexHull(roos)
+prom<-gConvexHull(roos)
 mapview(spTransform(roos[1:100,],CRS("+init=epsg:4326")) ) # transformation coordinate from AGD66 into latitude-longitude
 
 
@@ -96,9 +97,9 @@ sapply(seq_along(le),function(i){
   e<-le[[i]]
   
   g<-rasterToPolygons(lr[[i]][[1]])
-  roos2<-spTransform(roos,CRS(proj4string(r)))
+  roos2<-spTransform(roos,CRS(proj4string(lr[[1]])))
   o<-over(g,roos2,returnList=TRUE)
-  cells<-which.max(sapply(o,nrow))
+  cells<-order(sapply(o,nrow),decreasing=TRUE)[1] # takes the x cells with the most locations
   print(cells)
   
   xaxt<-seq.Date(as.Date("2008-01-01"),as.Date("2018-01-01"),length.out=2)
@@ -107,10 +108,12 @@ sapply(seq_along(le),function(i){
   legend("topleft",legend=NA,title=titre[i],col=cols[i],cex=2,bty="n",title.col=cols[i])
   axis.Date(1,at=as.Date(paste0(rep(2008:2018,each=11),"-",formatC(2:12,width=2,flag=0),"-01")),format="%b",las=2,cex.axis=0.8)
   axis.Date(1,at=as.Date(paste0(rep(2008:2018,each=1),"-",formatC(1,width=2,flag=0),"-01")),format="%y",las=1,cex.axis=1.5,font=2)
-  lines(as.Date(dimnames(e)[[2]]),e[cells,],xaxt="n",col=alpha(cols[i],0.5),pch=16,type="b",lwd=2)
+  sapply(cells,function(j){
+    lines(as.Date(dimnames(e)[[2]]),e[j,],xaxt="n",col=alpha(cols[i],0.5),pch=16,type="b",lwd=2)
+  })
   n<-data.frame(date=rep(as.integer(as.Date(dimnames(e)[[2]])),each=nrow(e[cells,,drop=FALSE])),ndvi=as.vector(e[cells,]))
   
-  smooth<-loess(ndvi~date,data=n,span=0.1)
+  smooth<-loess(ndvi~date,data=n,span=0.05)
   #smooth<-gam(ndvi~s(date,k=100),data=n)
   val<-as.integer(seq.Date(as.Date(min(dimnames(e)[[2]])),as.Date(max(dimnames(e)[[2]])),by=5))
   s<-predict(smooth,data.frame(date=val))
