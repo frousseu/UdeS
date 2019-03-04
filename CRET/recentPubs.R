@@ -80,10 +80,10 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2018-01-
   lnames<-Reduce(intersect,lapply(l,names)) # do.call not working !?
   l<-lapply(l,function(i){i[,lnames]}) # for some reason, columns retained are not always consistant
   df<-do.call("rbind",l)
-  df<-df[!duplicated(df$DOI),] # remove because of authors together
+  df<-df[!duplicated(df$doi),] # remove because of authors together
   df<-df[rev(order(df$created)),]
   if(html && nrow(df)){
-    refs_orig<-lapply(df$DOI,function(i){
+    refs_orig<-lapply(df$doi,function(i){
       m<-tryCatch(
         cr_cn(dois = i, format = "text", style = "apa")
         ,error=function(j){TRUE}
@@ -111,7 +111,7 @@ recentPubs<-function(authors=NULL,bold=NULL,keyword=NULL,first=30,date="2018-01-
     #refs<-refs[elim]
     #url<-df$URL[elim]
     refs<-strsplit(refs,". doi:")
-    refs<-unique(Map(c,refs,df$URL))
+    refs<-unique(Map(c,refs,df$url))
     refs<-sapply(refs,function(i){
       paste0("<p>",i[1]," <a href=",i[3],">",i[2],"</a>","</p>")
     })
