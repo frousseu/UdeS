@@ -12,6 +12,8 @@ library(scales)
 library(doSNOW)
 library(foreach)
 library(FRutils)
+library(sf)
+library(rasterVis)
 
 
 ################################
@@ -78,6 +80,30 @@ sapply(seq_along(lr),function(i){
 
 
 #########################################################
+### mapview pixels
+pixelsNDVI<-rasterToPolygons(lr[[2]])
+pixelsNDVI<-st_as_sf(spTransform(pixelsNDVI,CRS(proj4string(roos))))
+pixelsLAI<-rasterToPolygons(lr[[1]])
+pixelsLAI<-st_as_sf(spTransform(pixelsLAI,CRS(proj4string(roos))))
+roos2<-st_as_sf(roos[1:500,])
+#b<-c("Esri.WorldShadedRelief", "OpenStreetMap.DE")
+b<-mapviewGetOption("basemaps")
+mapview(list(pixelsNDVI,pixelsLAI,roos2),map.types=b)
+
+
+plot(st_geometry(pixelsLAI),border="darkgreen",lwd=8)
+plot(st_geometry(pixelsNDVI),border="green",lwd=2,add=TRUE)
+plot(st_geometry(roos2),col=gray(0.5,0.5),lwd=1,pch=16,add=TRUE)
+
+
+#########################################################
+### rasterVis
+
+p.strip <- list(cex=0.1, lines=-1, col="transparent")
+levelplot(subset(lr[[2]],order(names(lr[[2]]))),col.regions=rev(colo.scale(1:100,c("white","green","green4","black"))),cuts=99,layout=c(24,24),par.settings=list(strip.background = list(col = "transparent"),strip.border = list(col = 'transparent'),axis.line=list(col="transparent")),scales=list(col="black",tck = c(1,0)),par.strip.text=p.strip)
+
+
+#########################################################
 ### extract values in matrices
 le<-foreach(i=1:length(lr),.packages=c("raster","sp")) %dopar% {
   r<-lr[[i]]
@@ -99,7 +125,8 @@ sapply(seq_along(le),function(i){
   g<-rasterToPolygons(lr[[i]][[1]])
   roos2<-spTransform(roos,CRS(proj4string(lr[[1]])))
   o<-over(g,roos2,returnList=TRUE)
-  cells<-order(sapply(o,nrow),decreasing=TRUE)[1] # takes the x cells with the most locations
+  cells<-order(sapply(o,nrow),decreasing=TRUE)[1:4] # takes the x cells with the most locations
+  cells<-c(1) # to test specific cells
   print(cells)
   
   xaxt<-seq.Date(as.Date("2008-01-01"),as.Date("2018-01-01"),length.out=2)
@@ -118,6 +145,7 @@ sapply(seq_along(le),function(i){
   val<-as.integer(seq.Date(as.Date(min(dimnames(e)[[2]])),as.Date(max(dimnames(e)[[2]])),by=5))
   s<-predict(smooth,data.frame(date=val))
   lines(as.Date(val,origin="1970-01-01"),s,xaxt="n",col=alpha(cols[i],0.75),pch=16,type="l",lwd=4)
+  lines(v,rescale(p$fit,to=c(max(min(s),par("usr")[3]),min(max(s),par("usr")[4]))))
   
 })
 
@@ -142,12 +170,6 @@ legend("topleft",pch=c(1,NA),lwd=c(NA,2),col=rep(gray(0.5,0.5),2),legend=c("Dail
 lines(v,p$fit)
 #lines(v,p$fit+1.96*p$se.fit,lty=3)
 #lines(v,p$fit-1.96*p$se.fit,lty=3)
-
-
-
-
-
-
 
 
 
