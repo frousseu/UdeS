@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage[lmargin=0.0cm,tmargin=0.0cm,rmargin=0.0cm,bmargin=0.0cm]{geometry}% http://ctan.org/pkg/geometry
+
+%\geometry{papersize={864mm,1116mm}}
+\geometry{papersize={40.5cm,52cm}}
+
+%\usepackage{pdfpages}% http://ctan.org/pkg/pdfpages
+\usepackage{graphicx}
+\graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
+
+\usepackage[utf8]{inputenc}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\noindent\scalebox{1.25}{\includegraphics[page=1,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF2019.pdf}}
+\pagebreak
+\noindent\scalebox{1.25}{\includegraphics[page=2,trim={0cm 0cm 0cm 0cm},clip]{C:/Users/rouf1703/Documents/UdeS/GitHub/UdeS/CRET/programCEF2019.pdf}}
+
+\end{document}
