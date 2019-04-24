@@ -9,10 +9,11 @@
 \usepackage[utf8]{inputenc}
 \usepackage{setspace}
 \usepackage{graphicx}
-%\usepackage{comment} % for multiline comments
 \graphicspath{ {"C:/Users/rouf1703/Downloads/"} }
 
 \renewcommand{\familydefault}{\sfdefault}
+
+% for comments, use \iffalse and then \fi
 
 \usepackage{makecell}
 
@@ -44,12 +45,10 @@
 \setlength{\fboxsep}{0pt}
 \setlength{\fboxrule}{0pt}
 
-
 \begin{figure}[h]
 \noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{header4CEF2019}}
 \centering
 \end{figure}
-
 
 \small\setstretch{0.8}
 \renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
@@ -146,7 +145,7 @@ La proximité des arbres comme précurseur de la formation des greffes racinaire
 %%% PAUSE 
  
 \rowcolor{breakcol}
-\multicolumn{1}{c}{\color{white}15:10} &
+\multicolumn{1}{c}{\color{white}15:00} &
 \multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Pause (30 minutes)} \textit{Corridor du P0-5000}} \\
 \arrayrulecolor{white}
 \hline
@@ -181,7 +180,7 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
  
 \rowcolor{breakcol}
 \multicolumn{1}{c}{\color{white}18:00} &
-\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Activité sociale - Soirée à La Pulperie de Chicoutimi - Pulperie de Chicoutimi}} \\ 
+\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Activité sociale - Soirée à La Pulperie de Chicoutimi} - \textit{Pulperie de Chicoutimi}} \\ 
 \end{tabular} 
 
 
@@ -358,7 +357,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 
 \rowcolor{white}
 \multicolumn{1}{c}{17:00} &
-\multicolumn{3}{c}{\parbox{18cm}{\centering\vspace{0.5em} \textbf{5 à 7  -  Forêt et Art}, \textit{Galerie "L'Oeuvre de l'autre" A0-1040}\vspace{0.5em}}} \\
+\multicolumn{3}{c}{\parbox{18cm}{\centering\vspace{0.5em} \textbf{5 à 7  -  Forêt et Art}, \textit{Galerie "L'Oeuvre de l'Autre" A0-1040}\vspace{0.5em}}} \\
 \arrayrulecolor{hrulecol}\hline
 
  
@@ -371,7 +370,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \end{figure}
 
 
-%%% AFFICHES
+%%% AFFICHES PARTIE 1
 
 %\pagebreak
 %\renewcommand{\tabcolsep}{0pt}
@@ -387,7 +386,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \rowcolors{2}{white}{alternatecol}
 \noindent\begin{tabular}{m{0.6cm}m{4.0cm}m{14.26cm}}
 \rowcolor{mheadercol}
-\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.3em}\textbf{\color{white}SÉANCE D'AFFICHES, JEUDI, 2 MAI} \textit{\color{white}(suite au verso)}\vspace{0.5em}}} \\
+\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.3em}\textbf{\color{white}SÉANCE D'AFFICHES, JEUDI 2 MAI} \textit{\color{white}(suite au verso)}\vspace{0.5em}}} \\
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
@@ -439,8 +438,9 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \end{figure}
 
 
-\pagebreak
+%%% AFFICHE PARTIE 2
 
+\pagebreak
 
 \small\setstretch{0.95}
 \renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
@@ -449,7 +449,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \rowcolors{2}{white}{alternatecol}
 \noindent\begin{tabular}{m{0.6cm}m{4.0cm}m{14.26cm}}
 \rowcolor{mheadercol}
-\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.3em}\textbf{\color{white}SÉANCE D'AFFICHES, JEUDI, 2 MAI} \textit{\color{white}(suite)}\vspace{0.5em}}} \\
+\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.3em}\textbf{\color{white}SÉANCE D'AFFICHES, JEUDI 2 MAI} \textit{\color{white}(suite)}\vspace{0.5em}}} \\
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
@@ -480,10 +480,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \end{tabular}
 *\textit{Seuls les membres étudiants gradués sont évalués pour participer au concours de la meilleure affiche. Les autres sont identifiés par non-membre/non-étudiant (NE)}
 
-
-
-
-
+\vspace{5mm}
 
 % ATELIERS
 
@@ -500,7 +497,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \rowcolors{2}{white}{alternatecol}
 \noindent\begin{tabular}{m{3.5cm}m{7.68cm}m{7.68cm}}
 \rowcolor{mheadercol}
-\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.5em}\textbf{\color{white}ATELIERS, VENDREDI, 3 MAI} \itshape{\color{white} }\vspace{0.5em}}} \\
+\multicolumn{3}{l}{\parbox{19cm}{\vspace{0.5em}\textbf{\color{white}ATELIERS, VENDREDI 3 MAI} \itshape{\color{white} }\vspace{0.5em}}} \\
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
 \arrayrulecolor{white}\hline
