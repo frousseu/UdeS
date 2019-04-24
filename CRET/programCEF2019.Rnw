@@ -195,7 +195,7 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 
 %\pagebreak
 %\begin{figure}[h]
-%\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{headerCEF2019}}
+%\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{header4CEF2019}}
 %\centering
 %\end{figure}
 %\vspace{-1em}
@@ -205,7 +205,6 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 \small\setstretch{0.87}
 \renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
 \renewcommand{\tabcolsep}{6pt}
-
 
 \noindent\begin{tabular}{m{0.8cm}m{5.88cm}m{5.88cm}m{5.88cm}}
 \rowcolor{mheadercol}
@@ -244,8 +243,6 @@ Croissance primaire et secondaire des branches de l'épinette noire et du sapin 
 Minimiser les risques de chablis en sapinière: adaptation du modèle britannique ForestGALES pour la forêt boréale \newline\newline\hspace*{\fill} \hfill  \textbf{Marine Duperat} & Contribution relative des arbres à la croissance de peuplements en fonction de leur structure et de traitements sylvicoles \newline\newline\hspace*{\fill} \hfill  \textbf{Caroline Lemire} & Dynamique sous-terraine et vulnérabilité à la sécheresse: comment la position microtopographique et l’exclusion des précipitations influencent-elles la production en racines fines en forêt tempérée ? \hspace*{\fill} \hfill  \textbf{Florence Tauc} \\
 %\arrayrulecolor{hrulecol}\hline 
 
-
-
 %%% PAUSE
 
 \rowcolor{breakcol}
@@ -259,7 +256,7 @@ Minimiser les risques de chablis en sapinière: adaptation du modèle britanniqu
 %%% BLOC4 
 
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Reconstitution climatique} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Sols forestiers} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\small\color{titlecol}Gel et Perturbations forestières II} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Reconstitution climatique} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Sols forestiers} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\footnotesize\color{titlecol}Gel et Perturbations forestières II} \itshape{\color{titlecol}P1-4280}} \\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Victor Danneyrolles}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Annie DesRochers}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Guillaume de Lafontaine}}\\
  \rowcolor{headercol}
