@@ -16,6 +16,9 @@
 % for comments, use \iffalse and then \fi
 
 \usepackage{makecell}
+\usepackage{stackengine}
+
+%\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
 
 \definecolor{hrulecol}{RGB}{199,215,226}
 \definecolor{breakcol}{RGB}{104,128,62}
@@ -63,7 +66,7 @@
 \multicolumn{4}{l}{\parbox{18cm}{\vspace{0.5em}\textbf{\color{white}MERCREDI, 1 MAI}\vspace{0.5em}}}\\
 \rowcolor{white}
 \multicolumn{1}{c}{08:30} &
-\multicolumn{3}{c}{\parbox{18cm}{\vspace{0.5em}Mot de bienvenue, \textbf{Pierre Drapeau} et \textbf{Louis Bernier}, direction du CEF \hfill \itshape{Amphithéâtre P0-5000}\vspace{0.5em}}} \\
+\multicolumn{3}{c}{\parbox{18cm}{\centering\vspace{0.5em}\hspace{39mm}Mot de bienvenue, \textbf{Pierre Drapeau} et \textbf{Louis Bernier}, direction du CEF  \hspace*{\fill} \hfill \itshape{Amphithéâtre P0-5000}\vspace{0.5em}}} \\
 %\arrayrulecolor{hrulecol}\hline
 
 
@@ -76,8 +79,9 @@
 \multicolumn{1}{c}{08:50} &
 \multicolumn{3}{c}{\parbox{18cm}{\centering\vspace{0.5em}\textbf{\color{black}FOREST RESPONSES TO DROUGHT: FROM TISSUES TO BIOSPHERE}\vspace{0.5em} \\\textbf{Maurizio Mencuccini}, Institution Catalane de recherche et d'études avancées à Barcelone en Espagne (ICREA) \vspace{0.5em}}} \\
 
+
 \rowcolor{breakcol}
-\multicolumn{1}{c}{\color{white}10:00} &
+\multicolumn{1}{c}{\color{white}\addstackgap[2pt]10:00} &
 \multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Pause (30 minutes)} \itshape{Corridor du P0-5000}} \\ 
 \arrayrulecolor{white}
 \hline
@@ -111,8 +115,8 @@ des changements climatiques sur les bryophytes et les lichens\\\textbf{Juan Carl
 %%% DINER
 
 \rowcolor{breakcol}
-\multicolumn{1}{c}{\color{white}11:50} &
-\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Cafétéria - centre social} -- \textbf{AGA des membres} \itshape{P0-7000}} \\
+\multicolumn{1}{c}{\color{white}\addstackgap[2pt]11:50} &
+\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Cafétéria - Centre social} -- \textbf{AGA des membres} \itshape{P0-7000}} \\
 \arrayrulecolor{white}
 \hline
 \hline
@@ -121,15 +125,15 @@ des changements climatiques sur les bryophytes et les lichens\\\textbf{Juan Carl
 %%% BLOC1
 
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Agroforesterie} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Télédétection} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Faune} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}AGROFORESTERIE}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}TÉLÉDÉTECTION}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}FAUNE}} \\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Jérôme Laganière}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par François Girard}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Louis Imbeau}}\\
  \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Nada Aloui}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Patricia Girardin}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Membres}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Nada Aloui P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Patricia Girardin P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Daniel Lesieur P1-4280}}\\
 \rowcolor{white}
 
 \multirow{1}{*}{13:30} & 
-Analyse coûts-avantages de trois systèmes agroforestiers dans la Baie Missisquoi pour améliorer la qualité de l’eau et du paysage: quels rôles pour les services écosystémiques et la valeur d’option dans Prime-Vert? \newline\hspace*{\fill} \hfill  \textbf{Caroline Simard} & Caractériser l'accroissement post-perturbation de la forêt boréale à l’aide du LiDAR aéroporté: une approche vers l’amélioration de l’indice de qualité de site. \newline\newline\hspace*{\fill} \hfill  \textbf{Batistin Bour} & Impacts projetés des changements climatiques sur l'habitat de la Grive de Bicknell \newline\newline\newline\newline\hspace*{\fill} \hfill  \textbf{Junior Tremblay} \\
+Analyse coûts-avantages de trois systèmes agroforestiers dans la Baie Missisquoi pour améliorer la qualité de l’eau et du paysage: quels rôles pour les services écosystémiques et la valeur d’option dans Prime-Vert? \newline\hspace*{\fill} \hfill  \textbf{Caroline Simard} & Caractériser l'accroissement post-perturbation de la forêt boréale à l’aide du LiDAR aéroporté: une approche vers l’amélioration de l’indice de qualité de site \newline\newline\hspace*{\fill} \hfill  \textbf{Batistin Bour} & Impacts projetés des changements climatiques sur l'habitat de la Grive de Bicknell \newline\newline\newline\newline\hspace*{\fill} \hfill  \textbf{Junior Tremblay} \\
 %\arrayrulecolor{hrulecol}\hline 
 \multirow{1}{*}{13:50} & 
 The effects of site and spacing on growth pattern, volume and biomass production of hybrid poplar clones in northwestern Quebec \hspace*{\fill} \hfill  \textbf{Abhishek Mani Tripathi} & Modélisation des patrons de diversité des bryophytes dans un paysage hautement aménagé à l’aide d’indice dérivé de LiDAR \hspace*{\fill} \hfill  \textbf{Maurane Bourgouin} & Connectivité et occupation de l’habitat par le Grand Pic en paysage agroforestier boréal \newline\newline\hspace*{\fill} \hfill  \textbf{Annick Antaya} \\
@@ -145,7 +149,7 @@ La proximité des arbres comme précurseur de la formation des greffes racinaire
 %%% PAUSE 
  
 \rowcolor{breakcol}
-\multicolumn{1}{c}{\color{white}15:00} &
+\multicolumn{1}{c}{\color{white}\addstackgap[2pt]15:00} &
 \multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Pause (30 minutes)} \textit{Corridor du P0-5000}} \\
 \arrayrulecolor{white}
 \hline
@@ -155,11 +159,11 @@ La proximité des arbres comme précurseur de la formation des greffes racinaire
 %%% BLOC2 
  
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Historique des perturbations} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Traits fonctionnels} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Une question de gradient} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}HISTORIQUE DES PERTURBATIONS}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}TRAITS FONCTIONNELS}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}UNE QUESTION DE GRADIENT}} \\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Miguel Montoro Girona}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Alain Paquette}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Emilie Champagne}}\\
  \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Marine Duperat}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Marion Noualhaguet}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Nada Aloui}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Marine Duperat P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Marion Noualhaguet P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Nada Aloui P1-4280}}\\
 \rowcolor{white}
 
 
@@ -179,15 +183,15 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 %%% ACTIVITÉ SOCIALE 
  
 \rowcolor{breakcol}
-\multicolumn{1}{c}{\color{white}18:00} &
-\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Activité sociale - Soirée à La Pulperie de Chicoutimi} - \textit{Pulperie de Chicoutimi}} \\ 
+\multicolumn{1}{c}{\color{white}\addstackgap[2pt]18:00} &
+\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Activité sociale - Soirée à La Pulperie de Chicoutimi}} \\ 
 \end{tabular} 
 
 
 \vspace{-0.3cm}
 
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer3CEF2019}}
 \centering
 \end{figure}
 
@@ -222,11 +226,11 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 %%% BLOC3
 
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Perturbations forestières I} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Sylviculture} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Une question de sécheresse} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}PERTURBATIONS FORESTIÈRES I}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}SYLVICULTURE}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}UNE QUESTION DE SÉCHERESSE}} \\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Miguel Xavier Cavard}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Nicole Fenton}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Sylvain Delagrange}}\\
  \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Ange-Marie Botroh}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Élise Bouchard}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Geneviève Gagné}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Ange-Marie Botroh P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Élise Bouchard P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Geneviève Gagné P1-4280}}\\
 \rowcolor{white}
 
 
@@ -256,15 +260,15 @@ Minimiser les risques de chablis en sapinière: adaptation du modèle britanniqu
 %%% BLOC4 
 
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Reconstitution climatique} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Sols forestiers} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\footnotesize\color{titlecol}Gel et Perturbations forestières II} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}RECONSTITUTION CLIMATIQUE}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}SOLS FORESTIERS}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\scriptsize\color{titlecol}GEL ET PERTURBATIONS FORESTIÈRES II}} \\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Victor Danneyrolles}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Annie DesRochers}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Guillaume de Lafontaine}}\\
  \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Membres}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Vanessa Audet-Giroux}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Membres}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. François Rousseu P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Vanessa Audet-Giroux P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. André Gagné P1-4280}}\\
 \rowcolor{white}
 
 \multirow{1}{*}{10:20} & 
-Calibration et validation de fonctions de transferts pour la reconstruction paloécologique de surface brûlée et de sévérité de feu en forêts boréale. \newline\hspace*{\fill} \hfill  \textbf{Andy Hennebelle} & Effets de la dominance de l’épinette noire et du peuplier faux-tremble sur la végétation de sous-bois dans la forêt boréale canadienne \newline\hspace*{\fill} \hfill  \textbf{Juanita Carolina Rodríguez Rodríguez} & Les gelées printanières prédisent mieux la croissance des arbres que la température moyenne annuelle dans les plantations d’épinettes en forêt boréale québécoise \hspace*{\fill} \hfill  \textbf{Benjamin Marquis} \\
+Calibration et validation de fonctions de transferts pour la reconstruction paloécologique de surface brûlée et de sévérité de feu en forêts boréale \newline\hspace*{\fill} \hfill  \textbf{Andy Hennebelle} & Effets de la dominance de l’épinette noire et du peuplier faux-tremble sur la végétation de sous-bois dans la forêt boréale canadienne \newline\hspace*{\fill} \hfill  \textbf{Juanita Carolina Rodríguez Rodríguez} & Les gelées printanières prédisent mieux la croissance des arbres que la température moyenne annuelle dans les plantations d’épinettes en forêt boréale québécoise \hspace*{\fill} \hfill  \textbf{Benjamin Marquis} \\
 %\arrayrulecolor{hrulecol}\hline 
 \multirow{1}{*}{10:40} & 
 Reconstitutions climatiques et hydrologiques des montagnes Chic-Choc et McGerrigle de l’intérieur de la Gaspésie \hspace*{\fill} \hfill  \textbf{Alexandre Pace} & L’amendement de cendres en érablière améliore rapidement les propriétés chimiques du sol et la nutrition des semis d’érable à sucre \hspace*{\fill} \hfill  \textbf{Jolaine Arseneau} & Facteurs écologiques régissant la régénération du chêne rouge (Quercus rubra L.) dans les Laurentides \newline\hspace*{\fill} \hfill  \textbf{Simon Lebel Desrosiers} \\
@@ -283,7 +287,7 @@ Comment les feux de forêt et les épidémies de TBE ont façonné un paysage bo
 
 \rowcolor{breakcol}
 \multicolumn{1}{c}{\color{white}11:40} &
-\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Cafétéria - centre social}} \\
+\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Cafétéria - Centre social}} \\
 \arrayrulecolor{white}
 \hline
 \hline
@@ -311,11 +315,11 @@ Comment les feux de forêt et les épidémies de TBE ont façonné un paysage bo
 
 
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Modélisation} \itshape{\color{titlecol}P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Envahisseurs exotiques} \itshape{\color{titlecol}P1-4270}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}Foresterie sociale} \itshape{\color{titlecol}P1-4280}} \\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}MODÉLISATION}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}ENVAHISSEURS EXOTIQUES}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}FORESTERIE SOCIALE}} \\
 \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Elise Filotas}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Evelyn Belien}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Osvaldo Valeria}}\\
 \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Maurane Bourgouin}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Myriam Pilliet}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Françoise Cardou}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Maurane Bourgouin P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Myriam Pilliet P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Françoise Cardou P1-4280}}\\
 \rowcolor{white}
 
 \multirow{1}{*}{13:30} & 
@@ -362,7 +366,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 
 \vspace{-1.4em}
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer3CEF2019}}
 \centering
 \end{figure}
 
@@ -376,7 +380,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \centering
 \end{figure}
 
-\small\setstretch{0.9}
+\small\setstretch{1.0}
 \renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
 \renewcommand{\tabcolsep}{6pt}
 
@@ -415,7 +419,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
  18 & \raggedright\textbf{Marc-Frédéric Indorf} & Les communautés végétales dans les tourbières du moyen nord du Québec: Déterminismes, fonctionnement et vulnérabilité écologiques\\\hline
  19 & \raggedright\textbf{Joshua Jarry} & Effets de la livrée des forêts sur l’écologie du sol et la régénération forestière\\\hline
  20 & \raggedright\textbf{Janie Lavoie} & Impacts de la tordeuse des bourgeons de l’épinette sur la régénération de l’épinette noire après une coupe avec protection de la régénération et des sols (CPRS)\\\hline
- 21 & \raggedright\textbf{Bastien Lecigne} & Viewshed3d: un package R pour calculer des champs de vision en 3D à partir de données LiDAR.\\\hline
+ 21 & \raggedright\textbf{Bastien Lecigne} & Viewshed3d: un package R pour calculer des champs de vision en 3D à partir de données LiDAR\\\hline
  22 & \raggedright\textbf{Marc-Antoine Leclerc} & Chronologies Holocènes des épidémies de la tordeuse des bourgeons d'épinette dans les sapinières et les pessières en zone boréale\\\hline
  23 & \raggedright\textbf{Léna Levoy} & Croissance et rendement des arbres et stockage à long terme du carbone de parcs à résidus miniers amendés et reboisés\\\hline
  24 & \raggedright\textbf{Marie-Laure Lusignan} & Attributs des écosystèmes importants pour assurer la continuité des pratiques traditionnelles atikamekw sur le territoire d'une famille de Wemotaci\\\hline
@@ -423,14 +427,11 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
  26 & \raggedright\textbf{Claire O'Neill Sanger} & Reconstruction du climat au cours du dernier millénaire dans le sud-est du Québec en utilisant des données de pollen à haute résolution du parc national du Mont Orford\\\hline
  27 & \raggedright\textbf{Enrick Potiron} & Water acquisition in tree species of pure and mixed stands\\\hline
  28 & \raggedright\textbf{Jenna Rabley} & The natural variability of paper birch phenotypical, morphological and physiological characteristics\\\hline
- 29 & \raggedright\textbf{Sophie-Ann Renald} & Potentiel de séquestration de carbone dans le sol et la biomasse végétale d'un parc à résidus miniers amendés et reboisés\\\hline
- 30 & \raggedright\textbf{Tana Route} & Diversité et facteurs environnementaux influençant les communautés de lichens des tourbières du nord-ouest du Québec\\\hline
- 31 & \raggedright\textbf{Samuel Roy Proulx} & L'interaction de croissance entre l'épinette noire et le mélèze laricin sur sol organique\\\hline
 \end{tabular}
 
 \vspace{-0.5em}
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer3CEF2019}}
 \centering
 \end{figure}
 
@@ -439,7 +440,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 
 \pagebreak
 
-\small\setstretch{0.95}
+\small\setstretch{1.0}
 \renewcommand{\arraystretch}{1.16} % General space between rows (1 standard) 
 \renewcommand{\tabcolsep}{6pt}
 
@@ -458,6 +459,9 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \multicolumn{1}{c}{\textbf{\color{titlecol}NO.}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}NOM}} &
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}AFFICHE}} \\
+ 29 & \raggedright\textbf{Sophie-Ann Renald} & Potentiel de séquestration de carbone dans le sol et la biomasse végétale d'un parc à résidus miniers amendés et reboisés\\\hline
+ 30 & \raggedright\textbf{Tana Route} & Diversité et facteurs environnementaux influençant les communautés de lichens des tourbières du nord-ouest du Québec\\\hline
+ 31 & \raggedright\textbf{Samuel Roy Proulx} & L'interaction de croissance entre l'épinette noire et le mélèze laricin sur sol organique\\\hline
  32 & \raggedright\textbf{Hugues Terreaux} & Reconstruction des épidémies de la tordeuse des bourgeons de l'épinette et de la dynamique des feux en pessière noire durant l'Holocène en forêt boréale Est Canadienne\\\hline
  33 & \raggedright\textbf{Vanessa Audet-Giroux} & Les effets de différentes pratiques sylvicoles sur les stocks de carbone dans la forêt boréale\\\hline
  34 & \raggedright\textbf{Olivier Villemaire-Côté} & La régénération du thuya occidental sous forte pression de broutement\\\hline
@@ -475,7 +479,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \\\hline
  NE & \raggedright\textbf{Morgane Urli} & La marge de sécurité hydraulique, un outil de surveillance des peuplements face à la sécheresse: du concept à l’application dans un contexte de changements climatiques\\\hline
 \end{tabular}
-*\textit{Seuls les membres étudiants gradués sont évalués pour participer au concours de la meilleure affiche. Les autres sont identifiés par non-membre/non-étudiant (NE)}
+*\textit{Seuls les membres étudiants gradués sont évalués pour participer au concours de la meilleure affiche. Les autres sont identifiés par non-étudiant (NE)}
 
 \vspace{5mm}
 
@@ -508,25 +512,25 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}PM} \itshape{\color{titlecol}13:00 à 17:00}} \\
 
 
-\textbf{Cartographie} \newline\textit{P1-5010} & Introduction à la cartographie avec QGIS (partie 1)\newline\newline & Introduction à la cartographie avec QGIS (partie 2) \newline\newline\hspace*{\fill} \hfill  \textbf{Pierre Racine}\\\hline
+\textbf{Cartographie} \newline\textit{P1-5010} & Introduction à la cartographie avec QGIS (partie 1)\newline & Introduction à la cartographie avec QGIS (partie 2) \newline\hspace*{\fill} \hfill  \textbf{Pierre Racine}\\\hline
 
-\textbf{Intro R} \newline\textit{P3-6030} &	Introduction à R -- Exploration, visualisation de données et création de bloc-notes R (partie 1) \newline\newline\newline &	Introduction à R -- Exploration, visualisation de de données et création de bloc-notes R (partie 2) \newline\newline\hspace*{\fill} \hfill  \textbf{Maxence Martin}\newline\hspace*{\fill} \hfill\textbf{Vincent Arnaud}\\\hline
+\textbf{Intro R} \newline\textit{P3-6030} &	Introduction à R -- Exploration, visualisation de données et création de bloc-notes R (partie 1) \newline\newline &	Introduction à R -- Exploration, visualisation de de données et création de bloc-notes R (partie 2) \newline\hspace*{\fill} \hfill  \textbf{Maxence Martin}\newline\hspace*{\fill} \hfill\textbf{Vincent Arnaud}\\\hline
 
-\textbf{R} \newline\textit{P1-5030} & Selection of indicator species - Introduction to the R package "Indicspecies" (partie 1)\newline\newline\newline &	Selection of indicator species - Introduction to the R package "Indicspecies" (partie 2) \newline\newline\hspace*{\fill} \hfill  \textbf{Enrique Hernández-Rodríguez}\newline\hspace*{\fill} \hfill\textbf{Carlos Cerrejón Lozano}\\\hline
+\textbf{R} \newline\textit{P1-5030} & Selection of indicator species - Introduction to the R package "Indicspecies" (partie 1)\newline\newline &	Selection of indicator species - Introduction to the R package "Indicspecies" (partie 2) \newline\hspace*{\fill} \hfill  \textbf{Enrique Hernández-Rodríguez}\newline\hspace*{\fill} \hfill\textbf{Carlos Cerrejón Lozano}\\\hline
 
-\textbf{R} \newline\textit{P1-5050} & Introduction to Satellite Remote Sensing Data with R \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Siddhartha Khare} & Analyse de données compositionnelles, biostatistiques et autoapprentissage avec R \newline\newline\hspace*{\fill} \hfill  \textbf{Serge-Étienne Parent}\\\hline
+\textbf{R} \newline\textit{P1-5050} & Introduction to Satellite Remote Sensing Data with R \newline\newline\hspace*{\fill} \hfill  \textbf{Siddhartha Khare} & Analyse de données compositionnelles, biostatistiques et autoapprentissage avec R \newline\hspace*{\fill} \hfill  \textbf{Serge-Étienne Parent}\\\hline
 
-\textbf{GitHub et R-INLA} \newline\textit{P1-5060} &	Introduction à GitHub et à la création de packages avec Rstudio\newline &	Introduction aux modèles spatiaux avec R-INLA \newline\newline\hspace*{\fill} \hfill  \textbf{François Rousseu}\\\hline
+\textbf{GitHub et R-INLA} \newline\textit{P1-5060} &	Introduction à GitHub et à la création de packages avec Rstudio \hspace*{\fill} \hfill  \textbf{François Rousseu} &	Introduction aux modèles spatiaux avec R-INLA \newline\hspace*{\fill} \hfill  \textbf{François Rousseu}\\\hline
 
-\textbf{Articles scientifiques} \newline\textit{P1-5070} &	Méta-analyses 101 \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Emilie Champagne} &	Scientific writing - How to better read and write journal articles \newline\newline\hspace*{\fill} \hfill  \textbf{Emma Despland}\\\hline
+\textbf{Articles scientifiques} \newline\textit{P1-5070} &	Méta-analyses 101 \newline\hspace*{\fill} \hfill  \textbf{Emilie Champagne} &	Scientific writing - How to better read and write journal articles \hspace*{\fill} \hfill  \textbf{Emma Despland}\\\hline
 
-\textbf{Méthodes participatives} \newline\textit{P1-5090} & Introduction et expérimentation des méthodes participatives pour la conciliation des usages et la gestion durable de la forêt \newline\newline\hspace*{\fill} \hfill  \textbf{Maria Isabel Canovas Abril} & \\\hline
+\textbf{Méthodes participatives} \textit{P1-5090} & Introduction et expérimentation des méthodes participatives pour la conciliation des usages et la gestion durable de la forêt \hspace*{\fill} \hfill  \textbf{Maria Isabel Canovas Abril} & \\\hline
 
 
 \end{tabular} 
 
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer3CEF2019}}
 \centering
 \end{figure}
 
