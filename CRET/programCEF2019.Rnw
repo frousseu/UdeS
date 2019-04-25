@@ -187,7 +187,7 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 \vspace{-0.3cm}
 
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
 \centering
 \end{figure}
 
@@ -362,7 +362,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 
 \vspace{-1.4em}
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
 \centering
 \end{figure}
 
@@ -430,7 +430,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 
 \vspace{-0.5em}
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
 \centering
 \end{figure}
 
@@ -526,7 +526,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \end{tabular} 
 
 \begin{figure}[h]
-\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footerCEF2019}}
+\noindent\scalebox{1.25}{\includegraphics[trim={0cm 0cm 0cm 0cm},clip]{footer2CEF2019}}
 \centering
 \end{figure}
 
