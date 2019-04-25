@@ -228,7 +228,7 @@ Les variations de sévérité des perturbations naturelles secondaires façonnen
 \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}PERTURBATIONS FORESTIÈRES I}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}SYLVICULTURE}} & \multicolumn{1}{!{\color{white}\vline}c}{\textbf{\color{titlecol}UNE QUESTION DE SÉCHERESSE}} \\
  \rowcolor{headercol}
-\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Miguel Xavier Cavard}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Nicole Fenton}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Sylvain Delagrange}}\\
+\multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Xavier Cavard}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Nicole Fenton}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Modéré par Sylvain Delagrange}}\\
  \rowcolor{headercol}
 \multirow{1}{*} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Ange-Marie Botroh P1-4250}} & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Élise Bouchard P1-4270}}  & \multicolumn{1}{!{\color{white}\vline}c}{\color{breakcol}\scriptsize\textit{Tech. A.-V. Geneviève Gagné P1-4280}}\\
 \rowcolor{white}
