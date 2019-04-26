@@ -116,7 +116,7 @@ des changements climatiques sur les bryophytes et les lichens\\\textbf{Juan Carl
 
 \rowcolor{breakcol}
 \multicolumn{1}{c}{\color{white}\addstackgap[2pt]11:50} &
-\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Cafétéria - Centre social} -- \textbf{AGA des membres} \itshape{P0-7000}} \\
+\multicolumn{3}{!{\color{white}\vline}c}{\color{white}\textbf{Dîner} \itshape{Corridor du P0-5000 - Centre social} -- \textbf{AGA des membres} \itshape{P0-7000}} \\
 \arrayrulecolor{white}
 \hline
 \hline
@@ -171,7 +171,7 @@ La proximité des arbres comme précurseur de la formation des greffes racinaire
 Quel impact des changements climatiques sur les changements de composition depuis l’époque préindustrielle au sud du Québec ? \hspace*{\fill} \hfill  \textbf{Victor Danneyrolles} & Développement de marqueurs fonctionnels pour des propriétés écosystémiques sensibles à l’urbanisation en milieux forestiers \hspace*{\fill} \hfill  \textbf{Françoise Cardou} & Écophysiologie de l'épinette noire des pessières à mousses et à lichens de l'ouest du Québec selon un gradient latitudinal \hspace*{\fill} \hfill  \textbf{Catherine Dally-Bélanger} \\
 %\arrayrulecolor{hrulecol}\hline 
 \multirow{1}{*}{15:50} & 
-Dynamique des épidémies de la TBE du 19ème siècle à nos jours sur le territoire Québécois \hspace*{\fill} \hfill  \textbf{Cassy Berguet} & Plasticité de traits foliaires le long d’un gradient de diversité fonctionnelle \newline\hspace*{\fill} \hfill  \textbf{Gauthier Lapa} & Driving factors of European beech treeline distribution along the Apennines in Italy \hspace*{\fill} \hfill  \textbf{Mogavero Valentina} \\
+Dynamique des épidémies de la TBE du 19ème siècle à nos jours sur le territoire Québécois \hspace*{\fill} \hfill  \textbf{Cassy Berguet} & Plasticité de traits foliaires le long d’un gradient de diversité fonctionnelle \newline\hspace*{\fill} \hfill  \textbf{Gauthier Lapa} & Driving factors of European beech treeline distribution along the Apennines in Italy \hspace*{\fill} \hfill  \textbf{Valentina Mogavero} \\
 %\arrayrulecolor{hrulecol}\hline 
 \multirow{1}{*}{16:10} & Changement (1950-2015) de la structure et de la composition des forêts du Québec à partir des archives de la Consolidated Bathurst: rôle des coupes et des perturbations naturelles\hspace*{2cm}\textbf{Yan Boucher} & Distribution mondiale des stratégies vitales des arbres \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Elise Bouchard} & Causes et conséquences du broutage du trille rouge sur un gradient élévationnel \newline\newline\newline\hspace*{\fill} \hfill  \textbf{Diane Auberson-Lavoie} \\
 %\arrayrulecolor{hrulecol}\hline 
@@ -348,7 +348,7 @@ Transférabilité de la probabilité d’occurrence du feu en forêt boréale m�
 \multicolumn{3}{!{\color{white}\vline}c}{\textbf{\color{titlecol}TABLE RONDE}} \\
 \rowcolor{white}
 \multicolumn{1}{c}{15:00} &
-\multicolumn{3}{c}{\parbox{18cm}{\vspace{0.5em}\centering\color{black}\textbf{COMMENT CONCILIER LES DIFFÉRENTES FONCTIONS DE LA FORÊT POUR LES PROCHAINES GÉNÉRATIONS ?}\newline\\\raggedright Animation: \textbf{Olivier Riffon}\\\raggedright Panélistes: \textbf{Alison Munson}, \textbf{Nicolas Meagher}, \textbf{Manuel Kak'wa Kurtness}, \textbf{Lorie Ouellet}, \textbf{Steeve Coulombe} \vspace{0.5em}}} \\
+\multicolumn{3}{c}{\parbox{18cm}{\vspace{0.5em}\centering\color{black}\textbf{COMMENT CONCILIER LES DIFFÉRENTES FONCTIONS DE LA FORÊT POUR LES PROCHAINES GÉNÉRATIONS ?}\newline\\\raggedright Animation: \textbf{Olivier Riffon}\\\raggedright Panélistes: \textbf{Alison Munson}, \textbf{Nicolas Meagher}, \textbf{Manuel Kak'wa Kurtness}, \textbf{Lorie Ouellet}, \textbf{Sylvain Chouinard} \vspace{0.5em}}} \\
 \arrayrulecolor{hrulecol}\hline
 
 \rowcolor{white}
