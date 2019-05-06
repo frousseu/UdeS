@@ -3,6 +3,7 @@ library(readxl)
 library(multifunc) # https://doi.org/10.1111/2041-210X.12143
 library(FRutils)
 library(scales)
+library(viridisLite)
 
 d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data.xlsx",sheet=1,range="A3:AC25",col_names=TRUE))
 y<-unlist(as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data.xlsx",sheet=1,range="A3:AC3",col_names=FALSE)))
@@ -71,90 +72,172 @@ mgp<-c(3,0.25,0)
 tcl<--0.2
 ths<-seq(0.01,0.99,by=0.01)
   
-par(mfrow=c(2,2),mar=c(4,4,1,3))
+
+
+
+par(mfrow=c(2,3),mar=c(3,0.2,1,0),oma=c(2,4,0,2))
+n1<-20
+n2<-3
+#mat<-matrix(1:6,nrow=2,byrow=FALSE)
+#mat<-matrix(rep(c(1:6),each=n1),nrow=2,byrow=T)
+mat<-cbind(
+do.call("cbind",lapply(1:n1,function(i){1:2})),
+do.call("cbind",lapply(1:n1,function(i){3:4})),
+do.call("cbind",lapply(1:n1,function(i){5:6})),
+do.call("cbind",lapply(1:n2,function(i){rep(7,2)})))
+layout(mat)
+layout.show(7)
 invisible(ans<-lapply(seq_along(ld),function(k){
   i<-ld[[k]]
   th<-getFuncsMaxed(i,names(i)[names(i)%in%vars], threshmin=min(ths), threshmax=max(ths), prepend=c("plot","diversity","year"), maxN=3)
   #slopes<-getCoefTab(funcMaxed ~ diversity, data=th, coefVar=c("diversity"), family=quasipoisson(link="identity"))
     
   plot(0,0,ylim=c(0-0.25,sum(names(i)%in%vars)+0.5),xlim=range(th$diversity),type="n",xlab="",ylab="",font=2,font.lab=2,xaxt="n",yaxt="n")
-  title(ylab="Nb of functions over threshold",line=1,cex.lab=1.2)
-  title(xlab="Diversity",line=1.2,cex.lab=1.2)
+  if(k==1){
+    axis(2,at=0:(sum(names(i)%in%vars)),label=0:(sum(names(i)%in%vars)),las=2,tcl=tcl,mgp=mgp)
+  } 
+  if(k==2){
+    mtext("Diversity",1,line=2,cex=1.2)
+  }  
   axis(1,at=sort(unique(i$diversity)),label=sort(unique(i$diversity)),tcl=tcl,mgp=mgp)
-  axis(2,at=0:(sum(names(i)%in%vars)),label=0:(sum(names(i)%in%vars)),las=2,tcl=tcl,mgp=mgp)
   mtext(i$year[1],side=3,line=-1.5,font=2,adj=c(0.95))
-    
+  
+  
   thr<-sort(unique(th$thresholds))
   l<-split(th,th$thresholds)
-  ramp<-c("grey85",coly[k],"grey1")
-  cols<-alpha(colo.scale(1:length(l),ramp),0.75)
-  co<-lapply(seq_along(l),function(j){
-    k<-l[[j]]
-    points(jitter(k$diversity,fac=0.5),jitter(k$funcMaxed,fac=1.25),col=cols[j],pch=1,cex=0.75,lwd=0.2) 
-    k$year<-as.factor(k$year)
-    print(j)
-    m<-glm(funcMaxed~diversity,data=k,family=poisson(link="log"))
+  ramp<-viridis(100)
+  cols<-alpha(colo.scale(1:length(l),ramp),1)
   
-    div<-seq(1,5,by=0.1)
-    yb<-levels(k$year)
-    e<-expand.grid(diversity=div,year=yb)
-    pred<-predict(m,newdata=e,type="response")
-    e$pred<-pred
-    lp<-split(e,e$year)
-    lapply(lp,function(p){
-      lines(div,p$pred,col=cols[j],lwd=2)
-    })
+  
+  ### fit models
+  com<-lapply(seq_along(l),function(j){
+    k<-l[[j]]
+    k$year<-as.factor(k$year)
+    m<-glm(funcMaxed~diversity,data=k,family=poisson(link="log"))
+    m
+  })
+  
+  
+  ### extract coefficients
+  coe<-lapply(seq_along(com),function(h){
+    m<-com[[h]]
     res<-as.data.frame(summary(m)$coef)
-    res<-cbind(th=k$thresholds[1],year=i$year[1],var=row.names(res),res,as.data.frame(confint(m)))
+    res<-cbind(th=l[[h]]$thresholds[1],year=i$year[1],var=row.names(res),res,as.data.frame(confint(m)))
     res
   })
-  ## legend
-  legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),ramp),0.75), ncol=1))
-  rec<-c(par("usr")[2]+0.04,par("usr")[3],par("usr")[2]+0.13,par("usr")[4])
-  rasterImage(legend_image,rec[1],rec[2],rec[3],rec[4],xpd=TRUE,lwd=1)
-  #at<-seq(min(ths),max(ths),length.out=10)
-  at<-c(min(ths),seq(0.1,0.9,by=.1),max(ths))
-  labs<-rescale(c(at,range(ths)),to=c(1,0))
-  labs<-at[1:length(at)]
-  text(x=rec[3],y=rev(seq(rec[2],rec[4],l=length(at))),cex=0.8,labels=round(labs,2),adj=c(-0.2,0.5),font=0,xpd=TRUE)
-  box(col="grey70")
-  do.call("rbind",co)
-}))
+  coe<-do.call("rbind",coe)
+  coe<-coe[coe$var=="diversity",]
   
+  
+  ### plot and build CIs
+  div<-seq(min(d$diversity),max(d$diversity),by=0.1)
+  e<-data.frame(diversity=div)
+  co<-lapply(seq_along(l),function(j){
+    k<-l[[j]]
+    #points(jitter(k$diversity,fac=0.5),jitter(k$funcMaxed,fac=1.25),col=cols[j],pch=1,cex=0.75,lwd=0.2) 
+    k$year<-as.factor(k$year)
+    m<-com[[j]]
+
+    pred<-predict(m,newdata=e,type="response")
+    e$pred<-pred
+    res<-coe[j,]
+    cis<-as.vector(res[,c("2.5 %","97.5 %")])
+    sw<-if(all(cis>0) | all(cis<0)){sw<-TRUE}else{sw<-FALSE}
+    #sw<-TRUE
+    lines(div,e$pred,col=cols[j],lwd=5)
+    #lines(div,e$pred,col=ifelse(sw,"red",alpha(cols[j],0.0)),lwd=1)
+    points(0.92,head(e$pred,1),col=ifelse(sw,"black",alpha(cols[j],0.0)),pch=15)
+    points(5.08,tail(e$pred,1),col=ifelse(sw,"black",alpha(cols[j],0.0)),pch=15)
+    res
+  })
+  box(col="grey70")
+  
+  #browser()
+  
+  ### find and plot max slope
+  mc<-c(which(coe[,"2.5 %"]>0)[1],which.max(coe[,"Estimate"]),rev(which(coe[,"2.5 %"]>0))[1])
+  lapply(seq_along(mc),function(j){
+    if(!is.na(mc[j])){
+      m<-com[[mc[j]]]
+      pred<-predict(m,newdata=e,type="response")
+      e$pred<-pred
+      if(j%in%c(1,3)){
+        lines(div,e$pred,col="red",lwd=2,lty=2)
+      }else{
+        lines(div,e$pred,col="red",lwd=2)
+      }
+    }
+  })
   
 
-### plot of diversity coef vs. th with CIs
-ans2<-lapply(ans,function(i){i[i$var=="diversity",]})
-ylim<-range(unlist(do.call("rbind",ans2)[,c("Estimate","2.5 %","97.5 %")]))
-ylim<-c(-0.2,0.4)
-plot(0,0,type="n",xlim=range(do.call("rbind",ans2)$th),ylim=ylim,ylab="",xlab="",yaxt="n",xaxt="n")
-title(ylab="Slope of diversity",line=1.7,cex.lab=1.2)
-title(xlab="Threshold",line=1.2,cex.lab=1.2)
-axis(1,tcl=tcl,mgp=mgp)
-axis(2,las=2,tcl=tcl,mgp=mgp)
-abline(0,0,lty=2)
-lapply(seq_along(ans2),function(i){
-  x<-ans2[[i]]
-  polygon(c(x$th,rev(x$th),x$th[1]),c(x$"2.5 %",rev(x$"97.5 %"),x$"2.5 %"[1]),col=alpha(coly[i],0.15),border=NA)
-  lines(x$th,x$"2.5 %",col=alpha(coly[i],0.7),lwd=1)
-  lines(x$th,x$"97.5 %",col=alpha(coly[i],0.7),lwd=1)
-  points(x$th,x$Estimate,col=alpha(coly[i],0.5),pch=ifelse(x$"Pr(>|z|)"<=0.05,16,16),cex=1.25,lwd=1)
-  m<-loess(Estimate~th,data=x,span=0.7)
-  #m<-gam(Estimate~s(th,k=6),data=x)
-  p<-predict(m,data.frame(th=x$th))
-  lines(x$th,p,lwd=2,col=alpha(coly[i],0.5))
+  ### plot of diversity coef vs. th with CIs
+  ylim<-range(unlist(coe[,c("Estimate","2.5 %","97.5 %")]))
+  ylim<-c(-0.2,0.4)
+  plot(0,0,type="n",xlim=range(coe$th),ylim=ylim,ylab="",xlab="",yaxt="n",xaxt="n")
+  if(k==1){
+    axis(2,las=2,tcl=tcl,mgp=mgp)
+  }
+  if(k==2){
+    mtext("Threshold",1,line=2,cex=1.2)
+  }
+  axis(1,tcl=tcl,mgp=mgp)
+
+  polygon(c(coe$th,rev(coe$th),coe$th[1]),c(coe$"2.5 %",rev(coe$"97.5 %"),coe$"2.5 %"[1]),col=alpha("black",0.15),border=NA)
+  #lines(coe$th,coe$"2.5 %",col=alpha("black",0.3),lwd=1)
+  #lines(coe$th,coe$"97.5 %",col=alpha("black",0.3),lwd=1)
+  if(k%in%1:3){
+    lapply(1:nrow(coe),function(h){
+      lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col=cols[h],lwd=5,lend=2)  
+      if(h%in%mc){
+        if(match(h,mc)%in%c(1,3)){
+          lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col="red",lwd=2,lend=2,lty=2)
+        }else{
+          lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col="red",lwd=2,lend=2)  
+        }
+      }
+    })
+  }
+  points(coe$th,coe$Estimate,col=alpha("black",0.75),pch=ifelse(coe$"Pr(>|z|)"<=0.05,1,1),cex=2,lwd=2)
+  abline(0,0,lty=2)
+  #m<-loess(Estimate~th,data=coe,span=0.7)
+  #m<-gam(Estimate~s(th,k=6),data=coe)
+  #p<-predict(m,data.frame(th=coe$th))
+  #lines(coe$th,p,lwd=2,col=alpha(coly[i],0.5))
   box(col="grey70")
-})
-legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.15),cex=1,pch=15,bty="n",pt.cex=3,y.intersp=1.5,inset=c(0.03,0.04))
-legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.5),cex=1,pch=16,bty="n",pt.cex=1.25,y.intersp=1.5,inset=c(0.03,0.04))
+
+  #legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.15),cex=1,pch=15,bty="n",pt.cex=3,y.intersp=1.5,inset=c(0.03,0.04))
+  #legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.5),cex=1,pch=16,bty="n",pt.cex=1.25,y.intersp=1.5,inset=c(0.03,0.04))
+}))
+
+
+legend("topleft",legend=c("Slope estimate for a given threshold","Significant slope",expression("T"[min]*" & "*"T"[max]),expression("T"[mde])),lwd=c(NA,NA,2,2),pt.lwd=c(2,1,NA,NA),lty=c(NA,NA,2,1),pch=c(1,15,NA,NA),col=c("black","black","red","red"),cex=1.7,bty="n",pt.cex=c(2,1,NA,NA),inset=c(0.03,0))
+
+
+## legend
+plot(0,0,xlim=0:1,ylim=0:1,xaxs="i",yaxs="i",xaxt="n",yaxt="n",bty="n",type="n")
+rec<-c(0.2,0,0.6,1)
+legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),ramp),1), ncol=1))
+rasterImage(legend_image,rec[1],rec[2],rec[3],rec[4],xpd=TRUE,lwd=1)
+#at<-seq(min(ths),max(ths),length.out=10)
+at<-c(min(ths),seq(0.1,0.9,by=.1),max(ths))
+labs<-rescale(c(at,range(ths)),to=c(1,0))
+labs<-at[1:length(at)]
+text(x=rec[3],y=rev(seq(rec[2],rec[4],l=length(at))),cex=1,labels=round(labs,2),adj=c(-0.2,0.5),font=1,xpd=TRUE)
+
+mtext("Nb of functions over threshold",2,line=2,cex=1.2,outer=TRUE,adj=0.85)  
+mtext("Slope of diversity with CI",2,line=2,cex=1.2,outer=TRUE,adj=0.20)
+mtext("Threshold",4,cex=1.2,outer=TRUE)
+  
+
+
 
 
 
 ### histograms of p values
-ans2<-do.call("rbind",ans)
-ans2<-split(ans2,ans2$var)
+ans<-coe
+ans<-split(ans,ans$var)
 par(mfrow=c(2,3))
-lapply(ans2,function(i){
+lapply(ans,function(i){
   hist(i$"Pr(>|z|)",breaks=seq(0,1,by=0.05),main=i$var[1],border=NA,col="darkgreen")  
 })
 
