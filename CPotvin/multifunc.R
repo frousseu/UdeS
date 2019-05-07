@@ -192,7 +192,7 @@ invisible(ans<-lapply(seq_along(ld),function(k){
         if(match(h,mc)%in%c(1,3)){
           lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col="red",lwd=2,lend=2,lty=2)
         }else{
-          lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col="red",lwd=2,lend=2)  
+          lines(rep(coe$th[h],2),c(coe$"97.5 %"[h],coe$"2.5 %"[h]),col="red",lwd=2,lend=2)
         }
       }
     })
@@ -205,6 +205,9 @@ invisible(ans<-lapply(seq_along(ld),function(k){
   #lines(coe$th,p,lwd=2,col=alpha(coly[i],0.5))
   box(col="grey70")
 
+  
+  mtext(bquote("   T"[min] == ~ .(format(coe$th[mc[1]],nsmall=2)) ~ "   T"[mde] == ~ .(format(coe$th[mc[2]],nsmall=2)) ~ "   T"[max] == ~ .(format(coe$th[mc[3]]),nsmall=2)),1,line=-2,adj=0.2)
+
   #legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.15),cex=1,pch=15,bty="n",pt.cex=3,y.intersp=1.5,inset=c(0.03,0.04))
   #legend("topleft",title="Coefficient and CIs\nof slope and smoother",legend=sapply(ans,function(i){i$year[1]}),col=alpha(coly,0.5),cex=1,pch=16,bty="n",pt.cex=1.25,y.intersp=1.5,inset=c(0.03,0.04))
 }))
@@ -216,7 +219,7 @@ legend("topleft",legend=c("Slope estimate for a given threshold","Significant sl
 ## legend
 plot(0,0,xlim=0:1,ylim=0:1,xaxs="i",yaxs="i",xaxt="n",yaxt="n",bty="n",type="n")
 rec<-c(0.2,0,0.6,1)
-legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),ramp),1), ncol=1))
+legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),viridis(100)),1), ncol=1))
 rasterImage(legend_image,rec[1],rec[2],rec[3],rec[4],xpd=TRUE,lwd=1)
 #at<-seq(min(ths),max(ths),length.out=10)
 at<-c(min(ths),seq(0.1,0.9,by=.1),max(ths))
