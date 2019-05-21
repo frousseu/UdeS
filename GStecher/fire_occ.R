@@ -17,6 +17,7 @@ library(doParallel)
 library(foreach)
 library(fields)
 library(viridisLite)
+library(raster)
 
 ### List of things potentially missing:
 
@@ -28,7 +29,8 @@ library(viridisLite)
 
 #############
 ### load data
-load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
+#load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
+load("~/UdeS/Consultation/GStetcher/Doc/MSB_occ.RData")
 
 #####################################################################
 ### source newdata and toseq
@@ -37,7 +39,8 @@ source("https://raw.githubusercontent.com/frousseu/UdeS/master/GStecher/newdata.
 
 ############################################################################################
 ### remove everything with NAs (temporary) and take a random sample to reduce computing time
-occ<-llf.occur
+occ<-MSB.occ
+#occ<-llf.occur
 occ<-na.omit(occ)
 occ<-occ[sample(1:nrow(occ),5000),] # sample location to reduce computing time
 
@@ -47,9 +50,9 @@ tab<-table(occ$PA,occ$VEGZONSNA)
 tab[2,]/(tab[1,]+tab[2,])
 
 #####################################################################
-### convert high_name to factor and log transform the population size
-occ$high_name<-as.factor(occ$high_name)
-occ$logPop_2017<-log(occ$Pop_2017+0.2)
+### convert high_name_1k to factor and log transform the population size
+occ$high_name_1k<-as.factor(occ$high_name_1k)
+occ$logpop_raster_1k<-log(occ$pop_raster_1k+0.2)
 
 #####################################################################
 ### change vegzone to complete names
@@ -59,14 +62,20 @@ occ$VEGZONSNA<-as.factor(occ$VEGZONSNA)
 #############################################
 ### build a spatial object with the locations
 occs<-occ
-coordinates(occs)<-~Longitude+Latitude
+coordinates(occs)<-~Long+Lat
 proj4string(occs)<-"+init=epsg:4326"
+occsll<-occs
 prj<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
 occs<-spTransform(occs,CRS(prj))
 
+plot(occs,pch=16,col=alpha(ifelse(occs$PA==0,"blue","red"),0.35))
+
 #########################################
 ### build a simple glm to compare results
-m1 <- glm (PA ~ VEGZONSNA + trees_age + WtrUrb_km + logPop_2017 + Road_dens + high_name, family = binomial(link = "logit"), data = na.omit(occ))
+#m1 <- glm (PA ~ VEGZONSNA + Trees_age_1k + WtrUrb_1k + logpop_raster_1k + NSkog_1k + high_name_1k, family = binomial(link = "logit"), data = na.omit(occ))
+
+m1 <- glm (PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k + VEGZONSNA, family = binomial(link = "logit"), data = na.omit(occ))
+
 par(mfrow=c(3,3),mar=c(4,4,3,3))
 visreg(m1,scale="response")
 par(mfrow=c(1,1))
@@ -87,7 +96,7 @@ swe<-spTransform(swe,proj4string(occs))
 # smaller values put in here will make a more precise grid, but will take longer to run
 
 #bound<-inla.nonconvex.hull(coordinates(occs)[sample(1:nrow(occs),100),], concave=-0.5, resolution=20)
-mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(5000,15000),offset=c(5000,15000),cutoff=5000,boundary=swe)
+mesh<-inla.mesh.2d(loc=coordinates(occs),max.edge=c(10000,30000),offset=c(10000,30000),cutoff=10000,boundary=swe)
 plot(mesh,asp=1)
 
 ####################################################################
@@ -116,7 +125,7 @@ control.fixed<-list(prec=vals,mean=list(intercept=0,default=0),expand.factor.str
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=10000)
+g<-makegrid(swe,n=2000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 #test1<-st_as_sf(g)
@@ -138,31 +147,31 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
 ### model set
 
 modell<-list(
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + WtrUrb_km + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + high_name + Frbreak_km + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + VEGZONSNA + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + high_name + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km + trees_age + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + trees_age * VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km * trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + Frbreak_km * trees_age + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens * logPop_2017 + Frbreak_km + trees_age + f(spatial,model=spde),
-  #PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name * VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km * trees_age + high_name + VEGZONSNA + f(spatial,model=spde)
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + high_name_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + high_name_1k + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + high_name_1k + Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Firebrk_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + high_name_1k + WtrUrb_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + high_name_1k + Firebrk_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + VEGZONSNA + Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Firebrk_1k + Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Firebrk_1k + Trees_age_1k + high_name_1k + f(spatial,model=spde),
+  PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Firebrk_1k + Trees_age_1k + VEGZONSNA + f(spatial,model=spde),
+  PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k + high_name_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k + high_name_1k + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Firebrk_1k + Trees_age_1k + high_name_1k + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Trees_age_1k * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k * Trees_age_1k + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + Firebrk_1k * Trees_age_1k + f(spatial,model=spde),
+  PA ~ 0 + intercept + NSkog_1k * logpop_raster_1k + Firebrk_1k + Trees_age_1k + f(spatial,model=spde)
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Firebrk_1k + Trees_age_1k + high_name_1k * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ 0 + intercept + NSkog_1k + logpop_raster_1k + WtrUrb_1k + Firebrk_1k * Trees_age_1k + high_name_1k + VEGZONSNA + f(spatial,model=spde)
 )
 
 ### this is to do some tests to turn spatial models in non-spatial models
@@ -274,6 +283,37 @@ names(index)[3:length(index)]<-v
 m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.fixed=control.fixed,control.inla=list(strategy='gaussian',int.strategy="eb"))
 
 
+
+#####################################
+### visualize spatial fields
+
+xlim<-range(coordinates(occs)[,1])
+ylim<-range(coordinates(occs)[,2])
+
+proj<-inla.mesh.projector(mesh,xlim=xlim,ylim=ylim,dims=c(300,300))
+
+mfield<-inla.mesh.project(projector=proj,field=m$summary.random[['spatial']][['mean']])
+sdfield<-inla.mesh.project(projector=proj,field=m$summary.random[['spatial']][['sd']])
+
+par(mfrow=c(1,2),mar=c(3,3,2,5))
+
+image.plot(list(x=proj$x,y=proj$y,z=mfield),col=viridis(100),asp=1,main="Spatial field (logit scale)") 
+axis(1)
+axis(2)
+#plot(swe,add=TRUE,border=gray(0,0.2))
+plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0,0.3),add=TRUE)
+brks<-c(0.01,0.25,0.50,0.75,0.99)
+legend("topleft",pch=1,pt.cex=3*brks,col=gray(0,0.3),legend=brks,bty="n",title="Probability of location\nbeing an actual fire",inset=c(0.02,0.05))
+
+image.plot(list(x=proj$x,y=proj$y,z=sdfield),col=viridis(100),asp=1,main="sd of spatial field (logit scale)") 
+axis(1)
+axis(2)
+#plot(swe,add=TRUE,border=gray(0,0.2))
+plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0,0.3),add=TRUE)
+
+
+
+
 ##################################
 ### build a relative frequency map
 
@@ -347,7 +387,7 @@ hist(post.predicted.pval,main="",breaks=10,xlab="Posterior predictive p-value")
 
 
 ### from haakon bakka, BTopic112
-samples<-inla.posterior.sample(500,m)
+samples<-inla.posterior.sample(100,m)
 m$misc$configs$contents
 contents<-m$misc$configs$contents
 effect<-"APredictor"
@@ -370,7 +410,7 @@ hist(o$scaledResiduals)
 
 bm<-as.character(modell[[b]])
 bm[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",bm[3]) # remove spatial effect and intercept notation
-bm[3]<-gsub("\\-1 \\+ intercept \\+ ","",bm[3]) # remove spatial effect and intercept notation
+bm[3]<-gsub("0 \\+ intercept \\+ ","",bm[3]) # remove spatial effect and intercept notation
 bm<-as.formula(paste0(bm[c(2,1,3)],collapse=""))
 bm
 
@@ -432,10 +472,10 @@ local.plot.field = function(field, mesh,xlim=c(200000,1000000),ylim=c(6100000,77
   proj = inla.mesh.projector(mesh, xlim = xlim,ylim = ylim, dims=c(500, 500))
   field.proj = inla.mesh.project(proj, field)
   n.col = 20
-  image.plot(list(x = proj$x, y=proj$y, z = field.proj),xlim = xlim, ylim = ylim, col = plasma(n.col), nlevel=n.col+1,asp=1, ...)
+  image.plot(list(x = proj$x, y=proj$y, z = field.proj),xlim = xlim, ylim = ylim, col = viridis(n.col), nlevel=n.col+1,asp=1, ...)
 }
 
-local.plot.field(m$summary.random[['spatial']][['sd']],mesh)
+local.plot.field(m$summary.random[['spatial']][['mean']],mesh)
 plot(swe,add=TRUE)
 coo<-coordinates(swe)
 lwr<-exp(res$summary.log.range.nominal[["0.025quant"]])
@@ -501,7 +541,7 @@ plot(m) #? PIT and CPO valid with bernoulli response?
 projgrid <- inla.mesh.projector(mesh, dims=c(500,500))
 xmean <- inla.mesh.project(projgrid, m$summary.random$spatial$mean)
 xsd <- inla.mesh.project(projgrid, m$summary.random$spatial$sd)
-image(xmean,asp=2,col=heat.colors(100))
+image(xmean,asp=2,col=viridis(100))
 res<-inla.spde2.result(m,"spatial",spde)
 plot(res[["marginals.range.nominal"]][[1]], type = "l",main = "Nominal range, posterior density")
 
@@ -515,21 +555,21 @@ plot(res[["marginals.range.nominal"]][[1]], type = "l",main = "Nominal range, po
 
 ds2<-occs[occs$PA==1,]
 
-covList<-with(ds2@data,list(Populati_2=log(Populati_2),Road_dens=log(Road_dens),MDC=log(MDC)))
+covList<-with(ds2@data,list(Populati_2=log(Populati_2),NSkog_1k=log(NSkog_1k),MDC=log(MDC)))
 
-ds2$Road_dens2<-log(ds2$Road_dens)
+ds2$NSkog_1k2<-log(ds2$NSkog_1k)
 
 r <- raster(ncol = 100, nrow = 200, ext = extent(ds2))
 r <- rasterize(ds2, r, field = 1, fun = "count", background = 0)
 plot(r)
 
-roads<-rasterize(ds2[,"Road_dens2"],r, field = "Road_dens2", fun = mean, background = 0)
+roads<-rasterize(ds2[,"NSkog_1k2"],r, field = "NSkog_1k2", fun = mean, background = 0)
 plot(roads)
 
-fit<-lgcp(formula=~Road_dens2,
+fit<-lgcp(formula=~NSkog_1k2,
           data=ds2[1:50,],
           grid=20,
-          covariates=list(Road_dens2=roads),
+          covariates=list(NSkog_1k2=roads),
           family="binomial", 
           buffer=100000,
           shape=1,
@@ -604,8 +644,8 @@ Q<-quadscheme(X)
 # (1) intensity function estimated by model-fitting
 # Fit spatial trend: polynomial in x and y coordinates
 fit <- ppm(X, ~ polynom(x,y,8), Poisson(),data=locs@data,covariates=NULL)
-fit <- ppm(Q ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA, Poisson(),data=locs@data)
-fit <- ppm(Q ~ Road_dens + logPop_2017 + WtrUrb_km + Frbreak_km + trees_age + high_name + VEGZONSNA, Poisson(),data=locs@data)
+fit <- ppm(Q ~ NSkog_1k + logpop_raster_1k + WtrUrb_1k + Firebrk_1k + Trees_age_1k + high_name_1k + VEGZONSNA, Poisson(),data=locs@data)
+fit <- ppm(Q ~ NSkog_1k + logpop_raster_1k + WtrUrb_1k + Firebrk_1k + Trees_age_1k + high_name_1k + VEGZONSNA, Poisson(),data=locs@data)
 
 # (a) predict intensity values at points themselves,
 #     obtaining a vector of lambda values
