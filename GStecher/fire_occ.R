@@ -395,28 +395,38 @@ for(i in seq_along(v)){
 }
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
+
 ##########################################################
 ### generate predictions without spatial effet
 
 # page 263 in Zuur
 
-nsims<-500
+nsims<-100
 s<-inla.posterior.sample(nsims,m)
 params<-dimnames(m$model.matrix)[[2]]
 nparams<-sapply(params,function(i){
   match(i,row.names(s[[1]]$latent))  
 }) 
+nweights<-grep("spatial",row.names(s[[1]]$latent))
 
 ### this is to compare with a glm model
 #par(mfrow=c(round(sqrt(2*length(v)),0),ceiling(sqrt(2*length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
 #m1 <- glm (PA ~ NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA, family = binomial(link = "logit"), data = na.omit(occ))
 #visreg(m1,scale="response",ylim=0:1)
 
-par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
+par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,3,2,2),oma=c(0,10,0,0))
 for(k in seq_along(v)){
   p<-lapply(1:nsims,function(i){
     betas<-s[[i]]$latent[nparams]
     fixed<-cbind(intercept=1,lp[[v[k]]][[1]]) %*% betas
+    ### this if we want a spatial part
+    #wk<-s[[i]]$latent[nweights]
+    #if(is.factor(occ[,v[k]])){
+    #  spatial<-as.matrix(inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,nlevels(occ[,v[k]])),,drop=FALSE])) %*% wk
+    #}else{
+    #  spatial<-as.matrix(Apn) %*% wk
+    #}
+    #p<-inla.link.invlogit(fixed+spatial)
     p<-inla.link.invlogit(fixed)
     p
   })
@@ -425,10 +435,15 @@ for(k in seq_along(v)){
   if(nrow(lp[[v[k]]][[1]])==n){
     vals<-lp[[v[k]]][[1]][,v[k]]
     plot(vals,p[,2],type="l",ylim=c(0,1),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    abline(sum(occ$PA)/nrow(occ),0,col=gray(0,0.2))
+    points(occ[,v[k]],jitter(occ$PA,amount=0.035),pch=1,col=gray(0,0.15))
+    lines(vals,p[,2],lwd=2)
     lines(vals,p[,1],lty=3)
     lines(vals,p[,3],lty=3)
   }else{
     plot(unique(sort(occ[,v[k]])),p[,2],type="l",ylim=c(0,1),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    abline(sum(occ$PA)/nrow(occ),0,col=gray(0,0.2))
+    points(jitter(as.integer(occ[,v[k]])),jitter(occ$PA,amount=0.035),pch=1,col=gray(0,0.15))
     segments(x0=as.integer(unique(sort(occ[,v[k]]))),x1=as.integer(unique(sort(occ[,v[k]]))),y0=p[,1],y1=p[,3],lty=3)
   }
   axis(2,las=2)
