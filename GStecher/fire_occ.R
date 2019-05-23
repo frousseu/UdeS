@@ -44,7 +44,7 @@ occ<-MSB.occ
 #occ<-na.omit(occ)
 #temp1<-occ[occ$high_name_100m=="Others (deciduous and others)" & occ$PA==1,][1,]
 temp1<-occ[occ$VE=="Alpin zon" & occ$PA==1,][1,]
-occ<-rbind(occ[sample(1:nrow(occ),2000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
+occ<-rbind(occ[sample(1:nrow(occ),10000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
 
 
 
@@ -124,12 +124,12 @@ vals<-rep(1/5^2,length(fac))
 names(vals)<-fac
 vals<-as.list(vals)
 vals<-c(vals,list(intercept=1/5^2,default=0.001)) # not sure if the intercept should be fixed or not in relation to the know prop of 0 or 1s
-control.fixed<-list(prec=vals,mean=list(intercept=0,default=0),expand.factor.strategy = "model.matrix")
+control.fixed<-list(prec=vals,mean=list(intercept=-1,default=0),expand.factor.strategy = "model.matrix")
 
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=5000)
+g<-makegrid(swe,n=2000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(occs)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 #test1<-st_as_sf(g)
@@ -151,45 +151,60 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(occs))
 ### model set
 
 modell<-list(
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + WtrUrb_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + Firebrk_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + VEGZONSNA + Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m * VEGZONSNA + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
-  #PA ~ 0 + intercept + NSkog_100m * logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
-  PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m * VEGZONSNA + f(spatial,model=spde),
-  PA ~ 0 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m * Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde)
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + WtrUrb_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + high_name_100m + Firebrk_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + VEGZONSNA + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m * logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m * VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m * Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde)
 )
 
 ### this is to do some tests to turn spatial models in non-spatial models
-mm<-lapply(modell,function(i){
-  mod<-as.character(i)
-  mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
-  mod[3]<-gsub("0 \\+ intercept \\+ ","",mod[3]) # remove spatial effect and intercept notation
-  mod<-as.formula(paste0(mod[c(1,3)],collapse=" "))
-  model.matrix(mod,occ)[,-1]
-})
+mmatrix<-function(i,dat){
+  if(!is.list(i)){
+    i<-list(i)  
+  }
+  lapply(i,function(j){
+    mod<-as.character(j)
+    mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
+    mod[3]<-gsub("-1 \\+ intercept \\+ ","",mod[3]) # remove spatial effect and intercept notation
+    mod<-as.formula(paste0(mod[c(1,3)],collapse=" "))
+    model.matrix(mod,dat)[,-1]
+  })
+}
+mm<-mmatrix(modell,occ)
+
+
+#mm<-lapply(modell,function(i){
+#  mod<-as.character(i)
+#  mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
+#  mod[3]<-gsub("-1 \\+ intercept \\+ ","",mod[3]) # remove spatial effect and intercept notation
+#  mod<-as.formula(paste0(mod[c(1,3)],collapse=" "))
+#  model.matrix(mod,occ)[,-1]
+#})
 
 ### this is the model with the dummy variable from the model.matrix as suggested by the pdf E Krainski on using factors
 modellmm<-lapply(mm,function(i){
-  as.formula(paste("PA ~ 0 + intercept +",paste(dimnames(i)[[2]],collapse=" + "),"+ f(spatial, model = spde)"))
+  as.formula(paste("PA ~ -1 + intercept +",paste(dimnames(i)[[2]],collapse=" + "),"+ f(spatial, model = spde)"))
 })
 
 
@@ -198,7 +213,7 @@ modellmm<-lapply(mm,function(i){
 
 # this runs every model in the model set
 
-registerDoParallel(detectCores()-2) 
+registerDoParallel(min(length(ml),detectCores()-2)) 
 getDoParWorkers()
 
 #ml<-vector(mode="list",length=length(modell))
@@ -211,8 +226,9 @@ ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopa
   spde<-spde # this only to make sure spde is exported to the nodes
   #stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est") # without model.matrix
   stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[i]])),tag="est") # with model.matrix see avoiding problems with factors in inla.stack by E. Krainski
+  #https://groups.google.com/forum/#!searchin/r-inla-discussion-group/factors$20avoiding%7Csort:date/r-inla-discussion-group/iimQ1t1onE0/1fLyJbJcBAAJ
   ### run the model with the eb strategy for faster runs (more approximate)
-  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),control.fixed=control.fixed,num.threads=1)
+  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),control.fixed=control.fixed,num.threads=1)
   m
   # print iterations
   #print(paste(" ",i,"/",length(ml)," "))
@@ -243,29 +259,32 @@ bmodel<-modell[[b]]
 Ap<-inla.spde.make.A(mesh=mesh,loc=coordinates(g))
 n<-100 # number of divisions in generated values for the focus variable
 Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(312180,6342453),ncol=2)[rep(1,n),,drop=FALSE]) # the graphs are build using a random points in the area
+#Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(NA,NA),ncol=2)[rep(1,n),,drop=FALSE]) # the graphs are build using a random points in the area
 
 ################################################
 ### build newdata with variable values to submit
 v<-setdiff(all.vars(bmodel),c("PA","intercept","spatial","spde"))
-lp<-newdata(x=occ[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
-lpmed<-lapply(newdata(x=occ[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
+lp<-newdata(x=occ[,v,drop=FALSE],v=v,n=n,fun=median,list=FALSE)
+lp<-lapply(lp,function(i){mmatrix(bmodel,i)})
+lpmed<-mmatrix(bmodel,newdata(x=occ[,v,drop=FALSE],v=v,n=1,fun=median,list=FALSE)[[1]][rep(1,length(g)),])[[1]]
 
 ########################################################
 ### bind the data stack for the estimate and for the map
-stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est")
-stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
+#stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(occ[,v,drop=FALSE])),tag="est") ### old stack not based on explicit model.matrix
+stack.est<-inla.stack(data=list(PA=occ$PA),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[b]])),tag="est")
+stack.map<-inla.stack(data=list(PA=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),data.frame(lpmed)),tag="map")
 full.stack<-inla.stack(stack.est,stack.map)
 
 #######################################
 ### add a stack for each focus variable
 for(i in seq_along(v)){
-  le<-length(lp[[v[i]]][[1]])
+  le<-nrow(lp[[v[i]]][[1]])
   if(le!=n){
     AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
   }else{
     AA<-Apn # for numerical variables
   }
-  stack<-inla.stack(data=list(PA=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
+  stack<-inla.stack(data=list(PA=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),data.frame(lp[[v[i]]][[1]])),tag=v[i])     
   full.stack<-inla.stack(full.stack,stack)
 }
 
@@ -281,7 +300,7 @@ names(index)[3:length(index)]<-v
 
 ##################################################
 ### rerun best model with each variable to predict
-m<-inla(bmodel,Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.fixed=control.fixed,control.inla=list(strategy='gaussian',int.strategy="eb"))
+m<-inla(modellmm[[b]],Ntrials=1,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),family="binomial",control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.fixed=control.fixed,control.inla=list(strategy='simplified.laplace',int.strategy="eb"))
 
 
 
@@ -302,7 +321,7 @@ image.plot(list(x=proj$x,y=proj$y,z=mfield),col=viridis(100),asp=1,main="Spatial
 axis(1)
 axis(2)
 plot(swe,add=TRUE,border=gray(0,0.5))
-plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+#plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
 brks<-c(0.01,0.25,0.50,0.75,0.99)
 legend("topleft",pch=1,pt.cex=3*brks,col=gray(0,0.3),legend=brks,bty="n",title="Probability of location\nbeing an actual fire",inset=c(0.02,0.05))
 
@@ -310,7 +329,7 @@ image.plot(list(x=proj$x,y=proj$y,z=sdfield),col=viridis(100),asp=1,main="sd of 
 axis(1)
 axis(2)
 plot(swe,add=TRUE,border=gray(0,0.5))
-plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+#plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
 
 
 
@@ -362,17 +381,23 @@ plot(swe,add=TRUE,border=gray(0,0.25),lwd=0.01)
 par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
-  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
-  axis(2,las=2)
+  dat<-data.frame(lp[[v[i]]][[1]])
+  #ma<-match(v[i],names(dat))
   if(nrow(p)==n){
-    lines(lp[[v[i]]][[1]],p[,1],lty=3)
-    lines(lp[[v[i]]][[1]],p[,3],lty=3)
+    plot(dat[[v[i]]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
+    lines(dat[[v[i]]],p[,1],lty=3)
+    lines(dat[[v[i]]],p[,3],lty=3)
   }else{
-    segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
+    plot(unique(sort(occ[,v[i]])),p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
+    segments(x0=as.integer(unique(sort(occ[,v[i]]))),x1=as.integer(unique(sort(occ[,v[i]]))),y0=p[,1],y1=p[,3],lty=3)
   }
+  axis(2,las=2)
   points(occ[,v[i]],jitter(occ$PA,amount=0.035),pch=16,col=gray(0,0.15))
 }
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
+
+##########################################################
+##
 
 
 ######################################################
@@ -412,7 +437,7 @@ hist(o$scaledResiduals)
 
 bm<-as.character(modell[[b]])
 bm[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",bm[3]) # remove spatial effect and intercept notation
-bm[3]<-gsub("0 \\+ intercept \\+ ","",bm[3]) # remove spatial effect and intercept notation
+bm[3]<-gsub("-1 \\+ intercept \\+ ","",bm[3]) # remove spatial effect and intercept notation
 bm<-as.formula(paste0(bm[c(2,1,3)],collapse=""))
 bm
 
