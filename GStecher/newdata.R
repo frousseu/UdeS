@@ -14,7 +14,7 @@ toseq<-function(x,n=100){
 #####################################################################################
 ### function to create a data.frame for predictions for each variable in a data.frame
 
-newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
+newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE,factors=TRUE){
   
   # returns the mean or the levels
   mm<-function(y){
@@ -22,6 +22,7 @@ newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
       fun(y)
     }else{
       names(rev(sort(table(y))))[1]
+      #factor(f,levels=)
     }
   }
   ## possibly a bug with the function did not save the last part
@@ -33,11 +34,18 @@ newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE){
     }
     l<-lapply(x[,setdiff(names(x),i),drop=FALSE],mm)
     if(length(l)==0){
-      res<-data.frame(val,stringsAsFactors=FALSE)
+      res<-data.frame(val,stringsAsFactors=TRUE)
     }else{
-      res<-data.frame(val,as.data.frame(l),stringsAsFactors=FALSE)
+      res<-data.frame(val,as.data.frame(l),stringsAsFactors=TRUE)
     }
     names(res)[1]<-i
+    res<-res[,names(x)] # put in the same order as
+    if(factors){
+      w<-which(sapply(x,function(k){is.character(k) | is.factor(k)}))
+      res[w]<-lapply(w,function(j){
+        factor(res[[j]],levels=levels(x[[j]]))
+      })  
+    }
     if(list){ # inefficient, should not be turned to data.frame if list=TRUE
       as.list(res)
     }else{
