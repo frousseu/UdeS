@@ -44,7 +44,7 @@ occ<-MSB.occ
 #occ<-na.omit(occ)
 #temp1<-occ[occ$high_name_100m=="Others (deciduous and others)" & occ$PA==1,][1,]
 temp1<-occ[occ$VE=="Alpin zon" & occ$PA==1,][1,]
-occ<-rbind(occ[sample(1:nrow(occ),10000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
+occ<-rbind(occ[sample(1:nrow(occ),5000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
 
 
 
@@ -167,13 +167,13 @@ modell<-list(
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
-  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
-  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m * VEGZONSNA + f(spatial,model=spde),
-  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
-  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
-  #PA ~ -1 + intercept + NSkog_100m * logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
+  PA ~ -1 + intercept + NSkog_100m * logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m * VEGZONSNA + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m * Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde)
 )
@@ -321,7 +321,7 @@ image.plot(list(x=proj$x,y=proj$y,z=mfield),col=viridis(100),asp=1,main="Spatial
 axis(1)
 axis(2)
 plot(swe,add=TRUE,border=gray(0,0.5))
-#plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
 brks<-c(0.01,0.25,0.50,0.75,0.99)
 legend("topleft",pch=1,pt.cex=3*brks,col=gray(0,0.3),legend=brks,bty="n",title="Probability of location\nbeing an actual fire",inset=c(0.02,0.05))
 
@@ -329,7 +329,7 @@ image.plot(list(x=proj$x,y=proj$y,z=sdfield),col=viridis(100),asp=1,main="sd of 
 axis(1)
 axis(2)
 plot(swe,add=TRUE,border=gray(0,0.5))
-#plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+plot(occs,pch=1,cex=3*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
 
 
 
@@ -382,7 +382,6 @@ par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),om
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
   dat<-data.frame(lp[[v[i]]][[1]])
-  #ma<-match(v[i],names(dat))
   if(nrow(p)==n){
     plot(dat[[v[i]]],p[,2],type="l",ylim=c(0,1),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
     lines(dat[[v[i]]],p[,1],lty=3)
@@ -397,8 +396,44 @@ for(i in seq_along(v)){
 mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
 ##########################################################
-##
+### generate predictions without spatial effet
 
+# page 263 in Zuur
+
+nsims<-500
+s<-inla.posterior.sample(nsims,m)
+params<-dimnames(m$model.matrix)[[2]]
+nparams<-sapply(params,function(i){
+  match(i,row.names(s[[1]]$latent))  
+}) 
+
+### this is to compare with a glm model
+#par(mfrow=c(round(sqrt(2*length(v)),0),ceiling(sqrt(2*length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
+#m1 <- glm (PA ~ NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA, family = binomial(link = "logit"), data = na.omit(occ))
+#visreg(m1,scale="response",ylim=0:1)
+
+par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
+for(k in seq_along(v)){
+  p<-lapply(1:nsims,function(i){
+    betas<-s[[i]]$latent[nparams]
+    fixed<-cbind(intercept=1,lp[[v[k]]][[1]]) %*% betas
+    p<-inla.link.invlogit(fixed)
+    p
+  })
+  p<-do.call("cbind",p)
+  p<-t(apply(p,1,function(i){c(quantile(i,0.0275),mean(i),quantile(i,0.975))}))
+  if(nrow(lp[[v[k]]][[1]])==n){
+    vals<-lp[[v[k]]][[1]][,v[k]]
+    plot(vals,p[,2],type="l",ylim=c(0,1),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    lines(vals,p[,1],lty=3)
+    lines(vals,p[,3],lty=3)
+  }else{
+    plot(unique(sort(occ[,v[k]])),p[,2],type="l",ylim=c(0,1),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    segments(x0=as.integer(unique(sort(occ[,v[k]]))),x1=as.integer(unique(sort(occ[,v[k]]))),y0=p[,1],y1=p[,3],lty=3)
+  }
+  axis(2,las=2)
+}
+mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
 ######################################################
 ### model checking and posterior predictive checks
