@@ -4,12 +4,10 @@ library(rgdal)
 library(scales)
 library(gstat)
 library(geoR)
-library(geostatsp)
 library(INLA)
 library(rgeos)
 library(FRutils)
 library(RColorBrewer)
-library(brinla)
 library(visreg)
 library(quantreg)
 library(DHARMa)
@@ -26,14 +24,14 @@ library(maptools)
 #######################################
 #######################################
 
-
+cat("\014")
 
 #############
 ### load data
 load("~/UdeS/Consultation/GStetcher/Doc/MSB_size.RData")
 #size<-size
 #size<-llf.size
-size<-size[sample(1:nrow(size),5000),]
+size<-size[sample(1:nrow(size),2000),]
 
 vars<-c("Total","Road1k","Pp_1000","urbwtr1k","frbreak1k","Ag_1000","h__1000","VEGZONS","FWI")
 
@@ -53,8 +51,8 @@ source("https://raw.githubusercontent.com/frousseu/UdeS/master/GStecher/newdata.
 #####################################################################
 ### convert factors and log transform the population size
 
-size$urbwtr1k<-as.factor(size$urbwtr1k)
-size$frbreak1k<-as.factor(size$frbreak1k)
+#size$urbwtr1k<-as.factor(size$urbwtr1k)
+#size$frbreak1k<-as.factor(size$frbreak1k)
 size$h__1000<-as.factor(size$h__1000)
 size$VEGZONS<-as.factor(size$VEGZONS)
 size$Pp_1000<-log(size$Pp_1000+1)
@@ -139,7 +137,7 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000/div,0.9),prior.sigma=c(3,0.1
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swediv,n=20000)
+g<-makegrid(swediv,n=5000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(sizesdiv)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 o<-over(g,swediv)
@@ -190,7 +188,7 @@ getDoParWorkers()
 
 #ml<-vector(mode="list",length=length(modell))
 
-q<-0.98
+q<-0.99
 
 ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopar% {
   # list of variables
@@ -235,8 +233,8 @@ Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,n),,drop=FAL
 ################################################
 ### build newdata with variable values to submit
 v<-setdiff(all.vars(bmodel),c("tTotal","intercept","spatial","spde"))
-lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE)
-lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE)[[1]],function(i){rep(i,length(g))})
+lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE,factors=FALSE)
+lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE,factors=FALSE)[[1]],function(i){rep(i,length(g))})
 
 ########################################################
 ### bind the data stack for the estimate and for the map
@@ -272,7 +270,11 @@ names(index)[3:length(index)]<-v
 ### rerun best model with each variable to predict
 #m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),num.threads=6)
 
-m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),family="gp",control.family=list(control.link=list(quantile=q)),num.threads=7)
+lambda<-15
+hyper.gp <- list(theta = list(prior = "loggamma",param = c(1,lambda))) # c(,1,15) is supposed to be the default prior. See below
+
+m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),num.threads=7)
+
 
 ##################################
 ### build a relative frequency map
@@ -316,14 +318,15 @@ par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),om
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
   p[]<-lapply(p,transI)
-  plot(lp[[v[i]]][[1]],p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1)
+  plot(lp[[v[i]]][[v[i]]],p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1)
   if(nrow(p)==n){
-    lines(lp[[v[i]]][[1]],p[,1],lty=3)
-    lines(lp[[v[i]]][[1]],p[,3],lty=3)
+    lines(lp[[v[i]]][[v[i]]],p[,1],lty=3,lwd=2)
+    lines(lp[[v[i]]][[v[i]]],p[,3],lty=3,lwd=2)
+    points(size[,v[i]],transI(size$tTotal),pch=16,col=gray(0,0.07))
   }else{
-    segments(x0=as.integer(lp[[v[i]]][[1]]),x1=as.integer(lp[[v[i]]][[1]]),y0=p[,1],y1=p[,3],lty=3)
+    segments(x0=as.integer(lp[[v[i]]][[v[i]]]),x1=as.integer(lp[[v[i]]][[v[i]]]),y0=p[,1],y1=p[,3],lty=3,lwd=2)
+    points(jitter(as.integer(size[,v[i]]),fac=2),transI(size$tTotal),pch=16,col=gray(0,0.07))
   }
-  points(size[,v[i]],transI(size$tTotal),pch=16,col=gray(0,0.15))
 }
 mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
@@ -341,6 +344,17 @@ plot(res$marginals.range.nominal[[1]],
 plot(inla.tmarginal(sqrt, res$marginals.variance.nominal[[1]]),
      type="l", main="Posterior density for std.dev.")
 par(mfrow=c(1,1))
+
+
+######################################################################
+### check prior and posterior for shape parameter of genPareto
+
+xi<-seq(0,1.2,by=0.001)
+f<-function(xi,lambda=10){sqrt(2)*lambda*exp(-sqrt(2)*lambda*xi)}
+1-integrate(f,lower=0,upper=0.5,lambda=lambda)$value
+plot(xi,f(xi,lambda=lambda),type="l",yaxs="i",xaxs="i",ylim=c(0,max(f(xi,lambda=lambda))),lwd=2)
+lines(m$marginals.hyperpar[[1]][,1],m$marginals.hyperpar[[1]][,2],lwd=2,col="red")
+
 
 ######################################################
 ### model checking and posterior predictive checks
@@ -390,6 +404,9 @@ for(i in seq_along(fitted)[1:100]){
 
 
 
+#################################################################
+### generate samples from pareto distributions
+
 rgp <- function(n, sigma, eta, alpha, xi = 0.001){
   if (missing(sigma)) {
     stopifnot(!missing(eta) && !missing(alpha))
@@ -397,20 +414,35 @@ rgp <- function(n, sigma, eta, alpha, xi = 0.001){
   }
   return (sigma / xi * (runif(n)^(-xi) - 1.0))
 }
+hist(rgp(n=10000,eta=2.35,alpha=0.98,xi=0.62),breaks=100)
 
-hist(rgp(n=1000,sigma=0.005,eta=2.35,alpha=0.98,xi=0.62),breaks=20)
 
-gpcdf<-function(y,sigma,xi){1-(1+xi*(y/sigma))^(-1/xi)} # CDF
+
+################################################################################
+### plotting predicted pareto curves for a sample of predicted values from obs
+
+#gpcdf<-function(y,sigma,xi){1-(1+xi*(y/sigma))^(-1/xi)} # CDF
 gppdf<-function(y,sigma,xi){(1/sigma)*(1+xi*(y/sigma))^(-1*((1/xi)+1))} # CDF
 
-hist(m$summary.linear.predictor[index[["est"]],"mean"])
-eta<-2
+samp<-200
+eta<-m$summary.linear.predictor[index[["est"]],"mean"]
+hist(eta)
 xi<-m$summary.hyperpar[1,1]
-sigma<-(xi*exp(eta))/((1-q)^(-xi)-1)
-v<-seq(0.0001,500,by=0.01)
-plot(v,gppdf(y=v,sigma=sigma,xi=xi),type="l")
+sigma<-(xi*exp(median(eta)))/((1-q)^(-xi)-1)
+va<-seq(0,10,by=0.01)
+plot(va,gppdf(y=va,sigma=sigma,xi=xi),type="l",xaxs="i",yaxs="i")
+quant<-lapply(sample(eta,samp),function(i){
+  xi<-m$summary.hyperpar[1,1]
+  sigma<-(xi*exp(i))/((1-q)^(-xi)-1)
+  lines(va,gppdf(y=va,sigma=sigma,xi=xi),col=gray(0,0.2))
+  integrate(gppdf,lower=0,upper=30,sigma=sigma,xi=xi)$value
+})
+hist(unlist(quant)) ### histograms of % fires below 30 ha (upper in integrate)
+hist(rgp(n=10000,eta=median(eta),alpha=q,xi=xi),breaks=100,xlim=c(0,100))
 
-hist(rgp(n=1000,sigma=sigma,eta=eta,alpha=q,xi=xi),breaks=50)
+
+
+
 
 ####################################################################
 ############## these variable names might not be relevant anymore
