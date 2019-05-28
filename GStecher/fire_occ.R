@@ -27,6 +27,8 @@ library(raster)
 # check pc priors for range (sd seems to be done)
 # figure out how to correct the shift in the posterior predictive checks
 
+cat("\014")
+
 #############
 ### load data
 #load("~/UdeS/Consultation/GStetcher/Doc/LLF_occur.RData")
@@ -44,7 +46,7 @@ occ<-MSB.occ
 #occ<-na.omit(occ)
 #temp1<-occ[occ$high_name_100m=="Others (deciduous and others)" & occ$PA==1,][1,]
 temp1<-occ[occ$VE=="Alpin zon" & occ$PA==1,][1,]
-occ<-rbind(occ[sample(1:nrow(occ),5000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
+occ<-rbind(occ[sample(1:nrow(occ),1000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
 
 
 
@@ -124,7 +126,7 @@ vals<-rep(1/5^2,length(fac))
 names(vals)<-fac
 vals<-as.list(vals)
 vals<-c(vals,list(intercept=1/5^2,default=0.001)) # not sure if the intercept should be fixed or not in relation to the know prop of 0 or 1s
-control.fixed<-list(prec=vals,mean=list(intercept=-1,default=0),expand.factor.strategy = "model.matrix")
+control.fixed<-list(prec=vals,mean=list(intercept=0,default=0),expand.factor.strategy = "model.matrix")
 
 
 ###########################################################
@@ -167,12 +169,12 @@ modell<-list(
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
-  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m * VEGZONSNA + f(spatial,model=spde),
-  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
-  PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Trees_age_100m * VEGZONSNA + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m * Trees_age_100m + f(spatial,model=spde),
+  #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + Firebrk_100m * Trees_age_100m + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m * logpop_raster_100m + Firebrk_100m + Trees_age_100m + f(spatial,model=spde),
   #PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m + Trees_age_100m + high_name_100m * VEGZONSNA + f(spatial,model=spde),
   PA ~ -1 + intercept + NSkog_100m + logpop_raster_100m + WtrUrb_100m + Firebrk_100m * Trees_age_100m + high_name_100m + VEGZONSNA + f(spatial,model=spde)
@@ -213,7 +215,7 @@ modellmm<-lapply(mm,function(i){
 
 # this runs every model in the model set
 
-registerDoParallel(min(length(ml),detectCores()-2)) 
+registerDoParallel(min(length(modell),detectCores()-2)) 
 getDoParWorkers()
 
 #ml<-vector(mode="list",length=length(modell))
