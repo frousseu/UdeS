@@ -18,6 +18,8 @@ library(fields)
 library(viridisLite)
 library(MASS)
 library(maptools)
+library(ggeffects)
+library(gridExtra)
 
 #######################################
 #######################################
@@ -31,7 +33,7 @@ cat("\014")
 load("~/UdeS/Consultation/GStetcher/Doc/MSB_size.RData")
 #size<-size
 #size<-llf.size
-size<-size[sample(1:nrow(size),2000),]
+size<-size[sample(1:nrow(size),1000),]
 
 vars<-c("Total","Road1k","Pp_1000","urbwtr1k","frbreak1k","Ag_1000","h__1000","VEGZONS","FWI")
 
@@ -54,7 +56,7 @@ source("https://raw.githubusercontent.com/frousseu/UdeS/master/GStecher/newdata.
 #size$urbwtr1k<-as.factor(size$urbwtr1k)
 #size$frbreak1k<-as.factor(size$frbreak1k)
 size$h__1000<-as.factor(size$h__1000)
-size$VEGZONS<-as.factor(size$VEGZONS)
+size$VEGZONS<-as.factor(gsub(" ","_",size$VEGZONS))
 size$Pp_1000<-log(size$Pp_1000+1)
 
 ##########################################################################################
@@ -137,7 +139,7 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000/div,0.9),prior.sigma=c(3,0.1
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swediv,n=5000)
+g<-makegrid(swediv,n=2000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(sizesdiv)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 o<-over(g,swediv)
@@ -157,26 +159,49 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(sizesdiv))
 ### model set
 
 modell<-list(
-  tTotal ~ 0 + intercept + Road1k + Pp_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + Ag_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + h__1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + h__1000 + Ag_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + frbreak1k + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + h__1000 + urbwtr1k + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + h__1000 + frbreak1k + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + VEGZONS + Ag_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
-  #Total ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
-  tTotal ~ 0 + intercept + Road1k + Pp_1000 + urbwtr1k + frbreak1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde)
+  tTotal ~ -1 + intercept + Road1k + Pp_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + VEGZONS + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + Ag_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + Ag_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + urbwtr1k + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + frbreak1k + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + VEGZONS + Ag_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
+  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
+  tTotal ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + frbreak1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde)
 )
+
+
+### this is to do some tests to turn spatial models in non-spatial models
+mmatrix<-function(i,dat){
+  if(!is.list(i)){
+    i<-list(i)  
+  }
+  lapply(i,function(j){
+    mod<-as.character(j)
+    mod[3]<-gsub(" \\+ f\\(spatial, model = spde\\)","",mod[3]) # remove spatial effect
+    mod[3]<-gsub("-1 \\+ intercept \\+ ","",mod[3]) # remove spatial effect and intercept notation
+    mod<-as.formula(paste0(mod[c(1,3)],collapse=" "))
+    model.matrix(mod,dat)[,-1]
+  })
+}
+mm<-mmatrix(modell,size)
+
+
+### this is the model with the dummy variable from the model.matrix as suggested by the pdf E Krainski on using factors
+modellmm<-lapply(mm,function(i){
+  as.formula(paste("tTotal ~ -1 + intercept +",paste(dimnames(i)[[2]],collapse=" + "),"+ f(spatial, model = spde)"))
+})
+
 
 ###################
 ### model selection
@@ -195,9 +220,10 @@ ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopa
   v<-setdiff(all.vars(modell[[i]]),c("tTotal","intercept","spatial","spde"))
   # build the data stack
   spde<-spde # this only to make sure spde is exported to the nodes
-  stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
+  #stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
+  stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[i]])),tag="est")
   # run the model with the eb strategy for faster runs (more approximate)
-  m<-inla(modell[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='gaussian',int.strategy="eb"),family="gp",control.family=list(control.link=list(quantile=q)),num.threads=1)
+  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(control.link=list(quantile=q)),num.threads=1)
   # print iterations
   m
   #print(paste(" ",i,"/",length(ml)," "))
@@ -233,26 +259,28 @@ Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,n),,drop=FAL
 ################################################
 ### build newdata with variable values to submit
 v<-setdiff(all.vars(bmodel),c("tTotal","intercept","spatial","spde"))
-lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=TRUE,factors=FALSE)
-lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE,factors=FALSE)[[1]],function(i){rep(i,length(g))})
+lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=FALSE)
+lp<-lapply(lp,function(i){mmatrix(bmodel,i)})
+#lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE,factors=FALSE)[[1]],function(i){rep(i,length(g))})
+lpmed<-mmatrix(bmodel,newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=FALSE)[[1]][rep(1,length(g)),])[[1]]
 
 ########################################################
 ### bind the data stack for the estimate and for the map
-stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),as.list(size[,v,drop=FALSE])),tag="est")
-stack.map<-inla.stack(data=list(tTotal=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),lpmed),tag="map")
+stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[b]])),tag="est")
+stack.map<-inla.stack(data=list(tTotal=NA),A=list(Ap,1),effects=list(c(s.index,list(intercept=1)),data.frame(lpmed)),tag="map")
 full.stack<-inla.stack(stack.est,stack.map)
 
 #######################################
 ### add a stack for each focus variable
 for(i in seq_along(v)){
-  le<-length(lp[[v[i]]][[1]])
+  le<-nrow(lp[[v[i]]][[1]])
   if(le!=n){
     #AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(819006,6545844),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
     AA<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,le),,drop=FALSE]) # for categorical variables
   }else{
     AA<-Apn # for numerical variables
   }
-  stack<-inla.stack(data=list(tTotal=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),lp[[v[i]]]),tag=v[i])     
+  stack<-inla.stack(data=list(tTotal=NA),A=list(AA,1),effects=list(c(s.index,list(intercept=1)),data.frame(lp[[v[i]]][[1]])),tag=v[i])     
   full.stack<-inla.stack(full.stack,stack)
 }
 
@@ -273,7 +301,36 @@ names(index)[3:length(index)]<-v
 lambda<-15
 hyper.gp <- list(theta = list(prior = "loggamma",param = c(1,lambda))) # c(,1,15) is supposed to be the default prior. See below
 
-m<-inla(bmodel,data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='gaussian',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),num.threads=7)
+m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),num.threads=7)
+
+
+#####################################
+### visualize spatial fields
+
+xlim<-range(coordinates(sizesdiv)[,1])
+ylim<-range(coordinates(sizesdiv)[,2])
+
+proj<-inla.mesh.projector(mesh,xlim=xlim,ylim=ylim,dims=c(300,300))
+
+mfield<-inla.mesh.project(projector=proj,field=m$summary.random[['spatial']][['mean']])
+sdfield<-inla.mesh.project(projector=proj,field=m$summary.random[['spatial']][['sd']])
+
+par(mfrow=c(1,2),mar=c(3,3,2,5))
+
+image.plot(list(x=proj$x,y=proj$y,z=mfield),col=viridis(100),asp=1,main="Spatial field (log scale)") 
+axis(1)
+axis(2)
+plot(swediv,add=TRUE,border=gray(0,0.5))
+plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+#brks<-c(0.01,0.25,0.50,0.75,0.99)
+#legend("topleft",pch=1,pt.cex=3*brks,col=gray(0,0.3),legend=brks,bty="n",title="Probability of location\nbeing an actual fire",inset=c(0.02,0.05))
+
+image.plot(list(x=proj$x,y=proj$y,z=sdfield),col=viridis(100),asp=1,main="sd of spatial field (log scale)") 
+axis(1)
+axis(2)
+plot(swediv,add=TRUE,border=gray(0,0.5))
+plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+
 
 
 ##################################
@@ -318,21 +375,81 @@ par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,4,3,3),om
 for(i in seq_along(v)){
   p<-m$summary.fitted.values[index[[v[i]]],c("0.025quant","0.5quant","0.975quant")]
   p[]<-lapply(p,transI)
-  plot(lp[[v[i]]][[v[i]]],p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1)
+  dat<-data.frame(lp[[v[i]]][[1]])
   if(nrow(p)==n){
-    lines(lp[[v[i]]][[v[i]]],p[,1],lty=3,lwd=2)
-    lines(lp[[v[i]]][[v[i]]],p[,3],lty=3,lwd=2)
+    plot(dat[[v[i]]],p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
+    lines(dat[[v[i]]],p[,1],lty=3,lwd=1)
+    lines(dat[[v[i]]],p[,3],lty=3,lwd=1)
     points(size[,v[i]],transI(size$tTotal),pch=16,col=gray(0,0.07))
   }else{
-    segments(x0=as.integer(lp[[v[i]]][[v[i]]]),x1=as.integer(lp[[v[i]]][[v[i]]]),y0=p[,1],y1=p[,3],lty=3,lwd=2)
+    plot(unique(sort(size[,v[i]])),p[,2],type="l",ylim=c(0,100),xlab=v[i],font=2,ylab="",lty=1,yaxt="n")
+    segments(x0=as.integer(unique(sort(size[,v[i]]))),x1=as.integer(unique(sort(size[,v[i]]))),y0=p[,1],y1=p[,3],lty=3,lwd=2)
     points(jitter(as.integer(size[,v[i]]),fac=2),transI(size$tTotal),pch=16,col=gray(0,0.07))
   }
+  axis(2,las=2)
 }
 mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
-#rq<-rq(tTotal~FWI,data=size,tau=0.98)
-#p<-predict(rq,data.frame(FWI=toseq(size$FWI,100)))
-#lines(toseq(size$FWI,100),p,col="blue")
+
+##########################################################
+### generate predictions without spatial effet
+
+# page 263 in Zuur
+
+nsims<-100
+s<-inla.posterior.sample(nsims,m)
+params<-dimnames(m$model.matrix)[[2]]
+nparams<-sapply(params,function(i){
+  match(i,row.names(s[[1]]$latent))  
+}) 
+nweights<-grep("spatial",row.names(s[[1]]$latent))
+
+### this is to compare with a quantile model
+#par(mfrow=c(round(sqrt(2*length(v)),0),ceiling(sqrt(2*length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
+#mq <- rq (tTotal ~ Road1k + Pp_1000 + urbwtr1k + frbreak1k + Ag_1000 + h__1000 + VEGZONS + FWI, data = na.omit(size),tau=q)
+#na<-all.vars(mq$formula[[3]])
+#grobs<-lapply(na,function(i){
+#  if(is.factor(size[,i])){
+#    plot(ggpredict(mq,terms=i),limits=c(0,100))  
+#  }else{
+#    plot(ggpredict(mq,terms=paste(i,"[n=50]")),limits=c(0,100)) 
+#  }
+#})
+#grid.arrange(grobs=grobs,ncol=3)
+
+par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,3,2,2),oma=c(0,10,0,0))
+for(k in seq_along(v)){
+  p<-lapply(1:nsims,function(i){
+    betas<-s[[i]]$latent[nparams]
+    fixed<-cbind(intercept=1,lp[[v[k]]][[1]]) %*% betas
+    ### this if we want a spatial part
+    #wk<-s[[i]]$latent[nweights]
+    #if(is.factor(size[,v[k]])){
+    #  spatial<-as.matrix(inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,nlevels(size[,v[k]])),,drop=FALSE])) %*% wk
+    #}else{
+    #  spatial<-as.matrix(Apn) %*% wk
+    #}
+    #p<-exp(fixed+spatial)
+    p<-exp(fixed)
+    p
+  })
+  p<-do.call("cbind",p)
+  p<-t(apply(p,1,function(i){c(quantile(i,0.0275),mean(i),quantile(i,0.975))}))
+  if(nrow(lp[[v[k]]][[1]])==n){
+    vals<-lp[[v[k]]][[1]][,v[k]]
+    plot(vals,p[,2],type="l",ylim=c(0,100),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    points(size[,v[k]],size$tTotal,pch=1,col=gray(0,0.15))
+    lines(vals,p[,2],lwd=2)
+    lines(vals,p[,1],lty=3)
+    lines(vals,p[,3],lty=3)
+  }else{
+    plot(unique(sort(size[,v[k]])),p[,2],type="l",ylim=c(0,100),xlab=v[k],font=2,ylab="",lty=1,yaxt="n")
+    points(jitter(as.integer(size[,v[k]])),size$tTotal,pch=1,col=gray(0,0.15))
+    segments(x0=as.integer(unique(sort(size[,v[k]]))),x1=as.integer(unique(sort(size[,v[k]]))),y0=p[,1],y1=p[,3],lty=3)
+  }
+  axis(2,las=2)
+}
+mtext("Probability of being an actual fire",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
 ###############################################
 ### range and sigma
