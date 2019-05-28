@@ -258,7 +258,7 @@ Apn<-inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,n),,drop=FAL
 
 ################################################
 ### build newdata with variable values to submit
-v<-setdiff(all.vars(bmodel),c("tTotal","intercept","spatial","spde"))
+v<-setdiff(all.vars(bmodel),c("tTotal","Total","intercept","spatial","spde"))
 lp<-newdata(x=size[,v,drop=FALSE],v=v,n=n,fun=median,list=FALSE)
 lp<-lapply(lp,function(i){mmatrix(bmodel,i)})
 #lpmed<-lapply(newdata(x=size[,v,drop=FALSE],v=v,n=1,fun=median,list=TRUE,factors=FALSE)[[1]],function(i){rep(i,length(g))})
@@ -321,7 +321,7 @@ image.plot(list(x=proj$x,y=proj$y,z=mfield),col=viridis(100),asp=1,main="Spatial
 axis(1)
 axis(2)
 plot(swediv,add=TRUE,border=gray(0,0.5))
-plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.13),add=TRUE)
 #brks<-c(0.01,0.25,0.50,0.75,0.99)
 #legend("topleft",pch=1,pt.cex=3*brks,col=gray(0,0.3),legend=brks,bty="n",title="Probability of location\nbeing an actual fire",inset=c(0.02,0.05))
 
@@ -329,7 +329,7 @@ image.plot(list(x=proj$x,y=proj$y,z=sdfield),col=viridis(100),asp=1,main="sd of 
 axis(1)
 axis(2)
 plot(swediv,add=TRUE,border=gray(0,0.5))
-plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.3),add=TRUE)
+plot(sizesdiv,pch=1,cex=0.1*m$summary.fitted.values[index.est,"mean"],col=gray(0.1,0.13),add=TRUE)
 
 
 
