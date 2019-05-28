@@ -33,7 +33,7 @@ cat("\014")
 load("~/UdeS/Consultation/GStetcher/Doc/MSB_size.RData")
 #size<-size
 #size<-llf.size
-size<-size[sample(1:nrow(size),1000),]
+size<-size[sample(1:nrow(size),5000),]
 
 vars<-c("Total","Road1k","Pp_1000","urbwtr1k","frbreak1k","Ag_1000","h__1000","VEGZONS","FWI")
 
@@ -139,7 +139,7 @@ spde<-inla.spde2.pcmatern(mesh,prior.range=c(100000/div,0.9),prior.sigma=c(3,0.1
 
 ###########################################################
 ### build the raster/grid that will be used for predictions
-g<-makegrid(swediv,n=2000)
+g<-makegrid(swediv,n=5000)
 g<-SpatialPoints(g,proj4string=CRS(proj4string(sizesdiv)))
 #o<-over(as(g,"SpatialPolygons"),swe) # makes sure pixels touching are included too, does not change much when the grid gets small
 o<-over(g,swediv)
@@ -160,8 +160,8 @@ A<-inla.spde.make.A(mesh=mesh,loc=coordinates(sizesdiv))
 
 modell<-list(
   tTotal ~ -1 + intercept + Road1k + Pp_1000 + FWI + f(spatial,model=spde),
-  #Total ~ -1 + intercept + Road1k + Pp_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ -1 + intercept + Road1k + Pp_1000 + Ag_1000 + FWI + f(spatial,model=spde),
+  Total ~ -1 + intercept + Road1k + Pp_1000 + VEGZONS + FWI + f(spatial,model=spde),
+  Total ~ -1 + intercept + Road1k + Pp_1000 + Ag_1000 + FWI + f(spatial,model=spde),
   #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + FWI + f(spatial,model=spde),
   #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + FWI + f(spatial,model=spde),
   #Total ~ -1 + intercept + Road1k + Pp_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
@@ -174,9 +174,9 @@ modell<-list(
   #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + FWI + f(spatial,model=spde),
   #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
   #Total ~ -1 + intercept + Road1k + Pp_1000 + frbreak1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
-  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
-  #Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
+  Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + VEGZONS + FWI + f(spatial,model=spde),
+  Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + FWI + f(spatial,model=spde),
+  Total ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde),
   tTotal ~ -1 + intercept + Road1k + Pp_1000 + urbwtr1k + frbreak1k + Ag_1000 + h__1000 + VEGZONS + FWI + f(spatial,model=spde)
 )
 
