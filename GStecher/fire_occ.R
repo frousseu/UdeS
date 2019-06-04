@@ -48,8 +48,6 @@ occ<-MSB.occ
 temp1<-occ[occ$VE=="Alpin zon" & occ$PA==1,][1,]
 occ<-rbind(occ[sample(1:nrow(occ),1000),],temp1) # sample location to reduce computing time and keep a 1 for Alpin
 
-
-
 ######################################################
 ### check the proportions of 0 and 1 in each VEGZONSNA
 tab<-table(occ$PA,occ$VEGZONSNA)
@@ -473,7 +471,8 @@ effect<-"APredictor"
 id.effect<-which(contents$tag==effect)
 ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[index[["est"]]]
 samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
-s.eff<-t(matrix(unlist(samples.effect),byrow=T,nrow=length(samples.effect)))
+#s.eff<-t(matrix(unlist(samples.effect),byrow=T,nrow=length(samples.effect)))
+s.eff<-do.call("cbind",samples.effect)
 
 ### check with inla model
 prob<-m$summary.fitted.values[index[["est"]],"0.5quant"]
