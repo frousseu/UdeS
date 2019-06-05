@@ -34,7 +34,7 @@ cat("\014")
 load("~/UdeS/Consultation/GStetcher/Doc/MSB_size.RData")
 #size<-size
 #size<-llf.size
-size<-size[sample(1:nrow(size),1000),]
+size<-size[sample(1:nrow(size),2000),]
 
 vars<-c("Total","Road1k","Pp_1000","urbwtr1k","frbreak1k","Ag_1000","h__1000","VEGZONS","FWI")
 
@@ -227,7 +227,7 @@ registerDoParallel(min(detectCores()-1,length(modell)))
 getDoParWorkers()
 
 q<-0.99 # quantile to estimate
-lambda<-10 # pc (like?) prior for xi parameter of gp (see below for a graph of prior)
+lambda<-3.25 # pc (like?) prior for xi parameter of gp (see below for a graph of prior)
 hyper.gp <- list(theta = list(prior = "loggamma",param = c(1,lambda))) # c(1,15) is supposed to be the default prior. See below
 
 ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopar% {
@@ -237,7 +237,7 @@ ml<-foreach(i=seq_along(modell),.packages=c("stats","INLA"),.verbose=TRUE) %dopa
   spde<-spde # this only to make sure spde is exported to the nodes
   stack.est<-inla.stack(data=list(tTotal=size$tTotal),A=list(A,1),effects=list(c(s.index,list(intercept=1)),data.frame(mm[[i]])),tag="est")
   # run the model with the eb strategy for faster runs (more approximate)
-  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(control.link=list(quantile=q),hyper=hyper.gp),control.fixed=control.fixed,num.threads=1)
+  m<-inla(modellmm[[i]],data=inla.stack.data(stack.est),control.predictor=list(A=inla.stack.A(stack.est)),control.compute=list(dic=TRUE,waic=TRUE,cpo=FALSE,config=FALSE,return.marginals=FALSE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=1)
   # print iterations
   m
   #print(paste(" ",i,"/",length(ml)," "))
@@ -311,6 +311,8 @@ names(index)[3:length(index)]<-v
 
 m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
 
+nsims<-200
+samples<-inla.posterior.sample(nsims,m)
 
 #####################################
 ### visualize spatial fields
@@ -409,13 +411,11 @@ mtext("Fire size in ha",outer=TRUE,cex=1.2,side=2,xpd=TRUE,line=2)
 
 # page 263 in Zuur
 
-nsims<-500
-s<-inla.posterior.sample(nsims,m)
 params<-dimnames(m$model.matrix)[[2]]
 nparams<-sapply(params,function(i){
-  match(i,row.names(s[[1]]$latent))  
+  match(i,row.names(samples[[1]]$latent))  
 }) 
-nweights<-grep("spatial",row.names(s[[1]]$latent))
+nweights<-grep("spatial",row.names(samples[[1]]$latent))
 
 ### this is to compare with a quantile model
 #par(mfrow=c(round(sqrt(2*length(v)),0),ceiling(sqrt(2*length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
@@ -433,10 +433,10 @@ nweights<-grep("spatial",row.names(s[[1]]$latent))
 par(mfrow=c(round(sqrt(length(v)),0),ceiling(sqrt(length(v)))),mar=c(4,3,2,2),oma=c(0,10,0,0))
 for(k in seq_along(v)){
   p<-lapply(1:nsims,function(i){
-    betas<-s[[i]]$latent[nparams]
+    betas<-samples[[i]]$latent[nparams]
     fixed<-cbind(intercept=1,lp[[v[k]]][[1]]) %*% betas
     ### this if we want a spatial part
-    #wk<-s[[i]]$latent[nweights]
+    #wk<-samples[[i]]$latent[nweights]
     #if(is.factor(size[,v[k]])){
     #  spatial<-as.matrix(inla.spde.make.A(mesh=mesh,loc=matrix(c(0.3,0.5),ncol=2)[rep(1,nlevels(size[,v[k]])),,drop=FALSE])) %*% wk
     #}else{
@@ -481,6 +481,7 @@ par(mfrow=c(1,1))
 ######################################################################
 ### check prior and posterior for shape parameter of genPareto
 
+#lambda<-6.5 # lambda 3.25 for a 10% of chance of xi being > 0.5, 6.5 for a 1%
 xi<-seq(0,1.2,by=0.001)
 f<-function(xi,lambda=10){sqrt(2)*lambda*exp(-sqrt(2)*lambda*xi)}
 1-integrate(f,lower=0,upper=0.5,lambda=lambda)$value
@@ -506,7 +507,6 @@ rgp <- function(n, sigma, eta, alpha, xi = 0.001){
 ### model checking with DHARMa
 
 ### from haakon bakka, BTopic112
-samples<-inla.posterior.sample(200,m)
 m$misc$configs$contents
 contents<-m$misc$configs$contents
 effect<-"APredictor" # not sure if should use APredictor or Predictor
@@ -514,16 +514,18 @@ id.effect<-which(contents$tag==effect)
 ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[index[["est"]]]
 samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
 s.eff<-do.call("cbind",samples.effect)
+xi.eff<-sapply(samples, function(x) x$hyperpar[grep("genPareto",names(x$hyperpar))])
 #unique(sapply(strsplit(rownames(m$summary.fitted.values),"\\."),function(i){paste(i[1:min(2,length(i))],collapse=" ")}))
 
 ### check with inla model
+# xi should be sampled as well and not fixed to its mean value
 fitted<-m$summary.fitted.values[index[["est"]],"mean"]
-matprob<-apply(s.eff,2,function(i){
-  rgp(n=length(i),eta=i,alpha=q,xi=m$summary.hyperpar[1,1]) # this picks a fire size from the genPareto with estimated xi for each obs
-})
+matprob<-do.call("cbind",lapply(1:ncol(s.eff),function(i){
+  rgp(n=nrow(s.eff),eta=s.eff[,i],alpha=q,xi=xi.eff[i]) #m$summary.hyperpar[1,1]) # this picks a fire size from the genPareto with estimated xi for each obs
+}))
 o<-createDHARMa(simulatedResponse=matprob,observedResponse=size$tTotal,fittedPredictedResponse=fitted,integerResponse=TRUE)
 par(mfrow=c(2,2))
-plot(o,quantreg=TRUE)
+plot(o,quantreg=FALSE)
 #hist(o$scaledResiduals)
 
 
@@ -556,8 +558,8 @@ xlim<-c(0,50)
 h<-hist(size$tTotal,breaks=brks,xlim=xlim,col="grey70",border="white",ylab="Counts")
 abline(v=quantile(size$tTotal,q),lwd=2)
 vals<-lapply(1:ncol(s.eff),function(i){
-  #abline(v=mean(exp(s.eff[,i])),col=alpha("red",0.1))
-  vals<-rgp(n=nrow(s.eff),eta=s.eff[,i],alpha=q,xi=m$summary.hyperpar[1,1])
+  #abline(v=mean(exp(s.eff[,i])),col=alpha("blue",0.1))
+  vals<-rgp(n=nrow(s.eff),eta=s.eff[,i],alpha=q,xi=xi.eff[i])#m$summary.hyperpar[1,1])
   hi<-hist(vals,breaks=0:(ceiling(max(vals))),plot=FALSE)
   points(brks[-1]-diff(brks)/2,hi$counts[1:(length(brks)-1)],col=alpha("red",0.2),pch=16)
   abline(v=quantile(vals,q),col=alpha("red",0.2))
@@ -608,227 +610,94 @@ hist(size$tTotal,breaks=0:ceiling(max(size$tTotal)),xlim=c(0,50))
 abline(v=quantile(size$tTotal,q),col="red")
 quant<-lapply(1:ncol(s.eff),function(i){
   eta<-s.eff[,i]
-  vals<-rgp(n=length(eta),eta=eta,alpha=q,xi=xi)
+  vals<-rgp(n=length(eta),eta=eta,alpha=q,xi=xi.eff[i])
   #hist(vals,breaks=0:ceiling(max(vals)),xlim=c(0,50))
   abline(v=quantile(unlist(vals),q),col=gray(0,0.15))
 })
 
 
 
-
-
-
-
-
-
-####################################################################
-############## these variable names might not be relevant anymore
-### check same for glm using the two methods
-mod1 <- lm(tTotal ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size)
-mod1 <- glm(Total ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=Gamma(link="log"))
-mod1 <- lm(Total^(0.1) ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size)
-#mod1 <- glm(Area ~ VEGZONSNA + WtrUrb_km + logPop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, family=tweedie(var.power = 2.5, link.power = 1))
-simulationOutput <- simulateResiduals(fittedModel = mod1)
-plot(simulationOutput,quantreg=TRUE)
-s<-simulateResiduals(mod1)
-o<-createDHARMa(simulatedResponse = s[["simulatedResponse"]],observedResponse = size$Area^(0.1), fittedPredictedResponse = fitted(mod1),integerResponse = F)
-plot(o,quantreg=TRUE)
-hist(o$scaledResiduals)
-
-
-##########################################
-### confusion matrix with training data
-
-##########################################
-### confusion matrix on hold-out data
-
-
-##########################################
-### confusion matrix on hold-out data
-
-### code adapted from Myer et al. 2017 (spatiotemporal mosquitoes, https://doi.org/10.1002/ecs2.1854) supplementary material
-
-### but see Boyce et al. 2002 pour le use-availability design
-
-##########################################
-### cross-validation/cpo/pit measures ?
-
-#################################
-###
-
-#image(inla.mesh.project(mesh,field=m$summary.fitted.values[inla.stack.index(full.stack,tag="latent")$data,"mean"]),dims=c(10,10))
-projgrid <- inla.mesh.projector(mesh, dims=c(500,500))
-xmean <- inla.mesh.project(projgrid, m$summary.random$spatial$mean)
-xsd <- inla.mesh.project(projgrid, m$summary.random$spatial$sd)
-image(xmean,asp=2,col=heat.colors(100))
-res<-inla.spde2.result(m,"spatial",spde)
-plot(res[["marginals.range.nominal"]][[1]], type = "l",main = "Nominal range, posterior density")
-
-
-
-
-
-
-
-
-
-
-#######################################
-### PLAY
-#######################################
-#######################################
-#######################################
-#######################################
-#######################################
-#######################################
-
-
-load("~/UdeS/Consultation/GStetcher/Doc/LLF_size.RData")
-
-size<-llf.size
-
-sizes<-size
-coordinates(sizes)<-~Longitude+Latitude
-proj4string(sizes)<-"+init=epsg:4326"
-
-prj<-"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
-sizes<-spTransform(sizes,CRS(prj))
-
-
-#plot(ds,col=alpha(ifelse(ds$Area==1,"red","blue"),0.25),pch=16)
-
-bc<-function(y,div=50){
-  default<-par()
-  lambda<-seq(-1,0.1,length.out=div)
-  par(mfrow=c(ceiling(sqrt(div)),ceiling(sqrt(div))),mar=c(0,0,0,0))
-  invisible(lapply(lambda,function(i){
-    hist((y^i-1)/i,main="",xaxt="n",yaxt="n")
-    mtext(paste("lambda",round(i,2)),side=3,line=-2,col=gray(0,0.5))
-  }))
-  par(default)
-}
-bc(size$Area)
-
-size$high_name<-as.factor(size$high_name)
-size$logArea<-log(size$Area)
-
-m <- glm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = size)
-m <- glm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, family = Gamma(link = "log"), data = size)
-#m <- rq (logArea ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size, tau=0.95)
-#m <- glm (Area ~ 1, family = gaussian(link = "log"), data = d)
-sizes$resid<-resid(m)
-
-par(mfrow=c(3,3))
-visreg(m,scale="response")
-par(mfrow=c(1,1))
-
-coords <- coordinates(sizes)
-v<-variog(coords=coords,data=resid(m),breaks=seq(0,200000,by=1000),max.dist=200000)
-#v<-variog(coords=coords,data=resid(m))
-#v<-variogram(resid~1,data=ds)
-plot(v, main = "Variogram for spatial autocorrelation (LFY, fire occurrence)",type="b") 
-
-simulationOutput <- simulateResiduals(fittedModel = m, n = 250, integerResiduals=FALSE)
-plot(simulationOutput)
-testDispersion(simulationOutput)
-
-swe <- raster::getData("GADM", country = "SWE", level = 1)
-swe<-spTransform(swe,proj4string(sizes))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-f<-size$Area
-f2<-log(f)
-brks<-exp(seq(log(min(f)-0.00001),log(max(f)+0.00001),length.out=20))
-cl<-cut(f2,brks)
-f2[is.na(cl)]
-tab<-table(cl)
-barplot(tab,names.arg=names(tab),las=2)
-
-
-
-bc<-boxcox(lm (Area ~ VEGZONSNA + WtrUrb_km + Pop_2017 + Road_dens + trees_age + high_name + ISI + FWI, data = size))
-lambda<-bc$x[which.max(bc$y)]
-
-#lambda<--1000.0
-f<-BoxCox(size$Area,lambda)
-hist(f)
-
-visreg(mod1,trans=function(i){BoxCoxI(i,lambda)})
-
-
-
-### build the raster/grid that will be used for predictions
-g<-makegrid(swe,n=200)
-g<-SpatialPoints(g,proj4string=CRS(proj4string(sizes)))
-o<-over(g,swe)
-g<-SpatialPixels(g)
-g<-g[apply(o,1,function(i){!all(is.na(i))}),]
-plot(swe)
-plot(g,add=TRUE)
-
-
-cfire<-function(x,show=FALSE,n=20,mode=TRUE){ # gives characteristics fire zei according to  Lehsten et al 2013
-  x2<-log(x)
-  brks<-exp(seq(log(min(x)-0.00001),log(max(x)+0.00001),length.out=n))
-  cl<-cut(x2,brks)
-  x2[is.na(cl)]
-  tab<-table(cl)
-  if(show){
-    barplot(tab,names.arg=names(tab),las=2)
+#################################################
+### simulations with known GPD from inla.docs
+#################################################
+
+### and comparison with quantile regression
+
+rgp <- function(n, sigma, eta, alpha, xi = 0.001)
+{
+  if (missing(sigma)) {
+    stopifnot(!missing(eta) && !missing(alpha))
+    sigma = exp(eta) * xi / ((1.0 - alpha)^(-xi) -1.0)
   }
-  if(mode){
-    sapply(strsplit(gsub("\\(|\\]","",names(tab[which.max(tab)])),","),function(i){mean(as.numeric(i))})
-  }else{
-    tab  
-  }
+  return (sigma / xi * (runif(n)^(-xi) -1.0))
 }
-
-o<-over(sizes,g)
-size$o<-o
-
-s<-data.table(size)
-s<-s[,.(cf=cfire(Area)),by=o]
-hist(s$cf)
-
-
-barplot(cfire(size$Area,mode=FALSE))
-
-
-hist(BoxCox(size$Area+0.1,lambda))
-
-
-
-s
-
+n = 2000
+n2 = 100
+x = runif(n)-0.5
+eta = 1+x
+alpha = 0.99
+xi = 0.4
+y = rgp(n, eta = eta, alpha = alpha, xi=xi)
+x2 = seq(min(x),max(x),length.out=n2)
+x = c(x,x2)
+y = c(y,rep(NA,n2))
+d<-data.frame(y,x)
+r = inla(y ~ 1+x,data = data.frame(y, x),
+         family = "gp",
+         control.family = list(control.link = list(quantile = alpha)),
+         control.predictor = list(compute=TRUE),control.compute=list(config = TRUE),
+         verbose=FALSE)
 
 
-
-
-
-
-
-
-
-
-
-
-
+par(mfrow=c(2,2))
+### 1
+plot(d$x[1:n],d$y[1:n])
+lines(x2,exp(r$summary.fitted.values$mean[(n+1):(n+n2)]))
+m<-rq(y~x,tau=alpha,data=d[1:n,])
+p<-predict(m,data.frame(x=x2))
+lines(x2,p,lty=3)
+legend("topleft",lty=1:2,legend=c("INLA GPD","Quantile Regression"),title=paste("Quantile =",alpha),bty="n")
+### 2
+samples<-inla.posterior.sample(100,r)
+r$misc$configs$contents
+contents<-r$misc$configs$contents
+effect<-"Predictor" # not sure if should use APredictor or Predictor
+id.effect<-which(contents$tag==effect)
+ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[1:n]
+samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
+s.eff<-do.call("cbind",samples.effect)
+plot(density(log(d$y[1:n])),ylim=range(density(s.eff[,1])$y))
+abline(v=quantile(log(d$y[1:n]),alpha),lwd=2)
+abline(v=log(quantile(d$y[1:n],alpha)),lwd=2)
+invisible(lapply(1:ncol(s.eff),function(i){
+  lines(density(s.eff[,i]),col=alpha("red",0.1))    
+}))
+### 3
+b<-0.5
+brks<-seq(0,ceiling(max(d$y[1:n])),by=b)
+xlim<-range(d$y[1:n])
+h<-hist(d$y[1:n],breaks=brks,xlim=xlim,col="grey70",border="white",ylab="Counts")
+vals<-lapply(1:ncol(s.eff),function(i){
+  #abline(v=mean(exp(s.eff[,i])),col=alpha("blue",0.1)) # not sure what this represents
+  vals<-rgp(n=nrow(s.eff),eta=s.eff[,i],alpha=alpha,xi=r$summary.hyperpar[1,1])
+  hi<-hist(vals,breaks=seq(0,ceiling(max(vals)),by=b),plot=FALSE)
+  points(brks[-1]-diff(brks)/2,hi$counts[1:(length(brks)-1)],col=alpha("red",0.05),pch=16)
+  abline(v=quantile(vals,alpha),col=alpha("red",0.15))
+})
+abline(v=quantile(d$y[1:n],alpha),lwd=2)
+### 4
+gppdf<-function(y,sigma,xi){(1/sigma)*(1+xi*(y/sigma))^(-1*((1/xi)+1))} # CDF
+samp<-100
+sigma<-(xi*exp(mean(eta)))/((1-alpha)^(-xi)-1)
+sigma1<-(xi*exp(min(eta)))/((1-alpha)^(-xi)-1)
+sigma2<-(xi*exp(max(eta)))/((1-alpha)^(-xi)-1)
+va<-seq(0,5,by=0.01)
+plot(va,gppdf(y=va,sigma=sigma,xi=xi),type="l",lwd=2,col="black")
+lines(va,gppdf(y=va,sigma=sigma1,xi=xi),type="l",lwd=1,col="black")
+lines(va,gppdf(y=va,sigma=sigma2,xi=xi),type="l",lwd=1,col="black")
+quant<-lapply(sample(r$summary.linear.predictor[1:1000,"mean"],samp),function(i){
+  xi2<-r$summary.hyperpar[1,1]
+  sigma<-(xi2*exp(i))/((1-alpha)^(-xi2)-1)
+  lines(va,gppdf(y=va,sigma=sigma,xi=xi2),col=alpha("red",0.1))
+  integrate(gppdf,lower=0,upper=30,sigma=sigma,xi=xi2)$value
+})
