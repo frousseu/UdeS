@@ -311,32 +311,7 @@ names(index)[3:length(index)]<-v
 ##################################################
 ### rerun best model with each variable to predict
 
-q<-c(0.1,0.3,0.5,0.7,0.8,0.9,0.95,0.99)
-
-init<-m$summary.hyperpar[1,]
-res<-c(1,1)
-
-for(i in seq_along(q)){
-
 m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q[i]),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
-
-init<-rbind(init,m$summary.hyperpar[1,])
-xi<-m$summary.hyperpar[1,1]
-eta<-mean(m$summary.linear.predictor[,1])
-sigma<-(xi*exp(mean(eta)))/((1-q[i])^(-xi)-1)
-res<-rbind(res,c(eta,sigma))
-
-
-}
-init<-init[-1,]
-res<-res[-1,]
-
-hist(size$tTotal,breaks=3000,freq=FALSE,xlim=c(0,60))
-x<-seq(0,60,length=100)
-lapply(seq_along(q),function(i){
-  lines(x,dpareto(x,shape=init[i,1],scale=res[i,2]))
-})
-
 
 
 ### from haakon bakka, BTopic112
