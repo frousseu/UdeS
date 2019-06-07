@@ -311,7 +311,7 @@ names(index)[3:length(index)]<-v
 ##################################################
 ### rerun best model with each variable to predict
 
-m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q[i]),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
+m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
 
 
 ### from haakon bakka, BTopic112
@@ -527,7 +527,7 @@ matprob<-do.call("cbind",lapply(1:ncol(s.eff),function(i){
 }))
 o<-createDHARMa(simulatedResponse=matprob,observedResponse=size$tTotal,fittedPredictedResponse=fitted,integerResponse=TRUE)
 par(mfrow=c(2,2))
-plot(o,quantreg=FALSE)
+plot(o,quantreg=TRUE)
 #hist(o$scaledResiduals)
 
 
@@ -584,26 +584,37 @@ hist(si,freq=FALSE,add=TRUE,breaks=500)
 ### plotting predicted pareto curves for a sample of predicted values from obs
 
 #gpcdf<-function(y,sigma,xi){1-(1+xi*(y/sigma))^(-1/xi)} # CDF
-gppdf<-function(y,sigma,xi){(1/sigma)*(1+xi*(y/sigma))^(-1*((1/xi)+1))} # CDF
+gppdf<-function(y,sigma,xi){(1/sigma)*(1+xi*(y/sigma))^(-1*((1/xi)+1))} # PDF
 
-samp<-100
-eta<-m$summary.linear.predictor[index[["est"]],"mean"]
-hist(eta)
-xi<-m$summary.hyperpar[1,1]
-sigma<-(xi*exp(median(eta)))/((1-q)^(-xi)-1)
-va<-seq(0,10,by=0.01)
-plot(va,gppdf(y=va,sigma=sigma,xi=xi),type="l",xaxs="i",yaxs="i",lwd=2,col="red")
-quant<-lapply(sample(eta,samp),function(i){
-  xi<-m$summary.hyperpar[1,1]
-  sigma<-(xi*exp(i))/((1-q)^(-xi)-1)
-  lines(va,gppdf(y=va,sigma=sigma,xi=xi),col=gray(0,0.1))
-  integrate(gppdf,lower=0,upper=30,sigma=sigma,xi=xi)$value
+nsamp<-100
+samp<-sample(1:ncol(s.eff),nsamp,replace=TRUE)
+#eta<-m$summary.linear.predictor[index[["est"]],"mean"][sample(1:nrow(size),nsamp,replace=TRUE)]
+eta<-sapply(samp,function(i){sample(s.eff[,i],1)})
+#xi<-m$summary.hyperpar[1,1]
+xi<-xi.eff[samp]
+#hist(eta)
+qs<-quantile(size$tTotal,0.99)
+qs2<-qs*1.5
+va<-seq(0,qs2,by=0.01)
+brks<-0:ceiling(max(size$tTotal))
+hist(size$tTotal,breaks=brks,xlim=c(0,qs2),freq=FALSE,border="white",col="tomato")
+quant<-lapply(1:nsamp,function(i){
+  #xi<-m$summary.hyperpar[1,1]
+  sigma<-(xi[i]*exp(eta[i]))/((1-q)^(-xi[i])-1)
+  lines(va,gppdf(y=va,sigma=sigma,xi=xi[i]),col=gray(0,0.1))
+  #integrate(gppdf,lower=0,upper=30,sigma=sigma,xi=xi)$value
+  #abline(v=exp(eta[i]),col=gray(0,0.2),lwd=1)
+  abline(v=quantile(rgp(n=nrow(size),eta=eta[i],alpha=q,xi=xi[i]),q),col=gray(0,0.2),lwd=1)
 })
-h<-hist(size$tTotal,breaks=c(seq(0,par("usr")[2],length.out=50),max(size$tTotal)),plot=FALSE)
-points(h$mids,rescale(h$density,c(0,1.5)),lwd=2,col="darkgreen")
-hist(rgp(n=10000,eta=median(eta),alpha=q,xi=xi),breaks=100)
-hist(unlist(quant)) ### histograms of % fires below 30 ha (upper in integrate)
-#hist(size$tTotal,breaks=seq(0,max(size$tTotal),by=0.05),xlim=c(0,2))
+abline(v=qs,col="tomato",lwd=5)
+#f<-fitdist(size$tTotal,distr="pareto")#,start=list(shape=sigma,scale=xi))
+#lines(va,dpareto(va,shape=f$estimate[["shape"]],scale=f$estimate[["scale"]]),col="darkgreen",lwd=2)
+#h<-hist(size$tTotal,breaks=c(seq(0,par("usr")[2],length.out=50),max(size$tTotal)),plot=FALSE)
+#points(h$mids,rescale(h$density,c(0,1.5)),lwd=2,col="darkgreen")
+#hist(rgp(n=10000,eta=median(eta),alpha=q,xi=xi),breaks=100)
+#hist(unlist(quant)) ### histograms of % fires below 30 ha (upper in integrate)
+#hist(size$tTotal,breaks=seq(0,max(size$tTotal),by=0.#),xlim=c(0,2))
+
 
 #####
 
@@ -717,7 +728,6 @@ quant<-lapply(sample(r$summary.linear.predictor[1:1000,"mean"],samp),function(i)
 ###########################################
 #### fit distributions
 
-
 sigma = exp(eta) * xi / ((1.0 - alpha)^(-xi) -1.0)
 vals<-rpareto(n=1000,shape=3,scale=0.5)
 #vals<-rgamma(n=1000,shape=3,scale=0.5)
@@ -726,5 +736,17 @@ f<-fitdist(vals,distr="pareto")#,start=list(shape=sigma,scale=xi))
 hist(vals,breaks=50,freq=FALSE)
 x<-seq(0,max(vals),length=100)
 lines(x,dpareto(x,shape=f$estimate[["shape"]],scale=f$estimate[["scale"]]))
+
+vals<-size$tTotal
+f<-fitdist(vals,distr="pareto")#,start=list(shape=sigma,scale=xi))
+hist(vals,breaks=1000,freq=FALSE,xlim=c(0,quantile(vals,0.99)))
+x<-seq(0,max(vals),length=10000)
+lines(x,dpareto(x,shape=f$estimate[["shape"]],scale=f$estimate[["scale"]]))
+
+
+
+
+
+
 
              
