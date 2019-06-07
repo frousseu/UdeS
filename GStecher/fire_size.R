@@ -21,6 +21,8 @@ library(maptools)
 library(ggeffects)
 library(gridExtra)
 library(raster)
+library(fitdistrplus)
+library(actuar)
 
 #######################################
 #######################################
@@ -309,10 +311,46 @@ names(index)[3:length(index)]<-v
 ##################################################
 ### rerun best model with each variable to predict
 
-m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
+q<-c(0.1,0.3,0.5,0.7,0.8,0.9,0.95,0.99)
 
+init<-m$summary.hyperpar[1,]
+res<-c(1,1)
+
+for(i in seq_along(q)){
+
+m<-inla(modellmm[[b]],data=inla.stack.data(full.stack),control.predictor=list(A=inla.stack.A(full.stack),compute=TRUE,link=1),control.compute=list(dic=TRUE,waic=TRUE,cpo=TRUE,config=TRUE),control.inla=list(strategy='simplified.laplace',int.strategy="eb"),family="gp",control.family=list(list(control.link=list(quantile=q[i]),hyper=hyper.gp)),control.fixed=control.fixed,num.threads=7)
+
+init<-rbind(init,m$summary.hyperpar[1,])
+xi<-m$summary.hyperpar[1,1]
+eta<-mean(m$summary.linear.predictor[,1])
+sigma<-(xi*exp(mean(eta)))/((1-q[i])^(-xi)-1)
+res<-rbind(res,c(eta,sigma))
+
+
+}
+init<-init[-1,]
+res<-res[-1,]
+
+hist(size$tTotal,breaks=3000,freq=FALSE,xlim=c(0,60))
+x<-seq(0,60,length=100)
+lapply(seq_along(q),function(i){
+  lines(x,dpareto(x,shape=init[i,1],scale=res[i,2]))
+})
+
+
+
+### from haakon bakka, BTopic112
 nsims<-200
 samples<-inla.posterior.sample(nsims,m)
+m$misc$configs$contents
+contents<-m$misc$configs$contents
+effect<-"APredictor" # not sure if should use APredictor or Predictor
+id.effect<-which(contents$tag==effect)
+ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[index[["est"]]]
+samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
+s.eff<-do.call("cbind",samples.effect)
+xi.eff<-sapply(samples, function(x) x$hyperpar[grep("genPareto",names(x$hyperpar))])
+#unique(sapply(strsplit(rownames(m$summary.fitted.values),"\\."),function(i){paste(i[1:min(2,length(i))],collapse=" ")}))
 
 #####################################
 ### visualize spatial fields
@@ -419,13 +457,13 @@ nweights<-grep("spatial",row.names(samples[[1]]$latent))
 
 ### this is to compare with a quantile model
 #par(mfrow=c(round(sqrt(2*length(v)),0),ceiling(sqrt(2*length(v)))),mar=c(4,4,3,3),oma=c(0,10,0,0))
-#mq <- rq (log(tTotal) ~ Road1k + Pp_1000 + urbwtr1k + frbreak1k + Ag_1000 + h__1000 + VEGZONS + FWI, data = na.omit(size),tau=q)
+#mq <- rq (tTotal ~ Road1k + Pp_1000 + urbwtr1k + Ag_1000 + h__1000 + FWI, data = na.omit(size),tau=q)
 #na<-all.vars(mq$formula[[3]])
 #grobs<-lapply(na,function(i){
 #  if(is.factor(size[,i])){
-#    plot(ggpredict(mq,terms=i),limits=c(0,100))  
+#    plot(ggpredict(mq,terms=i),limits=c(0,100),raw=TRUE)  
 #  }else{
-#    plot(ggpredict(mq,terms=paste(i,"[n=50]")),limits=c(0,100)) 
+#    plot(ggpredict(mq,terms=paste(i,"[n=50]")),limits=c(0,100),raw=TRUE) 
 #  }
 #})
 #grid.arrange(grobs=grobs,ncol=3)
@@ -505,17 +543,6 @@ rgp <- function(n, sigma, eta, alpha, xi = 0.001){
 
 ######################################################
 ### model checking with DHARMa
-
-### from haakon bakka, BTopic112
-m$misc$configs$contents
-contents<-m$misc$configs$contents
-effect<-"APredictor" # not sure if should use APredictor or Predictor
-id.effect<-which(contents$tag==effect)
-ind.effect<-contents$start[id.effect]-1+(1:contents$length[id.effect])[index[["est"]]]
-samples.effect<-lapply(samples, function(x) x$latent[ind.effect])
-s.eff<-do.call("cbind",samples.effect)
-xi.eff<-sapply(samples, function(x) x$hyperpar[grep("genPareto",names(x$hyperpar))])
-#unique(sapply(strsplit(rownames(m$summary.fitted.values),"\\."),function(i){paste(i[1:min(2,length(i))],collapse=" ")}))
 
 ### check with inla model
 # xi should be sampled as well and not fixed to its mean value
@@ -631,13 +658,14 @@ rgp <- function(n, sigma, eta, alpha, xi = 0.001)
   }
   return (sigma / xi * (runif(n)^(-xi) -1.0))
 }
-n = 2000
+n = 1000
 n2 = 100
 x = runif(n)-0.5
 eta = 1+x
 alpha = 0.99
-xi = 0.4
+xi = 0.6
 y = rgp(n, eta = eta, alpha = alpha, xi=xi)
+#y = rgpd(n, mu = 
 x2 = seq(min(x),max(x),length.out=n2)
 x = c(x,x2)
 y = c(y,rep(NA,n2))
@@ -685,6 +713,12 @@ vals<-lapply(1:ncol(s.eff),function(i){
   abline(v=quantile(vals,alpha),col=alpha("red",0.15))
 })
 abline(v=quantile(d$y[1:n],alpha),lwd=2)
+
+f<-fitdist(y[1:n],distr="pareto")#,start=list(shape=sigma,scale=xi))
+x<-seq(0,max(y[1:n]),length=100)
+lines(x,dpareto(x,shape=f$estimate[["shape"]],scale=f$estimate[["scale"]]))
+
+
 ### 4
 gppdf<-function(y,sigma,xi){(1/sigma)*(1+xi*(y/sigma))^(-1*((1/xi)+1))} # CDF
 samp<-100
@@ -701,3 +735,21 @@ quant<-lapply(sample(r$summary.linear.predictor[1:1000,"mean"],samp),function(i)
   lines(va,gppdf(y=va,sigma=sigma,xi=xi2),col=alpha("red",0.1))
   integrate(gppdf,lower=0,upper=30,sigma=sigma,xi=xi2)$value
 })
+
+
+
+
+###########################################
+#### fit distributions
+
+
+sigma = exp(eta) * xi / ((1.0 - alpha)^(-xi) -1.0)
+vals<-rpareto(n=1000,shape=3,scale=0.5)
+#vals<-rgamma(n=1000,shape=3,scale=0.5)
+vals<-y[1:n]
+f<-fitdist(vals,distr="pareto")#,start=list(shape=sigma,scale=xi))
+hist(vals,breaks=50,freq=FALSE)
+x<-seq(0,max(vals),length=100)
+lines(x,dpareto(x,shape=f$estimate[["shape"]],scale=f$estimate[["scale"]]))
+
+             
