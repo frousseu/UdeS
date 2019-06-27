@@ -214,6 +214,9 @@ invisible(ans<-lapply(seq_along(ld),function(k){
       }
     })
   }
+  # white polygons to cut color gradient lines
+  polygon(c(coe$th,rev(coe$th),coe$th[1]),c(coe$"2.5 %",rep(-10,length(coe[[1]])),-10),col="white",border=NA,xpd=FALSE)
+  polygon(c(coe$th,rev(coe$th),coe$th[1]),c(coe$"97.5 %",rep(10,length(coe[[1]])),10),col="white",border=NA,xpd=FALSE)
   points(coe$th,coe$Estimate,col=alpha("black",0.75),pch=ifelse(coe$"Pr(>|z|)"<=0.05,1,1),cex=2,lwd=2)
   abline(0,0,lty=2)
   #m<-loess(Estimate~th,data=coe,span=0.7)
