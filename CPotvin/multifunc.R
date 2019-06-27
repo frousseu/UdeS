@@ -104,7 +104,9 @@ layout(mat)
 layout.show(9)
 invisible(ans<-lapply(seq_along(ld),function(k){
   i<-ld[[k]]
-  th<-getFuncsMaxed(i,names(i)[names(i)%in%vars], threshmin=min(ths), threshmax=max(ths), prepend=c("plot","diversity","year"), maxN=3)
+  maxN<-min(table(i$diversity))+1 # Byrnes uses the min+1 of the minimum sample for a given diversity level (use to be maxN=3)
+  print(maxN)
+  th<-getFuncsMaxed(i,names(i)[names(i)%in%vars], threshmin=min(ths), threshmax=max(ths), prepend=c("plot","diversity","year"), maxN=maxN)
   #slopes<-getCoefTab(funcMaxed ~ diversity, data=th, coefVar=c("diversity"), family=quasipoisson(link="identity"))
     
   plot(0,0,ylim=c(0-0.25,sum(names(i)%in%vars)+0.5),xlim=range(th$diversity),type="n",xlab="",ylab="",font=2,font.lab=2,xaxt="n",yaxt="n")
@@ -248,12 +250,12 @@ mtext("Threshold",4,cex=1.2,outer=TRUE)
 
 
 ### histograms of p values
-ans<-coe
-ans<-split(ans,ans$var)
-par(mfrow=c(2,3))
-lapply(ans,function(i){
-  hist(i$"Pr(>|z|)",breaks=seq(0,1,by=0.05),main=i$var[1],border=NA,col="darkgreen")  
-})
+#ans<-coe
+#ans<-split(ans,ans$var)
+#par(mfrow=c(2,3))
+#lapply(ans,function(i){
+#  hist(i$"Pr(>|z|)",breaks=seq(0,1,by=0.05),main=i$var[1],border=NA,col="darkgreen")  
+#})
 
 
 
