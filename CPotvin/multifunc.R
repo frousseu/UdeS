@@ -85,9 +85,7 @@ coly<-c("brown3","cornflowerblue","chartreuse4")
 mgp<-c(3,0.25,0)
 tcl<--0.2
 ths<-seq(0.01,0.99,by=0.01)
-  
-
-
+ramp<-rev(viridis(100))
 
 par(mfrow=c(2,3),mar=c(3,2,1,0),oma=c(2,4,0,2))
 n1<-20
@@ -122,7 +120,6 @@ invisible(ans<-lapply(seq_along(ld),function(k){
   
   thr<-sort(unique(th$thresholds))
   l<-split(th,th$thresholds)
-  ramp<-viridis(100)
   cols<-alpha(colo.scale(1:length(l),ramp),1)
   
   
@@ -188,8 +185,9 @@ invisible(ans<-lapply(seq_along(ld),function(k){
   
 
   ### plot of diversity coef vs. th with CIs
-  ylim<-range(unlist(coe[,c("Estimate","2.5 %","97.5 %")]))
+  #ylim<-range(unlist(coe[,c("Estimate","2.5 %","97.5 %")]))
   ylim<-c(-0.2,0.4)
+  #ylim<-c(-0.4,1.5)
   plot(0,0,type="n",xlim=range(coe$th),ylim=ylim,ylab="",xlab="",yaxt="n",xaxt="n")
   if(k%in%1:4){
     axis(2,las=2,tcl=tcl,mgp=mgp)
@@ -239,7 +237,7 @@ legend("topleft",legend=c("Slope estimate for a given threshold","Significant sl
 ## legend
 plot(0,0,xlim=0:1,ylim=0:1,xaxs="i",yaxs="i",xaxt="n",yaxt="n",bty="n",type="n")
 rec<-c(-0.4,0,0.2,1)
-legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),viridis(100)),1), ncol=1))
+legend_image <- as.raster(matrix(alpha(colo.scale(1:length(l),ramp),1), ncol=1))
 rasterImage(legend_image,rec[1],rec[2],rec[3],rec[4],xpd=TRUE,lwd=1)
 #at<-seq(min(ths),max(ths),length.out=10)
 at<-c(min(ths),seq(0.1,0.9,by=.1),max(ths))
@@ -261,4 +259,20 @@ mtext("Threshold",4,cex=1.2,outer=TRUE)
 #})
 
 
+#####################
+### diversity vs. function
 
+vs<-intersect(unlist(lapply(ld,names)),vars)
+cols<- qualitative_hcl(length(vs), palette = "dark3")
+ltys<-rep(c(1,2,3),length.out=length(vs))
+
+par(mfrow=c(2,2))
+lapply(seq_along(ld),function(k){
+  i<-ld[[k]]
+  plot(0,0,xlim=range(i$diversity),ylim=0:1,type="n")
+  lapply(intersect(vars,names(i)),function(j){
+    abline(lm(as.formula(paste0(j,"~","diversity")),data=i),col=cols[match(j,vs)],lty=ltys[match(j,vs)],lwd=5)
+  })
+  mtext(names(ld)[k],3,line=-1.5)
+})
+legend("bottom",lwd=5,col=cols,lty=ltys,legend=vs,ncol=4,bty="n",seg.len=7)
