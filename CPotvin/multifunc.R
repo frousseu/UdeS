@@ -4,6 +4,10 @@ library(multifunc) # https://doi.org/10.1111/2041-210X.12143
 library(FRutils)
 library(scales)
 library(viridisLite)
+library(DHARMa)
+library(colorspace)
+library(ggplot2)
+library(data.table)
 
 #################################################################
 ### For the three blocks with common functions
@@ -12,19 +16,21 @@ library(viridisLite)
 ### version for Multifunction and SME data.xlsx
 #d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data.xlsx",sheet=1,range="A3:AC25",col_names=TRUE))
 #y<-unlist(as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data.xlsx",sheet=1,range="A3:AC3",col_names=FALSE)))
-#vars<-c("SOC3","CMIC","RC","SR","HAW","LL","CWD","LD","AGB","CO")
+#vars<-c("SOC3","CMIC","SRQ","SR","HB","LL","CWD","LD","AGB","CO")
 #v<-rep(vars,times=c(3,2,2,1,3,3,3,3,3,3))
 
 
 ### version for Multifunction and SME data June13-2019.xlsx
 d<-as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data June13-2019.xlsx",sheet=1,range="A3:AK24",col_names=FALSE))
 y<-unlist(as.data.frame(read_excel("C:/Users/rouf1703/Documents/UdeS/Consultation/CPotvin/Multifunction and SME data June13-2019.xlsx",sheet=1,range="A2:AK2",col_names=FALSE)))
-vars<-c("LL","SOC3","SOC3P","MB","CMIC","RC","SR","HAW","CWD","LD","AGB","CO","SRB")
+vars<-c("LLB","SOC3M","SOC3","MB","CMIC","SRQ","SR","HB","CWD","LLD","AGB","CO","CRB")
+varnames<-c("Leaf Litter Biomass","Soil Organic Carbon Mass","Soil Organic Carbon %","Mean Bas","CMIC","Soil Respiratory Quotient","Soil Respiration","Herbaceous Biomass","Coarse Woody Debris","Leaf Litter Decomposition","Aboveground Biomass","Canopy Openness","Coarse Root Biomass")
+cat(paste(paste(varnames,paste0("(",vars,")")),collapse=", "))
 v<-rep(vars,times=c(3,3,3,2,2,2,1,3,3,3,3,3,3))
 
-y[grep("2001|2005|2006|2005-2006",y)]<-"2001-2006"
-y[grep("2011|2012|2013",y)]<-"2011-2013"
-y[grep("2015|2016|2017",y)]<-"2015-2017"
+y[grep("2001|2005|2006|2005-2006",y)]<-"Early"
+y[grep("2011|2012|2013",y)]<-"Mid"
+y[grep("2015|2016|2017",y)]<-"Late"
 
 names(d)<-c("id","size","diversity",v)
 
@@ -43,43 +49,46 @@ names(d)<-gsub("value.","",names(d))
 ##################
 ### type of var
 
-stock<-c("AGB","RB","SOC3")
+stock<-c("AGB","SRB","SOC3M","SOC3")
 flux<-setdiff(vars,stock)
 
-air<-c("AGB","CWD","CO","LL","LD") # are the two litter air?
+air<-c("AGB","CWD","CO","LLB","LLD") # are the two litter air?
 soil<-setdiff(vars,air)
 
 ####################################
 ### reflecting
 
-re<-c("RC","HAW","LD","CO")
+re<-c("SRQ","HB","LLD","CO")
 d[,re]<--1*d[,re]
 
 
 ####################################
 ### subset
 d2<-d # for full data in 2017
-d<-d[,-match(c("SR","CMIC","RC","LL","LD","SOC3P","MB"),names(d))]
+d<-d[,-match(c("SR","CMIC","SRQ","LLB","LLD","SOC3M","MB"),names(d))]
 
-d2<-d2[d2$year=="2015-2017",]
-d2$year<-paste0(d2$year,"full")
-d2<-d2[,-match(c("SOC3","MB","CMIC","LD"),names(d2))] # full data in 2017
+d2<-d2[d2$year=="Late",]
+d2$year<-paste(d2$year,"full",sep=" - ")
+d2<-d2[,-match(c("SOC3M","MB","CMIC","LLD"),names(d2))] # full data in 2017
 
 ########################################
 ### subset and remove all cols with NAs
 
 ld<-split(d,d$year)
-ld<-c(ld,"2015-2017full"=list(d2))
+ld<-ld[c("Early","Mid","Late")]
+ld<-c(ld,"Late - full"=list(d2))
 
 ld<-lapply(ld,function(j){
   j[,!apply(j,2,function(i){any(is.na(i))})]
 })
 
+ldun<-ld
 ld<-lapply(ld,function(j){
   xv<-names(j)[names(j)%in%vars]
   j[xv]<-lapply(j[xv],rescale,to=0:1)
   j
 })
+
 
 coly<-c("brown3","cornflowerblue","chartreuse4")
 mgp<-c(3,0.25,0)
@@ -115,7 +124,7 @@ invisible(ans<-lapply(seq_along(ld),function(k){
     mtext("Diversity",1,line=2,cex=1.2,adj=1.15)
   }  
   axis(1,at=sort(unique(i$diversity)),label=sort(unique(i$diversity)),tcl=tcl,mgp=mgp)
-  mtext(i$year[1],side=3,line=-1.5,font=2,adj=c(0.95))
+  mtext(i$year[1],side=3,line=-1.5,font=2,adj=c(0.05))
   
   
   thr<-sort(unique(th$thresholds))
@@ -127,7 +136,18 @@ invisible(ans<-lapply(seq_along(ld),function(k){
   com<-lapply(seq_along(l),function(j){
     k<-l[[j]]
     k$year<-as.factor(k$year)
-    m<-glm(funcMaxed~diversity,data=k,family=poisson(link="log"))
+    m<<-glm(funcMaxed~diversity,data=k,family=quasipoisson(link="identity"),start=c(2,0.5))
+    
+    #v<-seq(1,5,by=0.1)
+    #p<-predict(m,data.frame(diversity=v),type="response")
+    #plot(jitter(k$diversity),jitter(k$funcMaxed))
+    #lines(v,p)
+    #Sys.sleep(0.00)
+    #crap<<-k
+    
+    #sims<-simulateResiduals(m)
+    #plot(sims)
+    #print(m$deviance/m$df.residual)
     m
   })
   
@@ -136,7 +156,7 @@ invisible(ans<-lapply(seq_along(ld),function(k){
   coe<-lapply(seq_along(com),function(h){
     m<-com[[h]]
     res<-as.data.frame(summary(m)$coef)
-    res<-cbind(th=l[[h]]$thresholds[1],year=i$year[1],var=row.names(res),res,as.data.frame(confint(m)))
+    suppressMessages(res<-cbind(th=l[[h]]$thresholds[1],year=i$year[1],var=row.names(res),res,as.data.frame(confint(m))))
     res
   })
   coe<-do.call("rbind",coe)
@@ -186,8 +206,8 @@ invisible(ans<-lapply(seq_along(ld),function(k){
 
   ### plot of diversity coef vs. th with CIs
   #ylim<-range(unlist(coe[,c("Estimate","2.5 %","97.5 %")]))
-  ylim<-c(-0.2,0.4)
-  #ylim<-c(-0.4,1.5)
+  #ylim<-c(-0.2,0.4)
+  ylim<-c(-0.5,1.5)
   plot(0,0,type="n",xlim=range(coe$th),ylim=ylim,ylab="",xlab="",yaxt="n",xaxt="n")
   if(k%in%1:4){
     axis(2,las=2,tcl=tcl,mgp=mgp)
@@ -250,6 +270,17 @@ mtext("Slope of diversity with CI",2,line=2,cex=1.2,outer=TRUE,adj=0.20)
 mtext("Threshold",4,cex=1.2,outer=TRUE)
 
 
+
+o1<-match(intersect(names(ld[[1]]),vars),vars)
+o2<-order(varnames[o1])
+cat(paste(paste(varnames[o1][o2],paste0("(",vars[o1][o2],")")),collapse=", "))
+
+
+o1<-match(setdiff(names(ld[[4]]),names(ld[[1]])),vars)
+o2<-order(varnames[o1])
+cat(paste(paste(varnames[o1][o2],paste0("(",vars[o1][o2],")")),collapse=", "))
+
+
 ### histograms of p values
 #ans<-coe
 #ans<-split(ans,ans$var)
@@ -257,6 +288,65 @@ mtext("Threshold",4,cex=1.2,outer=TRUE)
 #lapply(ans,function(i){
 #  hist(i$"Pr(>|z|)",breaks=seq(0,1,by=0.05),main=i$var[1],border=NA,col="darkgreen")  
 #})
+
+
+#####################
+### diversity vs. function
+
+### with 0:1 variables used in multifunctionality
+dats<-rbindlist(lapply(ld,function(i){
+  melt(i,measure.vars = setdiff(names(i),c("id","size","diversity","year")),variable.name = "func", value.name = "y")  
+}))
+dats[,funcs:=paste0(varnames[match(func,vars)],"\n",func)]
+dats[,periods:=factor(year,levels=unique(year))]
+
+ggplot(aes(x=diversity,y=y),data=dats)+geom_point(size=3)+facet_grid(~periods~funcs)+theme_bw(base_size=15)+stat_smooth(method="lm",colour="black",size=2)+xlab("\nDiversity")+ylab("Standardized Value of Function\n") +
+  theme(strip.text.x = element_text(size = 10, colour = "black", angle = 0)) +
+  scale_y_continuous(limits=c(0,1),breaks=c(0,0.5,1))
+
+
+
+### with standardization
+l<-lapply(ldun,function(j){
+  xv<-names(j)[names(j)%in%vars]
+  j[xv]<-lapply(j[xv],rescale,to=0:1) # with the 0:1 scaling
+  #j[xv]<-lapply(j[xv],function(i){(i-mean(i))/sd(i)}) # with standardization within periods
+  j
+})
+dats<-rbindlist(lapply(l,function(i){
+  melt(i,measure.vars = setdiff(names(i),c("id","size","diversity","year")),variable.name = "func", value.name = "y")  
+}))
+dats[,funcs:=paste0(varnames[match(func,vars)],"\n",func)]
+dats[,periods:=factor(year,levels=unique(year))]
+
+ggplot(aes(x=diversity,y=y),data=dats)+geom_point(size=3)+facet_grid(~periods~funcs)+theme_bw(base_size=15)+stat_smooth(method="lm",colour="black",size=2)+xlab("\nDiversity")+ylab("Standardized Value of Function within each period\n") +
+  theme(strip.text.x = element_text(size = 10, colour = "black", angle = 0))# +
+  #scale_y_continuous(limits=c(0,1),breaks=c(0,0.5,1))
+
+
+### with 0:1 accross all periods
+dats<-rbindlist(ldun,fill=TRUE)
+vs<-intersect(names(dats),vars)
+dats[,(vs):=lapply(.SD,rescale,to=0:1),.SDcols=vs]
+dats<-melt(dats,measure.vars = setdiff(names(dats),c("id","size","diversity","year")),variable.name = "func", value.name = "y")  
+dats[,funcs:=paste0(varnames[match(func,vars)],"\n",func)]
+dats[,periods:=factor(year,levels=unique(year))]
+
+ggplot(aes(x=diversity,y=y),data=dats)+geom_point(size=3)+facet_grid(~periods~funcs)+theme_bw(base_size=15)+stat_smooth(method="lm",colour="black",size=2,se=TRUE)+xlab("\nDiversity")+ylab("Standardized Value of Function across all periods\n") +
+  theme(strip.text.x = element_text(size = 10, colour = "black", angle = 0)) +
+  scale_y_continuous(breaks=c(0,0.5,1))
+
+
+### raw
+dats<-rbindlist(ldun,fill=TRUE)
+vs<-intersect(names(dats),vars)
+#dats[,(vs):=lapply(.SD,rescale,to=0:1),.SDcols=vs]
+dats<-melt(dats,measure.vars = setdiff(names(dats),c("id","size","diversity","year")),variable.name = "func", value.name = "y")  
+dats[,funcs:=paste0(varnames[match(func,vars)],"\n",func)]
+dats[,periods:=factor(year,levels=unique(year))]
+
+ggplot(aes(x=diversity,y=y),data=dats)+geom_point(size=3)+facet_grid(~funcs~periods,scales="free")+theme_bw(base_size=15)+stat_smooth(method="lm",colour="black",size=2,se=TRUE)+xlab("\nDiversity")+ylab("Real Reflected Value of Each Function\n") +
+  theme(strip.text.x = element_text(size = 10, colour = "black", angle = 0))
 
 
 #####################
@@ -276,3 +366,5 @@ lapply(seq_along(ld),function(k){
   mtext(names(ld)[k],3,line=-1.5)
 })
 legend("bottom",lwd=5,col=cols,lty=ltys,legend=vs,ncol=4,bty="n",seg.len=7)
+
+
