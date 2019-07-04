@@ -18,24 +18,38 @@ library(grid)
 load("~/UdeS/Consultation/LMontana/Data.RData")
 all<-as.data.table(m)
 
-plot(density(m$UDOI,bw="SJ"))
-lines(density(m.py$UDOI,bw="SJ"),col="red")
+#plot(density(m$UDOI,bw="SJ"))
+#lines(density(m.py$UDOI,bw="SJ"),col="red")
 
 brks<-seq(0,max(m$UDOI),length.out=50)
-m<-m[m$PY%in%c(0,1),] # not sure if should keep 0 and 1s
+m<-m[m$PY%in%c(0,1),] # not sure if should keep just 0s or 1s as well
 h1<-hist(m$UDOI,breaks=brks,plot=FALSE)
 h2<-hist(m.py$UDOI,breaks=brks,plot=FALSE)
-
-h<-rbind(h2$density,h1$density)
-
-barplot(h,beside=TRUE,col=c("darkred","darkgreen"),border=NA,names.arg=paste(head(brks,-1),brks[-1],sep=" - "))
-legend("top",legend=c("With Young","Without Young"),fill=c("darkred","darkgreen"),bty="n",cex=2)
-
+#h<-rbind(h2$density,h1$density)
 d<-data.frame(udoi=h1$mids,p=h2$density/h1$density,w=h1$counts/max(h1$counts),counts=h1$counts)
 d<-d[!is.nan(d$p),]
 
-plot(d$udoi,d$p,cex=rescale(d$w^(1/1),c(0.5,10)),pch=21,bg=gray(0.5,0.5),col=gray(0.5,0.5),xlab="UDOI",ylab="Ratio of densities")
-text(d$udoi,d$p,label=d$counts,cex=0.65,col=gray(0,0.75),adj=c(0.5,-1.0))
+##############################################
+### histograms of densities
+##############################################
+
+hist(m$UDOI,breaks=brks,freq=FALSE,ylim=c(0,8),border=alpha("darkgreen",0.1),col=alpha("darkgreen",0.35),yaxt="n",xaxt="n",main="",xlab="",ylab="")
+par(new=TRUE)
+hist(m.py$UDOI,breaks=brks,freq=FALSE,ylim=c(0,8),border=alpha("darkred",0.1),col=alpha("darkred",0.35),yaxt="n",xaxt="n",main="",xlab="",ylab="")
+axis(1,main="",pos=c(0,0),col="grey60")
+axis(2,las=2,main="",pos=c(0,0),col="grey60")
+legend("top",legend=c("With Young","Whole population"),fill=alpha(c("darkred","darkgreen"),0.35),border=alpha(c("darkred","darkgreen"),0.2),bty="n",cex=2)
+mtext("UDOI",1)
+mtext("Density",2)
+title("Density of UDOI values for the population and the pairs that produced a young")
+#points(d$udoi,d$p,cex=1.5,pch=16,bg=gray(0.5),col=gray(0.5))
+
+################################################
+### plot of ratios
+################################################
+
+plot(d$udoi,d$p,cex=rescale(d$w^1,c(1,20)),pch=21,bg=gray(0.5,0.5),col=gray(0.5,0.5),xlab="UDOI",ylab="Ratio of densities")
+text(d$udoi,d$p,label=d$counts,cex=0.65,col=gray(0,0.75),adj=c(0.5,-1.3))
 abline(0,0)
 
 ##################
@@ -86,8 +100,8 @@ f<-function(x,a,b,c){
 }
 start<-c(a=2.5,b=4.1,c=4.6)
 #lines(x,do.call("f",c(list(x),as.list(start))),col="magenta",lwd=2)
-decay<-nls(p~fm(udoi,a,b,c),data=d,start=start,control=list(minFactor=1e-12,maxiter=5000),weights=d$w)
-pred<-predict(mn,data.frame(udoi=x))
+decay<-nls(p~f(udoi,a,b,c),data=d,start=start,control=list(minFactor=1e-12,maxiter=5000),weights=d$w)
+pred<-predict(decay,data.frame(udoi=x))
 lines(x,pred,col="red",lwd=2)
 
 ### gaussian
@@ -121,7 +135,7 @@ ratio ### the ratio leaves some possibility of mating for almost no overlap
 threshold<-0.16 # chosen threshold for the Th method
 
 dt<-data.table(m)
-dt[,w:=gom(UDOI,a=a,b=b,c=c)]
+dt[,w:=do.call("f",c(list(UDOI),as.list(co)))]
 dt[,w:=rescale(w,to=c(ratio,1))] 
 dt[,compSc:=.N,by=fe]
 dt[,compWe:=lapply(.SD,sum),by=fe,.SDcols="w"]
@@ -154,38 +168,14 @@ wsd<-function(x,w){
   sqrt(sum(w*(x-mu)^2)/sum(w))
 }
 
-#n<-100
-#x<-runif(n);x<-c(1,2,3)
-#w<-runif(n,0,100);w<-c(1000,1,1)
-#wmean(x,w)
-#weighted.mean(x,w)
-#wsd(x,w)
-#weighted.sd(x,w)
-#rank((x-mean(x))/(sd(x)))-rank((x-wmean(x,w))/(wsd(x,w)))
-
-
-#dt<-data.table(Male=c(1,2,3,1,2,3,1,2,3),Dam=c(33,33,33,66,66,66,99,99,99),UDOI=c(0.2,0.2,0.2,0.2,0.5,1,1,0.5,0.1),cohort=2011,leg=rep(c(100,150,200),3),mass=rep(c(100,150,200),3))
-#dt[,w:=rescale(UDOI,0:1)]
-#dt[,w:=1]
-
 ma<-c("Male","cohort")
 morphos<-c("mass","leg")
 measures<-unique(dt[,c(ma,morphos),with=FALSE])
 measures[,c("massSc","legSc"):=lapply(.SD,function(i){i-mean(i)}),.SDcols=morphos][,(morphos):=NULL]
 dt<-merge(dt,measures,by=ma)
 
-#dt[,c("massth","legth"):=lapply(.SD,function(i){(i-mean(i[UDOI>=0.16]))/sd(i[UDOI>=0.16])}),by=fe,.SDcols=morphos]
 dt[,c("massTh","legTh"):=lapply(.SD,function(i){i-mean(i[UDOI>=threshold])}),by=fe,.SDcols=morphos]
-#dt[,c("masswe","legwe"):=lapply(.SD,function(i){(i-wmean(i,w))/wsd(i,w)}),by=fe,.SDcols=morphos]
 dt[,c("massWe","legWe"):=lapply(.SD,function(i){i-wmean(i,w)}),by=fe,.SDcols=morphos]
-#dt[,c("masszz","legzz"):=lapply(.SD,function(i){scale(i)[,1]}),.SDcols=morphos]
-#dt[,c("masszz","legzz"):=lapply(.SD,function(i){i-mean(i)}),.SDcols=morphos]
-
-#morphos<-sort(names(dt)[grep("mass|leg",names(dt))])
-#dt[,paste0("q",morphos):=lapply(.SD,function(i){rank(i)/length(i)}),by=fe,.SDcols=morphos]
-#dt[,paste0("re",morphos):=lapply(.SD,function(i){rescale(i,0:1)}),by=fe,.SDcols=morphos]
-#dt[order(Male,cohort)]
-
 
 #######################
 #######################
@@ -193,7 +183,6 @@ dt[,c("massWe","legWe"):=lapply(.SD,function(i){i-wmean(i,w)}),by=fe,.SDcols=mor
 
 fit0<-glmer(PY~UDOI+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
 fit<-glmer(PY~UDOI+mass+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
-#fitzz<-glmer(PY~UDOI+masszz+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
 fitSc<-glmer(PY~UDOI+massSc+compSc+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
 fitTh<-glmer(PY~UDOI+massTh+compTh+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
 fitWe<-glmer(PY~UDOI+massWe+compWe+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
@@ -237,7 +226,7 @@ ggplot(temp,aes(Dam,Male,fill=y)) +
   scale_fill_gradient2(low="blue",mid="white",high="red",midpoint=0)+
   ggtitle("Relative size of males for a given female")+
   facet_wrap(~cohort,scales="free")+
-  theme_bw(base_size = 8) +
+  theme_light(base_size = 8) +
   theme(axis.text.x=element_text(angle=90,vjust=0.5))
 
 #all[which(all$Male=="288" & all$Dam=="258"),]
