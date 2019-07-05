@@ -15,18 +15,14 @@ library(ncf)
 library(AICcmodavg)
 library(grid)
 
-load("~/UdeS/Consultation/LMontana/Data.RData")
+load("C:/Users/User/Downloads/Data.RData")
 all<-as.data.table(m)
-
-#plot(density(m$UDOI,bw="SJ"))
-#lines(density(m.py$UDOI,bw="SJ"),col="red")
 
 brks<-seq(0,max(m$UDOI),length.out=50)
 m<-m[m$PY%in%c(0,1),] # not sure if should keep just 0s or 1s as well
 h1<-hist(m$UDOI,breaks=brks,plot=FALSE)
 h2<-hist(m.py$UDOI,breaks=brks,plot=FALSE)
-#h<-rbind(h2$density,h1$density)
-d<-data.frame(udoi=h1$mids,p=h2$density/h1$density,w=h1$counts/max(h1$counts),counts=h1$counts)
+d<-data.frame(udoi=h1$mids,p=h2$density/h1$density,w=h1$counts/max(h1$counts),counts=h1$counts) # ratio of densities
 d<-d[!is.nan(d$p),]
 
 ##############################################
@@ -38,26 +34,22 @@ par(new=TRUE)
 hist(m.py$UDOI,breaks=brks,freq=FALSE,ylim=c(0,8),border=alpha("darkred",0.1),col=alpha("darkred",0.35),yaxt="n",xaxt="n",main="",xlab="",ylab="")
 axis(1,main="",pos=c(0,0),col="grey60")
 axis(2,las=2,main="",pos=c(0,0),col="grey60")
-legend("top",legend=c("With Young","Whole population"),fill=alpha(c("darkred","darkgreen"),0.35),border=alpha(c("darkred","darkgreen"),0.2),bty="n",cex=2)
+legend("top",legend=c("Pairs with young","All pairs"),fill=alpha(c("darkred","darkgreen"),0.35),border=alpha(c("darkred","darkgreen"),0.2),bty="n",cex=2)
 mtext("UDOI",1)
 mtext("Density",2)
-title("Density of UDOI values for the population and the pairs that produced a young")
+title("Density of UDOI values for all pairs and pairs that produced a young")
 #points(d$udoi,d$p,cex=1.5,pch=16,bg=gray(0.5),col=gray(0.5))
 
-################################################
-### plot of ratios
-################################################
-
-plot(d$udoi,d$p,cex=rescale(d$w^1,c(1,20)),pch=21,bg=gray(0.5,0.5),col=gray(0.5,0.5),xlab="UDOI",ylab="Ratio of densities")
-text(d$udoi,d$p,label=d$counts,cex=0.65,col=gray(0,0.75),adj=c(0.5,-1.3))
-abline(0,0)
 
 ##################
 ### DECAY models
 ##################
 
-x<-seq(0,max(d$udoi),by=0.01)
+plot(d$udoi,d$p,cex=rescale(d$w^1,c(1,20)),pch=21,bg=gray(0.5,0.5),col=gray(0.5,0.5),xlab="UDOI",ylab="Ratio of densities")
+text(d$udoi,d$p,label=d$counts,cex=0.65,col=gray(0,0.75),adj=c(0.5,-1.3))
+abline(0,0)
 
+x<-seq(0,max(d$udoi),by=0.01)
 
 ### gam
 #g<-gam(p~s(udoi),data=d,weights=d$w)
@@ -116,28 +108,29 @@ lines(x,pred,col="blue",lwd=2)
 
 ### extract coefficients and plot min/max
 co<-coef(decay)
-mm<-do.call("f",c(list(c(0,max(d$udoi))),as.list(co)))
+mm<-do.call("f",c(list(range(d$udoi)),as.list(co)))
 sapply(mm,abline,b=0,lty=3)
 
-legend("topleft",lwd=c(2,2,1,NA),legend=c("Gompertz Growth Curve","Gaussian Variogram","Maximum value observed and value predicted at UDOI = 0","Ratio of density for a given UDOI bin with nb. of observations in bin"),col=c("red","blue","black",gray(0.5,0.5)),pch=c(NA,NA,NA,21),pt.bg=gray(0.5,0.5),lty=c(1,1,3,NA),cex=1.5,bty="n",inset=c(0.1,0.1))
+legend("topleft",lwd=c(2,2,1,NA),legend=c("Gompertz Growth Curve","Gaussian Variogram","Maximum and minimum values predicted","Ratio of density for a given UDOI bin with nb. of obs. in bin"),col=c("red","blue","black",gray(0.5,0.5)),pch=c(NA,NA,NA,21),pt.bg=gray(0.5,0.5),lty=c(1,1,3,NA),cex=1.5,bty="n",inset=c(0.05,0.025))
 
+mtext("Decay functions for calculating competitors taking into account overlap",3,font=2,cex=1.5,line=1)
 
 
 #######################
 #######################
 #######################
 
-fe<-c("Dam","cohort")
+fe<-c("Dam","cohort") # this will be used for grouping
 
-ratio<-mm[1]/mm[2] # this is the ratio between the value predicted at x=0 and the maximum value observed
+ratio<-mm[1]/mm[2] # this is the ratio between the value predicted at UDOI = 0 and the maximum value predicted from observations
 ratio ### the ratio leaves some possibility of mating for almost no overlap
 
 threshold<-0.16 # chosen threshold for the Th method
 
 dt<-data.table(m)
-dt[,w:=do.call("f",c(list(UDOI),as.list(co)))]
-dt[,w:=rescale(w,to=c(ratio,1))] 
-dt[,compSc:=.N,by=fe]
+dt[,w:=do.call("f",c(list(UDOI),as.list(co)))] # this computes predictions from the decay model
+dt[,w:=rescale(w,to=c(ratio,1))] # this rescales predictions between the ratio and 1
+dt[,compSc:=.N,by=fe] 
 dt[,compWe:=lapply(.SD,sum),by=fe,.SDcols="w"]
 dt[,compTh:=lapply(.SD,function(i){sum(i>=threshold)}),by=fe,.SDcols="w"]
 
@@ -177,8 +170,53 @@ dt<-merge(dt,measures,by=ma)
 dt[,c("massTh","legTh"):=lapply(.SD,function(i){i-mean(i[UDOI>=threshold])}),by=fe,.SDcols=morphos]
 dt[,c("massWe","legWe"):=lapply(.SD,function(i){i-wmean(i,w)}),by=fe,.SDcols=morphos]
 
+
+############################################
+### Compare three measurements
+############################################
+
+temp<-dt[dt$cohort%in%2017,]
+temp<-as.data.frame(temp)
+temp[c("Male","Dam")]<-lapply(temp[c("Male","Dam")],as.character)
+
+g<-list()
+g[[1]]<-ggplot(temp,aes(Dam,Male,fill=legSc)) + ggtitle("2017 Global Scaling")
+g[[2]]<-ggplot(temp,aes(Dam,Male,fill=legTh)) + ggtitle("2017 Threshold Scaling")
+g[[3]]<-ggplot(temp,aes(Dam,Male,fill=legWe)) + ggtitle("2017 Weighted Scaling")
+
+g<-lapply(g,function(i){
+	i + geom_tile() + 
+		scale_fill_gradient2(low="blue",mid="white",high="red",midpoint=0,limits=range(unlist(temp[c("legSc","legTh","legWe")]))) +  
+		theme_light(base_size = 10) +
+		theme(axis.text.x=element_text(angle=90,vjust=0.5))
+})  
+
+grid.arrange(grobs=g,ncol=3,top = textGrob("Variation of leg size (centered) in relation to male competitors for a given female",gp=gpar(fontsize=20,font=1)))
+
+
+#########################################
+### Check for all cohorts
+#########################################
+
+val<-"legWe"
+temp<-dt[dt$cohort%in%2000:2017,c("Male","Dam","cohort",val,"w"),with=FALSE]
+temp[,y:=get(val)]
+temp<-as.data.frame(temp)
+temp[1:2]<-lapply(temp[1:2],as.character)
+
+ggplot(temp,aes(Dam,Male,fill=y)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low="blue",mid="white",high="red",midpoint=0)+
+  ggtitle("Variation of leg size (centered) in relation to weighted male competitors for a given female")+
+  facet_wrap(~cohort,scales="free")+
+  theme_light(base_size = 8) +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5))
+
+#all[which(all$Male=="288" & all$Dam=="258"),]
+
+
 #######################
-#######################
+### simple models
 #######################
 
 fit0<-glmer(PY~UDOI+(1|Dam)+(1|Male)+(1|cohort),family=binomial,data=dt)
@@ -211,51 +249,6 @@ grid.arrange(grobs=lapply(list(g1,g2,g3),plot,limits=lims),ncol=3)
 #plot(sims)
 
 
-#########################################
-### Check for all cohorts
-#########################################
-
-val<-"legWe"
-temp<-dt[dt$cohort%in%2000:2017,c("Male","Dam","cohort",val,"w"),with=FALSE]
-temp[,y:=get(val)]
-temp<-as.data.frame(temp)
-temp[1:2]<-lapply(temp[1:2],as.character)
-
-ggplot(temp,aes(Dam,Male,fill=y)) + 
-  geom_tile() + 
-  scale_fill_gradient2(low="blue",mid="white",high="red",midpoint=0)+
-  ggtitle("Relative size of males for a given female")+
-  facet_wrap(~cohort,scales="free")+
-  theme_light(base_size = 8) +
-  theme(axis.text.x=element_text(angle=90,vjust=0.5))
-
-#all[which(all$Male=="288" & all$Dam=="258"),]
-
-
-############################################
-### Compare three measurements
-############################################
-
-temp<-dt[dt$cohort%in%2017,]
-temp<-as.data.frame(temp)
-temp[c("Male","Dam")]<-lapply(temp[c("Male","Dam")],as.character)
-
-g<-list()
-g[[1]]<-ggplot(temp,aes(Dam,Male,fill=legSc)) + ggtitle("2017 Global Scaling")
-g[[2]]<-ggplot(temp,aes(Dam,Male,fill=legTh)) + ggtitle("2017 Threshold Scaling")
-g[[3]]<-ggplot(temp,aes(Dam,Male,fill=legWe)) + ggtitle("2017 Weighted Scaling")
-
-g<-lapply(g,function(i){
-  i + geom_tile() + 
-    scale_fill_gradient2(low="blue",mid="white",high="red",midpoint=0,limits=range(unlist(temp[c("legSc","legTh","legWe")]))) +  
-    theme_light(base_size = 10) +
-    theme(axis.text.x=element_text(angle=90,vjust=0.5))
-})  
-
-grid.arrange(grobs=g,ncol=3,top = textGrob("Variation of leg size (centered) in relation to male competitors for a given female",gp=gpar(fontsize=20,font=1)))
-
-
-
 ######################################################
 ### Check spatial structure using correlograms
 ######################################################
@@ -268,16 +261,17 @@ lt<-lt[,lapply(.SD,mean,na.rm=TRUE),by=c("ID","cohort"),.SDcols=c("X","Y")]
 
 males<-merge(males,lt,by.x=c("Male","cohort"),by.y=c("ID","cohort"),all.x=TRUE)
 
-par(mfrow=c(4,6))
+par(mfrow=c(3,3),oma=c(0,0,3,0))
 for(i in unique(males$cohort)){
   x<-males[cohort==i,]
   coords <- cbind(x$X,x$Y)
   v<-variog(coords=coords,data=x$leg,breaks=seq(0,1500,length.out=25),bin.cloud=TRUE)
-  plot(v, main = "Variogram",type="b",bin.cloud=FALSE)
+  #plot(v, main = "Variogram",type="b",bin.cloud=FALSE)
   sc <- spline.correlog(x=x$X, y=x$Y,z=x$leg, resamp=100, quiet=TRUE)
   plot(sc)
   mtext(i,3)
 }
+mtext("Correlation of leg size in relation to centroid distances between individuals (correlogram)",3,outer=TRUE,font=2,cex=1.25)
 
 
 #plots.dir.path <- list.files(tempdir(), pattern="rs-graphics", full.names = TRUE); 
