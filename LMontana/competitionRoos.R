@@ -139,7 +139,7 @@ dt[,w:=do.call("f",c(list(UDOI),as.list(co)))]
 dt[,w:=rescale(w,to=c(ratio,1))] 
 dt[,compSc:=.N,by=fe]
 dt[,compWe:=lapply(.SD,sum),by=fe,.SDcols="w"]
-dt[,compTh:=lapply(.SD,function(i){sum(i>=threshold)}),by=fe,.SDcols="w"]
+dt[,compTh:=lapply(.SD,function(i){sum(i>=threshold)}),by=fe,.SDcols="UDOI"]
 
 lt<-data.table(l)
 lt<-lt[,lapply(.SD,mean),by=c("ID","cohort"),.SDcols=c("X","Y")]
