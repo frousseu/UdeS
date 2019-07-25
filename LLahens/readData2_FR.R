@@ -121,14 +121,14 @@ for(j in seq_along(files)){
       #print(data$sampleText[data$"concentrationFlag"=="YES"])
       #crap<-unique(c(crap,data$sampleText[data$"concentrationFlag"=="YES"]))
       
-      results <- unique(data[!is.na(group), .(group, mean_ppb, sd_ppb, sampleInGroup, nonNA_sample, percentDev, concentrationFlag)])
+      results <- unique(data[!is.na(group), .(group, mean_ppb, sd_ppb, sampleInGroup, nonNA_sample, concentrationFlag)])
       
       ### add CB CH (assumes CB and CH are not found anywhere in sample names!!!
       results[, CB := data$concentrationFlag[grep("CB",substr(data$sampleText,1,2))[which.max(1/(grep("CB",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
-      results[, percentDevCB := data$percentDev[grep("CB",substr(data$sampleText,1,2))[which.max(1/(grep("CB",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
+      results[CB=="YES", percentDevCB := data$percentDev[grep("CB",substr(data$sampleText,1,2))[which.max(1/(grep("CB",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
       
       results[, CH := data$concentrationFlag[grep("CH",substr(data$sampleText,1,2))[which.max(1/(grep("CH",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
-      results[, percentDevCH := data$percentDev[grep("CH",substr(data$sampleText,1,2))[which.max(1/(grep("CH",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
+      results[CH=="YES", percentDevCH := data$percentDev[grep("CH",substr(data$sampleText,1,2))[which.max(1/(grep("CH",substr(data$sampleText,1,2))-match(group,data$group)))]], by=group]
       
       results[,compound:=name[i]]
       results[,file:=files[j]]
@@ -144,9 +144,6 @@ for(j in seq_along(files)){
 d<-rbindlist(res)
 ss<-strsplit(d$file,"_")
 
-d[CB=="NO",percentDevCB:=NA]
-d[CH=="NO",percentDevCH:=NA]
-
 d[,date:=as.Date(sapply(ss,"[",1),"%Y%m%d")]
 d[,type:=sapply(ss,"[",3)]
 d[,changed:=ifelse(grepl("Dchanged",file),"yes","no")]
@@ -160,5 +157,5 @@ d<-d[which(!dups | (dups & d$changed=="yes")),]
 fwrite(d,"data_compounds.csv",row.names=FALSE)
 
 
-
+#table(!is.na(d$percentDevCB) & d$CB=="NO",useNA="always")
 
