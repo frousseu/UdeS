@@ -39,7 +39,7 @@ newdata<-function(x,v=names(x),n=100,fun=mean,list=FALSE,factors=TRUE){
       res<-data.frame(val,as.data.frame(l),stringsAsFactors=TRUE)
     }
     names(res)[1]<-i
-    res<-res[,names(x)] # put in the same order as
+    res<-res[,names(x),drop=FALSE] # put in the same order as
     if(factors){
       w<-which(sapply(x,function(k){is.character(k) | is.factor(k)}))
       res[w]<-lapply(w,function(j){
